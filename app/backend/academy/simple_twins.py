@@ -508,7 +508,8 @@ Degrees = Annotated[float, Field(ge=-360, le=360, allow_inf_nan=False)]
 class Waypoint(StrictModel):
     name: str = Field(default="", max_length=60)
     degrees: list[Degrees] = Field(min_length=6, max_length=6)
-    hold: float = Field(default=0.01, ge=0, le=60, allow_inf_nan=False)
+    # The connector moves rest to rest only when every waypoint holds.
+    hold: float = Field(default=0.01, ge=0.01, le=60, allow_inf_nan=False)
 
 
 class ChainDraft(LayoutDraft):

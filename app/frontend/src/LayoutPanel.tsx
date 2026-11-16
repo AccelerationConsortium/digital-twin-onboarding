@@ -495,7 +495,7 @@ export default function LayoutPanel({
                     : `${m.simulation && m.seconds ? `${m.seconds.toFixed(1)} s · ` : ""}${m.length_m.toFixed(2)} m tool path · ${(m.clearance_m * 100).toFixed(1)} cm min clearance · ${m.simulation ? `${Math.round(m.simulation.torque_ratio * 100)}% joint torque` : m.planner}`}
                 </small>
               </button>
-              {onEdit && !m.blocked && (
+              {onEdit && !m.blocked && m.arm === "UR5e" && (
                 <button
                   className={studio.secondary}
                   aria-label={`Edit the arm path of step ${m.step}`}

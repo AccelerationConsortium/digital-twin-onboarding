@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -82,17 +82,27 @@ export default function ChainEditor({
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
   const key = JSON.stringify(layout);
+  const edited = useRef(false);
+  // Counts every change, so a check that comes back late is recognised as stale.
+  const revision = useRef(0);
 
   useEffect(() => {
     let live = true;
     setPlanned(null);
     setError("");
+    // A check belongs to the layout it was made for.
+    revision.current += 1;
+    setResult(null);
+    onResult(null);
     api<Chain>("/twins/layout/chain", json({ ...layout, step, speed: 20 }))
       .then((chain) => {
         if (!live) return;
         setPlanned(chain);
-        setPoints(chain.waypoints);
-        setChosen(0);
+        // Waypoints already changed by hand stay; only the plan behind them is new.
+        if (!edited.current) {
+          setPoints(chain.waypoints);
+          setChosen(0);
+        }
       })
       .catch((e) => live && setError((e as Error).message));
     return () => {
@@ -112,6 +122,8 @@ export default function ChainEditor({
 
   // Any edit makes the last check out of date.
   const edit = (next: Waypoint[], select = chosen) => {
+    edited.current = next !== planned?.waypoints;
+    revision.current += 1;
     setPoints(next);
     setChosen(Math.max(0, Math.min(select, next.length - 1)));
     setResult(null);
@@ -155,7 +167,7 @@ export default function ChainEditor({
       <ol className={s.points} aria-label="Waypoints">
         {points.map((p, i) => (
           <li key={i} data-chosen={i === chosen}>
-            <button className={s.point} onClick={() => edit(points, i)}>
+            <button className={s.point} onClick={() => setChosen(i)}>
               <strong>
                 {String(i + 1).padStart(2, "0")} {p.name || "Waypoint"}
               </strong>
@@ -274,6 +286,7 @@ export default function ChainEditor({
             max={40}
             value={speed}
             onChange={(e) => {
+              revision.current += 1;
               setSpeed(Number(e.target.value));
               setResult(null);
               onResult(null);
@@ -286,6 +299,7 @@ export default function ChainEditor({
           onClick={async () => {
             setChecking(true);
             setError("");
+            const asked = revision.current;
             try {
               const next = await api<ChainResult>(
                 "/twins/layout/chain/check",
@@ -297,6 +311,7 @@ export default function ChainEditor({
                   waypoints: points,
                 }),
               );
+              if (revision.current !== asked) return;
               setResult(next);
               onResult(next);
             } catch (e) {

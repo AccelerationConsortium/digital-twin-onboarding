@@ -429,6 +429,12 @@ export default function InstrumentStudio({
     tab === "layout" && editing !== null
       ? (preview?.motions.find((m) => m.step === editing) ?? null)
       : null;
+  // Leaving the layout tab closes the editor.
+  useEffect(() => {
+    if (tab === "layout") return;
+    setEditing(null);
+    setEditRun(null);
+  }, [tab]);
   const timed =
     tab === "layout" &&
     preview?.timeline?.length &&
@@ -504,7 +510,9 @@ export default function InstrumentStudio({
           ?.id ?? null)
       : null;
   const showingBlocked =
-    !!preview?.blocked && selectedMotion === preview.motions.length;
+    !!preview?.blocked &&
+    selectedMotion === preview.motions.length &&
+    !editMotion;
   const editLayout = (next: Layout) => {
     layoutDirty.current = true;
     layoutRevision.current += 1;

@@ -64,3 +64,21 @@ def test_only_a_transfer_on_a_placed_layout_has_waypoints(client):
         json={"bench": catalog["layout"]["bench"], "placements": [], "step": 3},
     )
     assert empty.status_code == 422
+
+
+def test_a_chain_the_connector_would_not_run_is_refused(client):
+    catalog, _ = opened(client)
+    doc = chain(client, catalog)
+    # At the slowest speed the action runs past the connector's limit.
+    body = {
+        **catalog["layout"],
+        "step": 3,
+        "speed": 1,
+        "reference": doc["reference"],
+        "waypoints": [{k: w[k] for k in ("name", "degrees", "hold")} for w in doc["waypoints"]],
+    }
+    slow = client.post("/api/twins/layout/chain/check", json=body).json()
+    assert "the connector allows 120 s" in slow["problem"]
+    # Every waypoint holds, however briefly: that is what makes the moves rest to rest.
+    body["waypoints"][0]["hold"] = 0
+    assert client.post("/api/twins/layout/chain/check", json=body).status_code == 422

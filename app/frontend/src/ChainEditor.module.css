@@ -123,7 +123,7 @@
   border-radius: 5px;
   background: var(--surface-2);
   font-size: 13px;
-  border-left: 3px solid #c2552d;
+  border-left: 3px solid var(--danger);
 }
 .result[data-ok="true"] {
   border-left-color: var(--brand);
