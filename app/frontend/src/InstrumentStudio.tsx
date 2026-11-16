@@ -40,6 +40,7 @@ import {
 } from "./instrumentTypes";
 import BriefPanel, { RoleBindings, applyBlocker } from "./BriefPanel";
 import s from "./InstrumentStudio.module.css";
+import ChainEditor, { type ChainResult } from "./ChainEditor";
 import LayoutData from "./LayoutData";
 import LayoutPanel from "./LayoutPanel";
 import { armAt, duration } from "./layoutTimeline";
@@ -419,8 +420,20 @@ export default function InstrumentStudio({
   const [clock, setClock] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(4);
+  // A transfer whose waypoints are being edited by hand: the pose of the chosen
+  // waypoint, or the checked path once there is one.
+  const [editing, setEditing] = useState<number | null>(null);
+  const [editPose, setEditPose] = useState<number[] | null>(null);
+  const [editRun, setEditRun] = useState<ChainResult | null>(null);
+  const editMotion =
+    tab === "layout" && editing !== null
+      ? (preview?.motions.find((m) => m.step === editing) ?? null)
+      : null;
   const timed =
-    tab === "layout" && preview?.timeline?.length && !preview.error
+    tab === "layout" &&
+    preview?.timeline?.length &&
+    !preview.error &&
+    !editMotion
       ? preview
       : null;
   const runtime = timed ? duration(timed.timeline!) : 0;
@@ -442,7 +455,9 @@ export default function InstrumentStudio({
     return () => window.clearInterval(timer);
   }, [playing, rate, runtime]);
   const moment = timed ? armAt(timed, clock) : null;
-  const motionFrames = moment?.motion.frames ?? selected?.frames ?? null;
+  const motionFrames = editMotion
+    ? (editRun?.frames ?? null)
+    : (moment?.motion.frames ?? selected?.frames ?? null);
   useEffect(() => {
     setArmFrame(0);
     if (!motionFrames?.length || timed) return;
@@ -453,7 +468,7 @@ export default function InstrumentStudio({
     );
     return () => window.clearInterval(timer);
   }, [motionFrames, timed]);
-  const shown = moment?.motion ?? selected;
+  const shown = editMotion ? editRun : (moment?.motion ?? selected);
   const shownFrame = moment
     ? moment.frame
     : Math.min(armFrame, (motionFrames?.length ?? 1) - 1);
@@ -652,9 +667,13 @@ export default function InstrumentStudio({
               }
               arm={motionFrames?.length ? motionFrames[shownFrame] : null}
               armJoints={
-                shown?.joints?.length ? shown.joints[shownFrame] : null
+                shown?.joints?.length
+                  ? shown.joints[shownFrame]
+                  : editMotion
+                    ? editPose
+                    : null
               }
-              armActor={shown?.actor_id ?? null}
+              armActor={editMotion?.actor_id ?? shown?.actor_id ?? null}
               path={motionFrames?.map((f) => f[f.length - 1]) ?? null}
               blocked={showingBlocked ? blockedTwin : null}
             />
@@ -984,6 +1003,18 @@ export default function InstrumentStudio({
                       : "No layout the arm can serve turned up yet. Search layouts tries more, or move instruments closer."}
                   </p>
                 )}
+                {editMotion && (
+                  <ChainEditor
+                    layout={draft}
+                    step={editMotion.step}
+                    onPose={setEditPose}
+                    onResult={setEditRun}
+                    onClose={() => {
+                      setEditing(null);
+                      setEditRun(null);
+                    }}
+                  />
+                )}
                 {timed && (
                   <LayoutData
                     twins={confirmed}
@@ -1051,6 +1082,11 @@ export default function InstrumentStudio({
                       json({ bench: draft.bench, fixed, start, avoid }),
                     )
                   }
+                  onEdit={(step) => {
+                    setPlaying(false);
+                    setEditRun(null);
+                    setEditing(step);
+                  }}
                   onRefine={
                     catalog.refine_available
                       ? (text) =>

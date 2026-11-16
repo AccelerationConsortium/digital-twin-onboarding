@@ -14,7 +14,7 @@ import time
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID, uuid4
 from xml.sax.saxutils import escape
 
@@ -35,6 +35,7 @@ from .workcell_layout import (
     NOMINAL_SPEED,
     MotionError,
     action_chain,
+    chain_check,
     plan_workflow,
     validate_layout,
 )
@@ -499,6 +500,27 @@ class LayoutDraft(StrictModel):
 
 class SaveLayout(Revision, LayoutDraft):
     pass
+
+
+Degrees = Annotated[float, Field(ge=-360, le=360, allow_inf_nan=False)]
+
+
+class Waypoint(StrictModel):
+    name: str = Field(default="", max_length=60)
+    degrees: list[Degrees] = Field(min_length=6, max_length=6)
+    hold: float = Field(default=0.01, ge=0, le=60, allow_inf_nan=False)
+
+
+class ChainDraft(LayoutDraft):
+    """One transfer of an unsaved layout, at a connector speed."""
+
+    step: int = Field(ge=1, le=48)
+    speed: float = Field(default=20, ge=1, le=40, allow_inf_nan=False)
+
+
+class ChainCheck(ChainDraft):
+    reference: list[Degrees] = Field(min_length=6, max_length=6)
+    waypoints: list[Waypoint] = Field(min_length=1, max_length=24)
 
 
 class RefineLayout(LayoutDraft):
@@ -1252,6 +1274,29 @@ class SimpleTwinService:
         try:
             execute_mock(twins, record["steps"])
             return action_chain(twins, record["layout"], record["steps"], step, speed)
+        except PlanError as exc:
+            raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
+
+    def chain(self, owner, data, check=False):
+        """A transfer's waypoints on an unsaved layout, or a check of hand-edited ones."""
+        record = self.get(owner)
+        layout = self.placed(record, data)
+        if not layout:
+            raise HTTPException(422, "Place the instruments before designing an arm path")
+        twins = {t["id"]: t for t in record["twins"]}
+        try:
+            execute_mock(twins, record["steps"])
+            if not check:
+                return action_chain(twins, layout, record["steps"], data.step, data.speed)
+            return chain_check(
+                twins,
+                layout,
+                record["steps"],
+                data.step,
+                data.speed,
+                data.reference,
+                [w.model_dump() for w in data.waypoints],
+            )
         except PlanError as exc:
             raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
 

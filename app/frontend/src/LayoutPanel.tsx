@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Download, RotateCw, Trash2 } from "lucide-react";
+import { Download, Pencil, RotateCw, Trash2 } from "lucide-react";
 import type {
   Access,
   Constraint,
@@ -50,6 +50,7 @@ export default function LayoutPanel({
   constraints,
   onConstraints,
   onRefine,
+  onEdit,
   busy,
 }: {
   twins: Twin[];
@@ -73,6 +74,8 @@ export default function LayoutPanel({
   onConstraints: (next: Constraint[]) => void;
   /** Present when the server has a language model to read layout requests. */
   onRefine?: (text: string) => Promise<Refinement>;
+  /** Opens a planned transfer's waypoints for editing by hand. */
+  onEdit?: (step: number) => void;
   busy: boolean;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -492,6 +495,15 @@ export default function LayoutPanel({
                     : `${m.simulation && m.seconds ? `${m.seconds.toFixed(1)} s · ` : ""}${m.length_m.toFixed(2)} m tool path · ${(m.clearance_m * 100).toFixed(1)} cm min clearance · ${m.simulation ? `${Math.round(m.simulation.torque_ratio * 100)}% joint torque` : m.planner}`}
                 </small>
               </button>
+              {onEdit && !m.blocked && (
+                <button
+                  className={studio.secondary}
+                  aria-label={`Edit the arm path of step ${m.step}`}
+                  onClick={() => onEdit(m.step)}
+                >
+                  <Pencil size={14} /> Edit path
+                </button>
+              )}
               {onExport && !m.blocked && (
                 <button
                   className={studio.secondary}
