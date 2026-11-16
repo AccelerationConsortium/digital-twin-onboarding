@@ -1013,6 +1013,8 @@ export default function InstrumentStudio({
                 )}
                 {editMotion && (
                   <ChainEditor
+                    // Another step is another path: its editor starts from that step's plan.
+                    key={editMotion.step}
                     layout={draft}
                     step={editMotion.step}
                     onPose={setEditPose}
