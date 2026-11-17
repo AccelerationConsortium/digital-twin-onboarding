@@ -117,6 +117,8 @@ ZONES = {
 HINTS = {
     "reach": "Instruments end up beyond the {arm}'s reach (about {reach:.2f} m). Allow front "
     "access, add a second arm, or keep fewer instruments in place.",
+    "access": "{detail} cannot be loaded from anywhere on this bench by the arm that serves "
+    "it. Change where it is loaded (front, or a lower height), or use an arm with a longer reach.",
     "room": "The bench is too small for every instrument around the arm. Make the bench "
     "larger or leave unused instruments off it.",
     "collision": "Arm paths run into {blocker}. Let it move, or change its access side.",
@@ -284,7 +286,9 @@ class Search:
 
     def diagnosis(self):
         out = []
-        for kind, count in self.reasons.most_common():
+        # An instrument the arm cannot load anywhere decides the search, however rarely it is met.
+        ranked = sorted(self.reasons.most_common(), key=lambda r: r[0] != "access")
+        for kind, count in ranked:
             detail = self.details.get(kind, Counter()).most_common(1)
             out.append(
                 {
@@ -413,7 +417,7 @@ class Search:
         ]
         start = near[-1] if near else order["angle"]
         angles = sorted(ANGLES, key=lambda a: (abs((a - start + 180) % 360 - 180), a))
-        offered = False
+        offered = reached = False
         scale = self.profile(home).scale
         # A twin that says where labware goes in is only tried there.
         for side in (spec["access"],) if spec.get("access") else order["sides"]:
@@ -421,6 +425,7 @@ class Search:
                 radius = round(ring * scale, 3)
                 if not self.reachable(home, station_id, side, radius):
                     continue
+                reached = True
                 for angle in angles:
                     t = math.radians(angle)
                     point = (bx + radius * math.sin(t), bz + radius * math.cos(t))
@@ -432,7 +437,15 @@ class Search:
                     if self.fits(station_id, pose, placed):
                         offered = True
                         yield pose
-        if not offered:
+        if not reached:
+            where = "the front" if (spec.get("access") or order["sides"][0]) == "front" else "above"
+            self.fail(
+                "access",
+                f"The {self.profile(home).name} cannot reach where {spec['name']} is loaded "
+                f"from {where}, at any distance",
+                spec["name"],
+            )
+        elif not offered:
             self.fail(
                 "room",
                 f"{spec['name']} has no pose within the {self.profile(home).name}'s reach that "

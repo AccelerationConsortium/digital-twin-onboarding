@@ -56,7 +56,7 @@ function outcome(share: ExperimentShare) {
 
 function setRoute(groupId: string | null) {
   window.history.replaceState(
-    {},
+    window.history.state,
     "",
     groupId ? `/#/groups/${groupId}` : "/#/groups",
   );

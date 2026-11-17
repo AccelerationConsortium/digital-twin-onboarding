@@ -182,3 +182,37 @@ def test_searched_layouts_stand_square_to_the_bench(client, monkeypatch):
     assert found["candidates"]
     for option in found["candidates"]:
         assert all(p["yaw"] % 90 == 0 for p in option["layout"]["placements"])
+
+
+def test_consolidation_keeps_to_one_kind_of_instrument():
+    from uuid import uuid4
+
+    from academy.consolidate import consolidation
+    from academy.examples import C, W, _move, build
+
+    def offered(first, second):
+        case = {
+            "instruments": [first, second],
+            "steps": [("load", 0, 150), ("read", 0, 1), _move(0, 1), ("read", 1, 1)],
+            "placements": None,
+        }
+        twins, steps, _ = build(case, lambda: str(uuid4()))
+        return consolidation({t["id"]: t for t in twins}, steps)
+
+    # Both only "read" a vial, but a balance does not take a spectrum.
+    assert offered((C, "mt_xpr204e"), (C, "jasco_ftir4700")) == []
+    # Two balances can share the weighing.
+    shared = offered((W, "precision-balance"), (W, "precision-balance"))
+    assert {c["transfers_saved"] for c in shared} == {1}
+
+
+def test_an_instrument_the_arm_cannot_load_is_named(client):
+    opened = client.put("/api/twins/examples/flex-shaker-reader", json={"expected_version": 0})
+    assert opened.status_code == 200, opened.text
+    found = search(client, bench={"width": 2.4, "depth": 1.6})
+    assert found["candidates"] == []
+    first = found["diagnosis"][0]
+    # The shaker's height, not the size of the bench, is what rules every layout out.
+    assert first["kind"] == "access"
+    assert "Incubated shaker (KS 4000 i)" in first["hint"]
+    assert "Incubated shaker (KS 4000 i)" in found["failure"]

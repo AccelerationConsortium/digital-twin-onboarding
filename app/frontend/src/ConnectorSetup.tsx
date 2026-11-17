@@ -396,7 +396,7 @@ export default function ConnectorSetup({
     act(async () => {
       const id = crypto.randomUUID();
       currentId.current = id;
-      window.history.replaceState({}, "", `/#/connect/${id}`);
+      window.history.replaceState(window.history.state, "", `/#/connect/${id}`);
       try {
         acceptConnection(
           await api<InstrumentConnection>(
@@ -571,7 +571,11 @@ export default function ConnectorSetup({
     setMotionConsent(false);
     setError("");
     setNotice("");
-    window.history.replaceState({}, "", id ? `/#/connect/${id}` : "/#/connect");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      id ? `/#/connect/${id}` : "/#/connect",
+    );
     if (id)
       void act(async () => {
         await load();
