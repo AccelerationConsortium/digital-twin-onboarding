@@ -594,12 +594,37 @@ export default function App() {
   const leaveGuard = useRef<(() => boolean) | null>(null);
   const navigationEpoch = useRef(0);
   const identityEpoch = useRef(0);
+  // The run on screen, so the address change that opened it is not read as a new one.
+  const shownRun = useRef<string | null>(null);
   const registerLeaveGuard = useCallback((guard: (() => boolean) | null) => {
     leaveGuard.current = guard;
   }, []);
   useEffect(() => {
     const routeChanged = (event: HashChangeEvent) => {
       if (movePlanLink()) return;
+      // Back or forward onto a run: open it again.
+      const run = window.location.hash.match(/^#\/lab\/([a-f0-9-]+)$/)?.[1];
+      if (run) {
+        if (run === shownRun.current) return;
+        if (leaveGuard.current && !leaveGuard.current()) {
+          window.history.replaceState({}, "", event.oldURL);
+          return;
+        }
+        const epoch = ++navigationEpoch.current;
+        shownRun.current = run;
+        void api<Session>(`/sessions/${run}`)
+          .then((found) => {
+            if (epoch !== navigationEpoch.current) return;
+            setSession(found);
+            setView("lab");
+          })
+          .catch((e: Error) => {
+            if (epoch !== navigationEpoch.current) return;
+            shownRun.current = null;
+            setError(e.message);
+          });
+        return;
+      }
       const route = window.location.hash.match(
         /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|sim|workflow-course|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
@@ -609,6 +634,7 @@ export default function App() {
         return;
       }
       navigationEpoch.current += 1;
+      shownRun.current = null;
       setSession(null);
       setView(route?.[1] ?? "overview");
       if (route?.[1] === "learn")
@@ -691,6 +717,7 @@ export default function App() {
   const open = (run: Session, checkLeave = true) => {
     if (checkLeave && leaveGuard.current && !leaveGuard.current()) return;
     navigationEpoch.current += 1;
+    shownRun.current = run.id;
     setSession(run);
     setView("lab");
     window.location.hash = `/lab/${run.id}`;
@@ -712,11 +739,11 @@ export default function App() {
     if (target.split("/")[0] === "learn")
       setLearningLevel(learningLevelFromPath(target));
     setSession(null);
-    window.history.replaceState(
-      {},
-      "",
-      target === "overview" ? "/" : `/#/${target}`,
-    );
+    shownRun.current = null;
+    // A new history entry, so the browser's Back button returns to the page before.
+    const url = target === "overview" ? "/" : `/#/${target}`;
+    if (url !== window.location.pathname + window.location.hash)
+      window.history.pushState({}, "", url);
     if (target === "discovery") setDiscoverySeed(undefined);
     window.scrollTo(0, 0);
   };
@@ -1164,11 +1191,7 @@ export default function App() {
                     setDiscoverySeed(item);
                     setSession(null);
                     setView("discovery");
-                    window.history.replaceState(
-                      {},
-                      "",
-                      `/#/discovery/${item.id}`,
-                    );
+                    window.history.pushState({}, "", `/#/discovery/${item.id}`);
                     window.scrollTo(0, 0);
                   }}
                 />
