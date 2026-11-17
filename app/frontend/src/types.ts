@@ -66,7 +66,7 @@ export type TeachingState = {
   tips_used: number;
   tips_discarded: number;
   waste_volume: number;
-  /** Present once a design has deck modules. */
+  /** Present once a design has deck modules or a module step. */
   plate?: { at: Place; temperature: number | null; shaken: boolean };
   readings?: { step: number; wells: Record<string, number> }[];
 };

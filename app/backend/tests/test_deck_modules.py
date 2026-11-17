@@ -26,11 +26,9 @@ def design(actions, modules=ALL, instrument="flex", **fields):
         course_id="workflow-sandbox",
         instrument=instrument,
         layout=FLEX if instrument == "flex" else OT2,
-        source_volume=1000,
-        diluent_volume=0,
         actions=actions,
         modules=modules,
-        **fields,
+        **{"source_volume": 1000, "diluent_volume": 0, **fields},
     )
 
 
@@ -103,8 +101,9 @@ def test_a_module_mistake_stops_the_run_where_it_is_made(actions, modules, instr
     assert (session["status"], fault["step"], fault["code"]) == ("faulted", step, code)
     assert fault["hint"]
     # A refused step leaves the plate where it was.
-    before = session["events"][-2]["state"]["plate"] if len(session["events"]) > 1 else None
-    assert before is None or fault["state"]["plate"] == before
+    start = {"at": "deck", "temperature": None, "shaken": False}
+    before = session["events"][-2]["state"]["plate"] if len(session["events"]) > 1 else start
+    assert fault["state"]["plate"] == before
 
 
 def test_pipetting_reaches_a_plate_on_a_module():
@@ -126,7 +125,8 @@ def test_a_design_with_modules_uses_the_flat_plate():
 
 
 def test_the_pipette_is_the_instruments_own():
-    twice = [{"kind": "pickup"}, {"kind": "aspirate", "volume": 400}]
+    # One microlitre over the OT-2's pipette, well inside the Flex's.
+    twice = [{"kind": "pickup"}, {"kind": "aspirate", "volume": 301}]
     assert run(design(twice, modules=[]))["status"] == "completed"
     assert run(design(twice, modules=[], instrument="ot2"))["events"][-1]["code"] == "capacity"
 
@@ -202,3 +202,9 @@ def test_the_check_says_what_the_simulator_stops_and_what_it_lets_through():
     assert quiet["stops"] == [] and [n["step"] for n in quiet["unnoticed"]] == [2]
     empty = check(design([{"kind": "read"}]).model_dump())
     assert empty["stops"] == [] and "Reads while the plate is on the deck" in str(empty)
+
+
+def test_wells_of_the_flat_plate_cannot_start_overfull():
+    with pytest.raises(ValidationError, match="360"):
+        design([], diluent_volume=400)
+    assert check(design([move("reader")]).model_dump())["api_level"] == "2.25"
