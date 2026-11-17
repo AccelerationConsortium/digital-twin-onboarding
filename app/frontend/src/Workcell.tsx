@@ -257,7 +257,11 @@ export default function Workcell({
         ]);
         onSessionSaved(device.session);
       }
-      window.history.replaceState({}, "", `/#/${view}/${device.id}`);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `/#/${view}/${device.id}`,
+      );
     },
     [view, onSessionSaved],
   );
@@ -349,7 +353,11 @@ export default function Workcell({
     setError("");
     setNotice("");
     pendingId.current = crypto.randomUUID();
-    window.history.replaceState({}, "", `/#/${view}${id ? `/${id}` : ""}`);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `/#/${view}${id ? `/${id}` : ""}`,
+    );
   };
   const mutate = async (twin = false) => {
     if (inFlight.current || unresolved) return;
@@ -406,7 +414,11 @@ export default function Workcell({
               reloadError instanceof ApiError && reloadError.status === 404
             )) {
               setSelectedId(id);
-              window.history.replaceState({}, "", `/#/${view}/${id}`);
+              window.history.replaceState(
+                window.history.state,
+                "",
+                `/#/${view}/${id}`,
+              );
             }
           }
         }
@@ -427,7 +439,7 @@ export default function Workcell({
     selected?.checks.filter((check) => check.scope === "physical") ?? [];
   const chooseRun = (id: string) => {
     setRunId(id);
-    window.history.replaceState({}, "", `/#/runs/${id}`);
+    window.history.replaceState(window.history.state, "", `/#/runs/${id}`);
   };
 
   return (

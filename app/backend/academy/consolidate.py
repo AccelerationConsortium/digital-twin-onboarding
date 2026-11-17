@@ -15,7 +15,7 @@ from .mock_contract import PlanError, execute_mock, site_keys
 
 # Kinds whose members can stand in for one another; anything else must share its name.
 KINDS = {
-    "liquid handler": r"liquid handler|\bot-?2\b|\bflex\b|pipett",
+    "liquid handler": r"liquid.handl|dispens|\bot-?2\b|\bflex\b|pipett",
     "balance": r"\bbalance\b",
     "plate reader": r"plate reader",
     "oven": r"\boven\b",

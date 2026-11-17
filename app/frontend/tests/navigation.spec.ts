@@ -40,4 +40,17 @@ test("the browser's back and forward buttons step through visited pages", async 
   await expect(
     page.getByRole("heading", { name: "Study groups" }),
   ).toBeVisible();
+
+  // A run opened from the dashboard is one more page to go back from and forward to.
+  await page.goto("/");
+  await page.getByRole("button", { name: /Start an experiment/ }).click();
+  await expect(page).toHaveURL(/#\/lab\/[a-f0-9-]+$/);
+  const run = page.url();
+  await page.goBack();
+  await expect(page).not.toHaveURL(/#\/lab\//);
+  await page.goForward();
+  await expect(page).toHaveURL(run);
+  await expect(
+    page.getByRole("button", { name: "Current experiment" }),
+  ).toBeVisible();
 });

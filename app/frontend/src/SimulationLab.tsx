@@ -181,7 +181,11 @@ export default function SimulationLab({
     setPicked(remembered(id));
     setError("");
     setSelectedId(id);
-    window.history.replaceState({}, "", `/#/sim${id ? `/${id}` : ""}`);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `/#/sim${id ? `/${id}` : ""}`,
+    );
   };
   useEffect(() => {
     const changed = () => {
@@ -205,7 +209,11 @@ export default function SimulationLab({
     if (alive.current) {
       setSession(prepared);
       setSelectedId(prepared.id);
-      window.history.replaceState({}, "", `/#/sim/${prepared.id}`);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `/#/sim/${prepared.id}`,
+      );
       launch.current = null;
       remember(prepared.id, engine);
     }
