@@ -22,7 +22,7 @@ import boto3
 import httpx
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException
-from pydantic import Field, ValidationError, model_validator
+from pydantic import Field, ValidationError, model_serializer, model_validator
 
 from . import arm_simulation
 from .arms import arm_for
@@ -86,6 +86,24 @@ class Site(StrictModel):
     z: float = Field(ge=-1.5, le=1.5, allow_inf_nan=False)
 
 
+class Opening(StrictModel):
+    """The part of one face an enclosure is entered through; the rest of its sides are shut.
+
+    `start` and `end` are fractions along the face: back to front on a side, left to right
+    at the front. A side window with its front half removed is left, 0.5 to 1.
+    """
+
+    face: Literal["front", "left", "right"] = "front"
+    start: float = Field(default=0, ge=0, le=1, allow_inf_nan=False)
+    end: float = Field(default=1, ge=0, le=1, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def wide_enough(self):
+        if self.end - self.start < 0.2:
+            raise ValueError("Leave at least a fifth of the face open")
+        return self
+
+
 class Consumable(StrictModel):
     name: str = Field(min_length=1, max_length=40)
     used_by: Operation
@@ -117,11 +135,23 @@ class TwinSpec(StrictModel):
     # in from above and rests on the twin's top.
     access: Literal["top", "front"] | None = None
     level_m: float | None = Field(default=None, ge=0, le=2, allow_inf_nan=False)
+    # An enclosure entered through part of one face; left out, its whole front is open.
+    opening: Opening | None = None
+
+    @model_serializer(mode="wrap")
+    def keep_saved_shape(self, handler):
+        spec = handler(self)
+        # Twins saved before openings existed compare equal to themselves.
+        if self.opening is None:
+            spec.pop("opening", None)
+        return spec
 
     @model_validator(mode="after")
     def consistent(self):
         if not self.name.strip() or len(set(self.operations)) != len(self.operations):
             raise ValueError("Name and unique operations are required")
+        if self.opening and self.access != "front":
+            raise ValueError("Only an instrument entered from a side has an opening")
         if self.limits.min_temp_c > self.limits.max_temp_c:
             raise ValueError("Minimum temperature must not exceed maximum temperature")
         holds = "load" in self.operations

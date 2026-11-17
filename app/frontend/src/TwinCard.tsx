@@ -380,18 +380,74 @@ export default function TwinCard({
               <label className={s.field}>
                 Loaded
                 <select
-                  value={draft.access ?? "top"}
-                  onChange={(e) =>
+                  value={
+                    draft.access === "front"
+                      ? (draft.opening?.face ?? "front")
+                      : "top"
+                  }
+                  onChange={(e) => {
+                    const face = e.target.value as
+                      "top" | NonNullable<TwinSpec["opening"]>["face"];
                     setDraft({
                       ...draft,
-                      access: e.target.value as TwinSpec["access"],
-                    })
-                  }
+                      access: face === "top" ? "top" : "front",
+                      // A side is an opening; the plain front keeps the twin as it was saved.
+                      opening:
+                        face === "left" || face === "right"
+                          ? { face, start: 0, end: 1 }
+                          : null,
+                    });
+                  }}
                 >
                   <option value="top">From above</option>
                   <option value="front">At the front</option>
+                  <option value="left">Through the left side</option>
+                  <option value="right">Through the right side</option>
                 </select>
               </label>
+              {draft.access === "front" && (
+                <label className={s.field}>
+                  Open part
+                  <select
+                    value={
+                      !draft.opening ||
+                      (draft.opening.start === 0 && draft.opening.end === 1)
+                        ? "whole"
+                        : draft.opening.start === 0
+                          ? "first"
+                          : "second"
+                    }
+                    onChange={(e) => {
+                      const face = draft.opening?.face ?? "front";
+                      const [start, end] =
+                        e.target.value === "first"
+                          ? [0, 0.5]
+                          : e.target.value === "second"
+                            ? [0.5, 1]
+                            : [0, 1];
+                      setDraft({
+                        ...draft,
+                        opening:
+                          face === "front" && e.target.value === "whole"
+                            ? null
+                            : { face, start, end },
+                      });
+                    }}
+                  >
+                    <option value="whole">Whole side</option>
+                    <option value="first">
+                      {draft.opening?.face && draft.opening.face !== "front"
+                        ? "Back half"
+                        : "Left half"}
+                    </option>
+                    <option value="second">
+                      {draft.opening?.face && draft.opening.face !== "front"
+                        ? "Front half"
+                        : "Right half"}
+                    </option>
+                  </select>
+                </label>
+              )}
               <NumberField
                 label="Max volume (µL)"
                 value={draft.container.max_volume_ul}
