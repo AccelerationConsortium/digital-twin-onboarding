@@ -206,6 +206,7 @@ def execute_step(session: dict) -> dict:
     problem = None
     detail = ""
     pipette_ul, well_ul = capacities(result["experiment"])
+    studio = result["experiment"]["course_id"] == "workflow-sandbox"
     modules = result["experiment"].get("modules", [])
     # A lesson has no modules: its plate never leaves the deck and its state stays as it was.
     plate = state.get("plate") or {"at": "deck", "temperature": None, "shaken": False}
@@ -334,7 +335,7 @@ def execute_step(session: dict) -> dict:
             problem = (
                 "capacity",
                 f"The requested volume exceeds the {pipette_ul:,} µL "
-                f"{'teaching ' if pipette_ul == 300 else ''}pipette capacity.",
+                f"{'' if studio else 'teaching '}pipette capacity.",
                 "Reduce the transfer volume or split it into smaller transfers.",
             )
         elif well["volume"] <= 0 or volume > well["volume"] + 1e-8:
@@ -363,7 +364,7 @@ def execute_step(session: dict) -> dict:
                 "overflow",
                 "The destination would exceed its "
                 f"{1500 if action['well'] == 'stock' else well_ul:,} µL "
-                f"{'teaching ' if well_ul == 1500 else ''}capacity.",
+                f"{'' if studio else 'teaching '}capacity.",
                 "Use less liquid or a different destination.",
             )
         else:

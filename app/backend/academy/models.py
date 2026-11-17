@@ -96,6 +96,10 @@ class Experiment(StrictModel):
                 raise ValueError("The OT-2 has no plate reader or stacker; use a Flex for those")
         if self.instrument == "ot2" and "gripper" in self.modules:
             raise ValueError("The OT-2 has no gripper; labware is moved by hand")
+        if (
+            self.modules or any(a.kind in MODULE_KINDS for a in self.actions)
+        ) and self.diluent_volume > 360:
+            raise ValueError("With modules the plate is a flat one whose wells hold 360 µL")
         if set(self.layout) != set(DEFAULT_LAYOUT):
             raise ValueError("Use the stock vial, destination plate, tip rack and waste")
         for module in self.modules:
@@ -194,7 +198,7 @@ COURSES = [
             "Compose steps and explore liquid amounts",
             "Explain observations and revise your design",
         ],
-        "model_note": "Synthetic teaching model: one 300 µL pipette, four liquid locations, ideal mixing and fresh-tip rules. No hardware, Isaac/GPU or chemical validation.",
+        "model_note": "Synthetic teaching model: the instrument's own pipette (1,000 µL on the Flex, 300 µL on the OT-2), four liquid locations, optional deck modules, ideal mixing and fresh-tip rules. No hardware, Isaac/GPU or chemical validation.",
     },
     {
         "id": "workflow-readiness",

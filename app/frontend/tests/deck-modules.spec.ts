@@ -43,6 +43,10 @@ test("a learner adds deck modules and the twin stops a module mistake", async ({
   await expect(
     page.getByText("which cannot set a temperature", { exact: false }).first(),
   ).toBeVisible({ timeout: 30_000 });
+  // The run stopped at the set-temperature step, not at the move after it.
+  await expect(page.getByTestId("replay-caption")).toContainText(
+    String(steps + 1).padStart(2, "0"),
+  );
   await expect(page.getByLabel("Sample plate")).toContainText("Deck");
 
   // Put the move first and the run completes with the plate on the module.

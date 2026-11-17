@@ -169,7 +169,7 @@ def check(experiment: dict) -> dict:
         "tips": profile["tips"],
         "plate": plate["load_name"],
         "stock": STOCK["load_name"],
-        "api_level": API_LEVEL,
+        "api_level": MODULE_API_LEVEL if uses_modules(experiment) else API_LEVEL,
         "evidence": "synthetic",
         "stops": stops,
         "unnoticed": unnoticed,
