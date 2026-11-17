@@ -857,6 +857,9 @@ HOLD = (
 )
 DWELL = 1.0
 EXPORT_STEP = 0.005  # rad
+GRASP_TOLERANCE = 0.02  # how near the tool must come to a grasp point, metres
+# Within this of a grasp point the gripper is at that station and may reach into it.
+GRASP_ZONE = 0.3
 
 
 def _seconds(a, b, speed):
@@ -951,3 +954,123 @@ def action_chain(twins, layout, steps, step_no, speed):
             ),
         },
     }
+
+
+def chain_check(twins, layout, steps, step_no, speed, reference, waypoints):
+    """A hand-edited waypoint chain for one transfer, checked as the connector would run it.
+
+    The arm goes from the reference pose through every waypoint in a straight line in
+    joint space, holding at each for its time. Returned rather than raised: the joint
+    limits, the first thing the arm would hit, how near the tool comes to the source and
+    target grasp points, and the simulated run where the simulation is installed.
+    """
+    validate_layout(twins, layout)
+    if not 0 < step_no <= len(steps) or steps[step_no - 1]["operation"] != "transfer":
+        raise PlanError("state", f"Step {step_no} is not a transfer")
+    step = steps[step_no - 1]
+    actor, source, target = (twins[step[k]] for k in ("device_id", "source_id", "target_id"))
+    placed = {p["twin_id"] for p in layout["placements"]}
+    for twin in (actor, source, target):
+        if twin["id"] not in placed:
+            raise PlanError("geometry", f"Place {twin['spec']['name']} on the bench in Layout")
+    if arm_for(actor["spec"]).key != "ur5e":
+        raise PlanError("state", "Arm paths are edited for the UR5e connector only")
+    planner = Planner(twins, layout, actor)
+    sites = transfer_sites(twins, steps)[step_no]
+    grasps = {
+        twin["id"]: access(twin["spec"], planner.places[twin["id"]], site)[0]
+        for twin, site in ((source, sites[0]), (target, sites[1]))
+    }
+
+    def touching(q):
+        """The stations the gripper may reach into: those whose grasp point the tool is at."""
+        tip = points(q, planner.base, planner.arm)[-1]
+        return frozenset(k for k, at in grasps.items() if _norm(_sub(tip, at)) <= GRASP_ZONE)
+
+    stops = [[math.radians(v) for v in q] for q in (reference, *(w["degrees"] for w in waypoints))]
+    names = [
+        "the reference pose",
+        *(w["name"] or f"waypoint {n}" for n, w in enumerate(waypoints, 1)),
+    ]
+    problem = None
+    for name, q in zip(names, stops, strict=True):
+        over = [
+            n + 1
+            for n, (v, limit) in enumerate(zip(q, planner.arm.limits, strict=True))
+            if abs(v) > limit
+        ]
+        if over and not problem:
+            problem = f"{name.capitalize()}: joint {over[0]} is past the {planner.arm.name}'s limit"
+    # Runs of the path during which the gripper may touch the same stations.
+    runs = [(touching(stops[0]), [stops[0]])]
+    worst, nearest = math.inf, None
+    for name, a, b in zip(names[1:], stops, stops[1:], strict=False):
+        count = max(1, math.ceil(_span(a, b) / EXPORT_STEP))
+        for k in range(1, count + 1):
+            q = [x + (y - x) * k / count for x, y in zip(a, b, strict=True)]
+            near = touching(q)
+            gap, link, obstacle = planner.measure(q, {**planner.rest, GRIPPER: near})
+            if gap < worst:
+                worst, nearest = gap, obstacle
+            if gap < SAFETY and not problem:
+                problem = f"On the way to {name}: the {link} would hit {obstacle}"
+            if near != runs[-1][0]:
+                runs.append((near, [runs[-1][1][-1]]))
+            runs[-1][1].append(q)
+    dense = [stops[0], *(q for _, part in runs for q in part[1:])]
+    tips = [points(q, planner.base, planner.arm)[-1] for q in stops]
+    reach = {
+        key: min(_norm(_sub(tip, grasps[twin["id"]])) for tip in tips)
+        for key, twin in (("source_m", source), ("target_m", target))
+    }
+    seconds, previous = 0.0, stops[0]
+    for q, waypoint in zip(stops[1:], waypoints, strict=True):
+        seconds += _seconds(previous, q, speed) + waypoint["hold"]
+        previous = q
+    if seconds > CHAIN_SECONDS and not problem:
+        problem = (
+            f"This path needs about {seconds:.0f} s at {speed:g}°/s; the connector allows "
+            f"{CHAIN_SECONDS} s per action"
+        )
+    result = {
+        "step": step_no,
+        "actor_id": actor["id"],
+        "source_id": source["id"],
+        "target_id": target["id"],
+        "arm": planner.arm.name,
+        "seconds": round(seconds, 1),
+        "clearance_m": round(worst, 3),
+        "nearest": nearest,
+        **{key: round(value, 3) for key, value in reach.items()},
+        "simulation": None,
+        "frames": [_rounded(points(q, planner.base, planner.arm)) for q in _thin(dense)],
+        "joints": [[round(v, 4) for v in q] for q in _thin(dense)],
+    }
+    if not problem and arm_simulation.available() and len(dense) > 1:
+        bench = arm_simulation.Bench.of_layout(
+            twins, layout, actor, planner.arm, planner.base, TOOL
+        )
+        run = bench.run(
+            [("the edited path", part, near) for near, part in runs if len(part) > 1], speed, 0.0
+        )
+        hit = run["collision"]
+        if run["torque_ratio"] > 1:
+            problem = (
+                f"The {planner.arm.name} needs {run['torque_ratio']:.1f}× its rated joint torque"
+            )
+        elif hit:
+            problem = f"In simulation the {hit['link']} hits {hit['blocked_by']}"
+        elif run["tracking_deg"] > arm_simulation.TRACKING_LIMIT_DEG:
+            problem = f"The {planner.arm.name} strays {run['tracking_deg']:.1f}° from the path"
+        result["simulation"] = {
+            "engine": arm_simulation.ENGINE,
+            **{k: run[k] for k in ("tracking_deg", "torque_ratio", "clearance_m", "nearest")},
+        }
+    for key, twin in (("source_m", source), ("target_m", target)):
+        if not problem and reach[key] > GRASP_TOLERANCE:
+            problem = (
+                f"No waypoint brings the tool within {GRASP_TOLERANCE * 100:.0f} cm of "
+                f"{twin['spec']['name']}'s grasp point ({reach[key] * 100:.0f} cm away)"
+            )
+    result["problem"] = problem
+    return result

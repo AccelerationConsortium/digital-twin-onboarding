@@ -28,6 +28,8 @@ from .recipes import MIXING, CreateMixing, MixingPlan, mixing_session
 from .runs import GpuRequest, RunControl, RunService, SubmitRun
 from .settings import Settings
 from .simple_twins import (
+    ChainCheck,
+    ChainDraft,
     ConfirmTwin,
     ConnectorMode,
     CreateTwin,
@@ -310,6 +312,14 @@ def create_app(settings: Settings | None = None, store=None):
                 "Content-Disposition": f'attachment; filename="ur5e-action-chain-step-{step}.json"'
             },
         )
+
+    @app.post("/api/twins/layout/chain")
+    def instrument_transfer_waypoints(data: ChainDraft, owner: str = Depends(identify)):
+        return app.state.twins.chain(owner, data)
+
+    @app.post("/api/twins/layout/chain/check")
+    def check_edited_waypoints(data: ChainCheck, owner: str = Depends(identify)):
+        return app.state.twins.chain(owner, data, check=True)
 
     @app.post("/api/twins/layout/preview")
     def preview_instrument_layout(data: LayoutDraft, owner: str = Depends(identify)):

@@ -164,3 +164,87 @@ test("a layout request in plain words lands on the draft for review", async ({
   ).toBeVisible();
   await page.unrouteAll({ behavior: "ignoreErrors" });
 });
+
+test("a planned arm path opens as waypoints to edit and check by hand", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page.getByRole("button", { name: "Enter the learning lab" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "This is my first time" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.goto("/#/plan");
+  await page.getByRole("tab", { name: "1 · Describe" }).click();
+  await page
+    .getByRole("region", { name: "Example workcells" })
+    .getByRole("button", { name: /Flex to plate reader/ })
+    .click();
+  await page
+    .getByRole("button", { name: "Edit the arm path of step 3" })
+    .click({ timeout: 60_000 });
+
+  const editor = page.getByRole("region", { name: "Arm path editor" });
+  await expect(editor.getByRole("heading")).toContainText(
+    /Arm path · step 3 · \d+\/24 waypoints/,
+    { timeout: 60_000 },
+  );
+  const points = editor.getByRole("list", { name: "Waypoints" });
+  const planned = await points.getByRole("listitem").count();
+  expect(planned).toBeGreaterThan(1);
+  // The timeline steps aside while a path is edited.
+  await expect(
+    page.getByRole("region", { name: "Workflow timeline" }),
+  ).toHaveCount(0);
+
+  // The planned waypoints pass their own check.
+  const check = editor.getByRole("button", { name: "Check path" });
+  await check.click();
+  const verdict = editor.getByRole("status");
+  await expect(verdict).toContainText(
+    "This path is clear and reaches both instruments.",
+    { timeout: 60_000 },
+  );
+  await expect(verdict).toContainText(/\d+% joint torque/);
+  await expect(
+    editor.getByRole("button", { name: "Edited chain" }),
+  ).toBeVisible();
+
+  // Folding the elbow at the first waypoint is an edit: the verdict goes, and the
+  // next check says what the arm would hit.
+  await editor.getByLabel("J2 Shoulder degrees").fill("0");
+  await editor.getByLabel("J3 Elbow degrees").fill("150");
+  await expect(verdict).toHaveCount(0);
+  await check.click();
+  await expect(verdict).toContainText("would hit", { timeout: 60_000 });
+  await expect(
+    editor.getByRole("button", { name: "Edited chain" }),
+  ).toHaveCount(0);
+
+  // Waypoints can be added and removed, and the plan brought back.
+  await editor.getByRole("button", { name: "Add after" }).click();
+  await expect(points.getByRole("listitem")).toHaveCount(planned + 1);
+  await editor.getByRole("button", { name: "Delete waypoint 2" }).click();
+  await expect(points.getByRole("listitem")).toHaveCount(planned);
+  await editor.getByRole("button", { name: "Back to planned" }).click();
+  await check.click();
+  await expect(verdict).toContainText("This path is clear", {
+    timeout: 60_000,
+  });
+  await page.screenshot({
+    path: "/tmp/academy-chain-editor.png",
+    fullPage: true,
+  });
+
+  await editor
+    .getByRole("button", { name: "Close the arm path editor" })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Workflow timeline" }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
