@@ -14,6 +14,7 @@ from .connector_api import router as connector_router
 from .connector_catalog import approved_release
 from .connector_catalog import router as catalog_router
 from .discovery import NotebookUpdate
+from .fault_practice import Diagnosis, FaultPractice, Prediction, Repair
 from .gateway import GatewayUnavailable, MatterixGateway
 from .gpu_lifecycle import configured as configured_gpu
 from .learning import present, readiness
@@ -92,6 +93,7 @@ def create_app(settings: Settings | None = None, store=None):
     app.include_router(workcell_router)
     app.state.media = MediaService(app.state.runs)
     app.state.twins = SimpleTwinService(app.state.store, settings)
+    app.state.practice = FaultPractice(app.state.store)
     app.state.mixing_twins = MixingTwinService(app.state.store, app.state.twins)
     if settings.runtime == "local":
         app.add_middleware(
@@ -593,6 +595,26 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/simulations/{session_id}/twin-run", status_code=201)
     def run_on_twin(session_id: UUID, data: TwinRun, owner: str = Depends(identify)):
         return app.state.mixing_twins.run(owner, session_id, data)
+
+    @app.get("/api/practice")
+    def fault_practice(owner: str = Depends(identify)):
+        return app.state.practice.listing(owner)
+
+    @app.post("/api/practice", status_code=201)
+    def start_fault_practice(owner: str = Depends(identify)):
+        return app.state.practice.start(owner)
+
+    @app.put("/api/practice/{practice_id}/prediction")
+    def predict_fault(practice_id: UUID, data: Prediction, owner: str = Depends(identify)):
+        return app.state.practice.predict(owner, practice_id, data)
+
+    @app.put("/api/practice/{practice_id}/diagnosis")
+    def diagnose_fault(practice_id: UUID, data: Diagnosis, owner: str = Depends(identify)):
+        return app.state.practice.diagnose(owner, practice_id, data)
+
+    @app.post("/api/practice/{practice_id}/repair")
+    def check_fault_repair(practice_id: UUID, data: Repair, owner: str = Depends(identify)):
+        return app.state.practice.repair(owner, practice_id, data)
 
     @app.post("/api/sessions", status_code=201)
     def create_session(experiment: Experiment, owner: str = Depends(identify)):
