@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Square, Wand2 } from "lucide-react";
+import { Sparkles, Square, Wand2 } from "lucide-react";
 import { api, json } from "./api";
 import type {
   Consolidation,
@@ -7,6 +7,7 @@ import type {
   Diagnosis,
   Layout,
   LayoutCandidate,
+  LayoutImprovement,
   LayoutMetrics,
   LayoutSearchChunk,
   Placement,
@@ -38,6 +39,12 @@ const METRICS: {
     label: "Run time",
     better: "low",
     show: (v) => `${v.toFixed(1)} s run`,
+  },
+  {
+    key: "finish_s",
+    label: "Parallel finish",
+    better: "low",
+    show: (v) => `${v.toFixed(1)} s in parallel`,
   },
   {
     key: "path_m",
@@ -83,17 +90,35 @@ const cost = (c: Scored, key: Key) =>
     ? value(c, key)
     : -value(c, key);
 
-/** No other layout is at least as good on every metric and better on one. */
-export function tradeOffs<T extends Scored>(all: T[]) {
+/** No other layout is at least as good on every one of `keys` and better on one. */
+export function tradeOffs<T extends Scored>(
+  all: T[],
+  keys: Key[] = METRICS.map((m) => m.key),
+) {
   return all.filter(
     (a) =>
       !all.some(
         (b) =>
           b !== a &&
-          METRICS.every((m) => cost(b, m.key) <= cost(a, m.key)) &&
-          METRICS.some((m) => cost(b, m.key) < cost(a, m.key)),
+          keys.every((k) => cost(b, k) <= cost(a, k)) &&
+          keys.some((k) => cost(b, k) < cost(a, k)),
       ),
   );
+}
+
+/** Best first over the objectives together, each scaled to the spread among `all`. */
+export function ranked<T extends Scored & { n: number }>(
+  all: T[],
+  keys: Key[],
+) {
+  const spread = keys.map((k) => {
+    const costs = all.map((c) => cost(c, k));
+    const low = Math.min(...costs);
+    return { k, low, range: Math.max(...costs) - low || 1 };
+  });
+  const score = (c: T) =>
+    spread.reduce((sum, m) => sum + (cost(c, m.k) - m.low) / m.range, 0);
+  return [...all].sort((a, b) => score(a) - score(b) || a.n - b.n);
 }
 
 const sameLayout = (a: Layout, b: Layout) =>
@@ -129,7 +154,10 @@ export default function LayoutOptions({
   const [fewer, setFewer] = useState<Consolidation[]>([]);
   const [error, setError] = useState("");
   const [running, setRunning] = useState(false);
-  const [sortBy, setSortBy] = useState<Key>("run_s");
+  const [objectives, setObjectives] = useState<Key[]>(["run_s"]);
+  // Which layout each improved one started from.
+  const [origins, setOrigins] = useState<Record<number, number>>({});
+  const [improving, setImproving] = useState<number | null>(null);
   const [onlyBest, setOnlyBest] = useState(true);
   const [all, setAll] = useState(false);
   const [holds, setHolds] = useState<Record<number, number>>({});
@@ -148,6 +176,8 @@ export default function LayoutOptions({
     setRunning(false);
     setHolds({});
     setTesting(false);
+    setOrigins({});
+    setImproving(null);
   }, [inputs]);
 
   const search = async () => {
@@ -160,6 +190,8 @@ export default function LayoutOptions({
     setFound([]);
     setHolds({});
     setTesting(false);
+    setOrigins({});
+    setImproving(null);
     try {
       while (start !== null && runId.current === id && all.length < LIMIT) {
         const chunk = await onSearch(
@@ -188,10 +220,55 @@ export default function LayoutOptions({
     n: i + 1,
     holds: holds[i + 1],
   }));
-  const listed = (onlyBest ? tradeOffs(numbered) : numbered).sort(
-    (a, b) => cost(a, sortBy) - cost(b, sortBy) || a.n - b.n,
+  // Scored against every layout found, so hiding dominated ones never reorders the rest.
+  // With several objectives, a layout is dominated only on those.
+  const best = new Set(
+    onlyBest
+      ? tradeOffs(numbered, objectives.length > 1 ? objectives : undefined)
+      : numbered,
   );
+  const listed = ranked(numbered, objectives).filter((c) => best.has(c));
   const shown = all ? listed : listed.slice(0, SHOWN);
+  const chosen =
+    numbered.find((c) => sameLayout(c.layout, layout)) ?? listed[0];
+  // Placement tolerance comes from the stress test, not from moving instruments.
+  const targets = objectives.filter((k) => k !== "holds");
+
+  // Moves the chosen layout's instruments toward the objectives, a few tries a request.
+  const improve = async () => {
+    if (!chosen || !targets.length) return;
+    const id = ++runId.current;
+    setImproving(0);
+    setError("");
+    try {
+      let next: number | null = 0;
+      let idle = 0;
+      let kept = 0;
+      let best: LayoutCandidate = chosen;
+      while (next !== null) {
+        const chunk: LayoutImprovement = await api<LayoutImprovement>(
+          "/twins/layout/improve",
+          json({ ...best.layout, objectives: targets, start: next, idle }),
+        );
+        if (runId.current !== id) return;
+        ({ next, idle } = chunk);
+        kept += chunk.kept;
+        best = chunk;
+        setImproving(kept);
+      }
+      if (!kept) {
+        setError(`Layout ${chosen.n} is already as good as nudging it gets.`);
+        return;
+      }
+      setFound((list) => [...list, best]);
+      setOrigins((o) => ({ ...o, [found.length + 1]: chosen.n }));
+      onApply(best.layout, best.slots ?? {});
+    } catch (e) {
+      if (runId.current === id) setError((e as Error).message);
+    } finally {
+      if (runId.current === id) setImproving(null);
+    }
+  };
 
   // Replans each listed layout with every instrument 2 cm off its spot.
   const stress = async () => {
@@ -313,19 +390,29 @@ export default function LayoutOptions({
       {found.length > 0 && (
         <>
           <div className={s.optionControls}>
-            <label>
-              Sort by
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as Key)}
-              >
-                {METRICS.map((m) => (
-                  <option key={m.key} value={m.key}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div
+              className={s.objectives}
+              role="group"
+              aria-label="Optimise for"
+            >
+              {METRICS.map((m) => (
+                <button
+                  key={m.key}
+                  aria-pressed={objectives.includes(m.key)}
+                  onClick={() =>
+                    setObjectives((now) =>
+                      now.includes(m.key)
+                        ? now.length > 1
+                          ? now.filter((k) => k !== m.key)
+                          : now
+                        : [...now, m.key],
+                    )
+                  }
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
             <label className={s.inlineCheck}>
               <input
                 type="checkbox"
@@ -347,10 +434,38 @@ export default function LayoutOptions({
             ) : (
               <button
                 className={studio.secondary}
-                disabled={running || shown.every((c) => c.holds !== undefined)}
+                disabled={
+                  running ||
+                  improving !== null ||
+                  shown.every((c) => c.holds !== undefined)
+                }
                 onClick={stress}
               >
                 Stress test
+              </button>
+            )}
+            {improving !== null ? (
+              <button
+                className={studio.secondary}
+                onClick={() => {
+                  runId.current += 1;
+                  setImproving(null);
+                }}
+              >
+                <Square size={12} /> Stop · {improving} moved
+              </button>
+            ) : (
+              <button
+                className={studio.secondary}
+                disabled={running || testing || !chosen || !targets.length}
+                title={
+                  targets.length
+                    ? undefined
+                    : "Placement tolerance is measured by the stress test"
+                }
+                onClick={improve}
+              >
+                <Sparkles size={14} /> Improve layout {chosen?.n}
               </button>
             )}
           </div>
@@ -362,12 +477,20 @@ export default function LayoutOptions({
                   aria-pressed={sameLayout(c.layout, layout)}
                   onClick={() => onApply(c.layout, c.slots ?? {})}
                 >
-                  <span>Layout {c.n}</span>
+                  <span>
+                    Layout {c.n}
+                    {origins[c.n] ? ` · improved from ${origins[c.n]}` : ""}
+                  </span>
                   <small>
-                    {METRICS.filter((m) => c[m.key] !== undefined).map((m) => (
+                    {METRICS.filter(
+                      (m) =>
+                        c[m.key] !== undefined &&
+                        // Worth a line only when something does overlap.
+                        (m.key !== "finish_s" || c.finish_s < c.run_s),
+                    ).map((m) => (
                       <span
                         key={m.key}
-                        className={m.key === sortBy ? s.sorted : ""}
+                        className={objectives.includes(m.key) ? s.sorted : ""}
                       >
                         {m.show(c[m.key]!)}
                       </span>

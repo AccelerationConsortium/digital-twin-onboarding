@@ -659,8 +659,15 @@ test("layout search keeps pinned instruments and compares measured options", asy
   await expect(
     page.getByText(/layouts? from \d+ of \d+ starting/),
   ).toBeVisible();
-  // Every metric can order the list; dominated layouts are hidden by default.
-  await page.getByLabel("Sort by").selectOption("clearance_m");
+  // Any metrics can order the list together; dominated layouts are hidden by default.
+  const objectives = page.getByRole("group", { name: "Optimise for" });
+  await expect(
+    objectives.getByRole("button", { name: "Run time" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await objectives.getByRole("button", { name: "Clearance" }).click();
+  await expect(
+    objectives.getByRole("button", { name: "Clearance" }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByLabel("Best trade-offs only")).toBeChecked();
   // Replanning with every instrument 2 cm off scores how forgiving a layout is.
   await page.getByRole("button", { name: "Stress test" }).click();
@@ -673,10 +680,8 @@ test("layout search keeps pinned instruments and compares measured options", asy
     .click({ timeout: 2_000 })
     .catch(() => undefined);
   await expect(
-    page.getByLabel("Sort by").getByRole("option", {
-      name: "Placement tolerance",
-    }),
-  ).toBeAttached();
+    objectives.getByRole("button", { name: "Placement tolerance" }),
+  ).toBeVisible();
   const option = page.getByRole("button", { name: /^Layout \d+/ }).first();
   await option.click();
   await expect(option).toHaveAttribute("aria-pressed", "true");

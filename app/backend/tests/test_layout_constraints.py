@@ -216,3 +216,85 @@ def test_an_instrument_the_arm_cannot_load_is_named(client):
     assert first["kind"] == "access"
     assert "Incubated shaker (KS 4000 i)" in first["hint"]
     assert "Incubated shaker (KS 4000 i)" in found["failure"]
+
+
+def test_steps_on_separate_instruments_can_overlap():
+    from academy.parallel import schedule
+
+    steps = [
+        {"device_id": "a", "operation": "mix"},
+        {"device_id": "b", "operation": "mix"},
+        {"device_id": "arm", "operation": "transfer", "source_id": "a", "target_id": "b"},
+        {"device_id": "b", "operation": "read"},
+    ]
+    trace = [
+        {"step": 1, "sample": "one", "elapsed_s": 10.0},
+        {"step": 2, "sample": "two", "elapsed_s": 30.0},
+        {"step": 3, "sample": "one", "elapsed_s": 31.0},
+        {"step": 4, "sample": "one", "elapsed_s": 36.0},
+    ]
+    rows, finish = schedule(steps, trace, [{"step": 3, "seconds": 8.0}])
+    # The two mixes run side by side; the transfer waits for the busier instrument.
+    assert [(r["start_s"], r["end_s"]) for r in rows] == [
+        (0.0, 10.0),
+        (0.0, 20.0),
+        (20.0, 28.0),
+        (28.0, 33.0),
+    ]
+    assert finish == 33.0  # 43 s one after another
+    # An instrument waiting without the sample does not hold the sample up.
+    steps = [
+        {"device_id": "a", "operation": "mix"},
+        {"device_id": "b", "operation": "wait"},
+    ]
+    trace = [
+        {"step": 1, "sample": "one", "location": "a", "elapsed_s": 10.0},
+        {"step": 2, "sample": "one", "location": "a", "elapsed_s": 40.0},
+    ]
+    assert schedule(steps, trace, [])[1] == 30.0
+
+
+def test_a_layout_is_improved_toward_the_chosen_objectives(client, monkeypatch):
+    from academy import layout_search
+
+    monkeypatch.setattr(layout_search, "CHUNK_SECONDS", 120.0)
+    opened = client.put("/api/twins/examples/flex-reader", json={"expected_version": 0})
+    layout = opened.json()["layout"]
+    before = client.post("/api/twins/layout/search", json={"bench": layout["bench"]}).json()
+    start = before["candidates"][0]
+    assert start["finish_s"] == start["run_s"]  # one plate: nothing to run side by side
+    body = {**start["layout"], "objectives": ["path_m", "run_s"]}
+    better = client.post("/api/twins/layout/improve", json=body)
+    assert better.status_code == 200, better.text
+    better = better.json()
+    assert better["kept"] >= 1 and better["path_m"] < start["path_m"]
+    assert better["next"] is None and better["idle"] > 0
+    # The improved layout still runs the whole workflow.
+    checked = client.post("/api/twins/layout/preview", json=better["layout"]).json()
+    assert checked["error"] is None, checked["error"]
+    # Kept instruments stay where they are.
+    pinned = {
+        **start["layout"],
+        "placements": [{**p, "kept": True} for p in start["layout"]["placements"]],
+    }
+    same = client.post(
+        "/api/twins/layout/improve", json={**pinned, "objectives": ["path_m"]}
+    ).json()
+    assert same["kept"] == 0 and same["next"] is None
+    assert [(p["x"], p["z"]) for p in same["layout"]["placements"]] == [
+        (p["x"], p["z"]) for p in start["layout"]["placements"]
+    ]
+    refused = client.post("/api/twins/layout/improve", json={**start["layout"], "objectives": []})
+    assert refused.status_code == 422
+    # A layout that breaks a saved preference is not a starting point.
+    reader = next(
+        t["id"] for t in opened.json()["twins"] if t["spec"]["name"].startswith("Plate reader")
+    )
+    centre = next(p for p in start["layout"]["placements"] if p["twin_id"] == reader)
+    side = "right" if centre["x"] < 0 else "left"
+    version = client.get("/api/twins").json()["version"]
+    constrain(client, version, [{"kind": "zone", "twin_id": reader, "side": side}])
+    broken = client.post(
+        "/api/twins/layout/improve", json={**start["layout"], "objectives": ["path_m"]}
+    )
+    assert broken.status_code == 422 and "constraint" in broken.text

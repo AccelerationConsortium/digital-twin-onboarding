@@ -248,3 +248,60 @@ test("a planned arm path opens as waypoints to edit and check by hand", async ({
   ).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("a found layout is improved toward the chosen objectives", async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page.getByRole("button", { name: "Enter the learning lab" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "This is my first time" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.goto("/#/plan");
+  await page.getByRole("tab", { name: "1 · Describe" }).click();
+  await page
+    .getByRole("region", { name: "Example workcells" })
+    .getByRole("button", { name: /Flex to plate reader/ })
+    .click();
+  await expect(page.getByRole("tab", { name: "4 · Layout" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+    { timeout: 60_000 },
+  );
+
+  await page.getByRole("button", { name: "Search layouts" }).click();
+  const first = page.getByRole("button", { name: /^Layout \d+/ }).first();
+  await expect(first).toContainText("m path", { timeout: 60_000 });
+  await page.getByRole("button", { name: "Stop" }).click();
+  // One plate goes through the workflow, so nothing overlaps and no parallel time is shown.
+  await expect(first).not.toContainText("in parallel");
+
+  // Shortest arm path and run time together.
+  const objectives = page.getByRole("group", { name: "Optimise for" });
+  await objectives.getByRole("button", { name: "Arm path" }).click();
+  // Layouts beaten on both are hidden, so the best one left is the one to improve.
+  const best = page.getByRole("button", { name: /^Layout \d+/ }).first();
+  await best.click();
+  const text = (await best.textContent())!;
+  const n = (await best.locator("span").first().textContent())!.match(
+    /^Layout (\d+)/,
+  )![1];
+  const before = Number(text.match(/([\d.]+) m path/)![1]);
+  await page.getByRole("button", { name: `Improve layout ${n}` }).click();
+  const improved = page.getByRole("button", {
+    name: new RegExp(`^Layout \\d+ · improved from ${n}`),
+  });
+  await expect(improved).toBeVisible({ timeout: 180_000 });
+  await expect(improved).toHaveAttribute("aria-pressed", "true");
+  const after = Number(
+    (await improved.textContent())!.match(/([\d.]+) m path/)![1],
+  );
+  expect(after).toBeLessThan(before);
+  // The arm path of the improved layout is planned and shown.
+  await expect(
+    page.getByRole("button", { name: /^Step \d+ · / }).first(),
+  ).toContainText("cm min clearance", { timeout: 60_000 });
+});
