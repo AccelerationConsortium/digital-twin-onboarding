@@ -305,6 +305,8 @@ export type LayoutPreview = {
 export type LayoutMetrics = {
   run_s: number;
   arm_s: number;
+  /** When the last step ends if steps on separate instruments overlap. */
+  finish_s: number;
   path_m: number;
   clearance_m: number;
   reach_margin_m: number;
@@ -316,6 +318,13 @@ export type LayoutCandidate = LayoutMetrics & {
   motions: MotionSummary[];
   /** Slots the arm reaches on instruments with a slot preference. */
   slots: Record<string, string[]>;
+};
+/** One chunk of moving a layout's instruments toward chosen objectives. */
+export type LayoutImprovement = LayoutCandidate & {
+  next: number | null;
+  idle: number;
+  tried: number;
+  kept: number;
 };
 export type Diagnosis = { kind: string; count: number; hint: string };
 export type Consolidation = {

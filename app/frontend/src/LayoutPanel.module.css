@@ -203,11 +203,25 @@
   align-items: center;
   gap: 5px;
 }
-.optionControls > label:first-child {
+.objectives {
+  flex-basis: 100%;
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
+}
+.objectives button {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
   color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.objectives button[aria-pressed="true"] {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
 }
 .optionList {
   list-style: none;

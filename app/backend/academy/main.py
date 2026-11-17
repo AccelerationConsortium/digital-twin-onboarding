@@ -33,6 +33,7 @@ from .simple_twins import (
     ConfirmTwin,
     ConnectorMode,
     CreateTwin,
+    ImproveLayout,
     LayoutDraft,
     LoadExample,
     MatchTwin,
@@ -336,6 +337,10 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/twins/layout/search", dependencies=[Depends(require_layout_planner)])
     def search_instrument_layouts(data: SearchLayouts, owner: str = Depends(identify)):
         return app.state.twins.search_layout(owner, data)
+
+    @app.post("/api/twins/layout/improve", dependencies=[Depends(require_layout_planner)])
+    def improve_instrument_layout(data: ImproveLayout, owner: str = Depends(identify)):
+        return app.state.twins.improve_layout(owner, data)
 
     @app.post("/api/twins/layout/robustness", dependencies=[Depends(require_layout_planner)])
     def stress_instrument_layout(data: StressLayout, owner: str = Depends(identify)):

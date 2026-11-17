@@ -1,10 +1,11 @@
 """Enumerate feasible bench layouts for a saved workflow and measure each one.
 
 Every transfer arm is placed first, then every station it serves on rings around it,
-facing the arm. A layout counts only when `plan_workflow` finds every transfer. There is
-no single objective: the search walks a fixed list of starting arrangements (first arm
+facing the arm. A layout counts only when `plan_workflow` finds every transfer. The
+search itself has no objective: it walks a fixed list of starting arrangements (first arm
 position, bearing, ring and access order) and reports metrics for each layout found so
-the user can compare them. The walk is chunked so each request stays inside the Lambda
+the user can compare them. `improve_layout` then moves the instruments of one layout
+toward the objectives the user chose. Both are chunked so each request stays inside the Lambda
 limit; the client resumes from `next` until the list is exhausted or it stops.
 
 Deterministic: the same inputs and start index always give the same layouts while a
@@ -19,6 +20,7 @@ from collections import Counter, OrderedDict
 
 from .arms import arm_for
 from .mock_contract import PlanError, execute_mock, site_keys
+from .parallel import schedule
 from .workcell_layout import (
     GRIPPER,
     TOOL,
@@ -162,7 +164,7 @@ class Search:
             t for t in twins if t not in busy and t not in self.fixed and t not in self.excluded
         ]
         self.free_arms = [a for a in self.arms if a not in self.fixed]
-        trace = execute_mock(twins, steps)
+        trace = self.trace = execute_mock(twins, steps)
         self.sites = {
             s["step"]: (s["source_site"], s["site"]) for s in trace if s["operation"] == "transfer"
         }
@@ -523,11 +525,43 @@ class Search:
         return {
             "run_s": round(self.device_s + arm_s, 1),
             "arm_s": round(arm_s, 1),
+            "finish_s": schedule(self.steps, self.trace, motions)[1],
             "path_m": round(sum(m["length_m"] for m in motions), 3),
             "clearance_m": min(m["clearance_m"] for m in motions),
             "reach_margin_m": round(margin, 3),
             "elbow_deg": min(m["elbow_deg"] for m in motions),
             "area_m2": round((max(xs) - min(xs)) * (max(zs) - min(zs)), 2),
+        }
+
+    def check(self, layout):
+        """The layout with its metrics when the whole workflow can be planned on it."""
+        self.plans += 1
+        slots = {}
+        for twin_id, count in self.slot_needs.items():
+            slots[twin_id] = self.slot_reach(layout, twin_id)
+            if len(slots[twin_id]) < count:
+                name = self.twins[twin_id]["spec"]["name"]
+                self.fail(
+                    "slots",
+                    f"The arm reaches {len(slots[twin_id])} of the {count} slots asked for "
+                    f"on {name}",
+                    name,
+                )
+                return None
+        try:
+            motions = plan_workflow(self.twins, layout, self.steps)
+        except PlanError as exc:
+            hit = getattr(exc, "attempt", None) or {}
+            if hit.get("blocked_by"):
+                self.fail("collision", str(exc), hit["blocked_by"])
+            else:
+                self.fail("path", str(exc))
+            return None
+        return {
+            "layout": layout,
+            **self.metrics(layout, motions),
+            "slots": slots,
+            "motions": motions,
         }
 
     def attempt(self, start, deadline, plans_left, seen):
@@ -570,37 +604,11 @@ class Search:
                 full.append(pose)
             if any(not self.distinct(full, other) for other in seen):
                 return None
-            layout = self.layout(full)
             budget[0] -= 1
-            self.plans += 1
-            slots = {}
-            for twin_id, count in self.slot_needs.items():
-                slots[twin_id] = self.slot_reach(layout, twin_id)
-                if len(slots[twin_id]) < count:
-                    name = self.twins[twin_id]["spec"]["name"]
-                    self.fail(
-                        "slots",
-                        f"The arm reaches {len(slots[twin_id])} of the {count} slots asked for "
-                        f"on {name}",
-                        name,
-                    )
-                    return None
-            try:
-                motions = plan_workflow(self.twins, layout, self.steps)
-            except PlanError as exc:
-                hit = getattr(exc, "attempt", None) or {}
-                if hit.get("blocked_by"):
-                    self.fail("collision", str(exc), hit["blocked_by"])
-                else:
-                    self.fail("path", str(exc))
-                return None
-            seen.append(full)
-            return {
-                "layout": layout,
-                **self.metrics(layout, motions),
-                "slots": slots,
-                "motions": motions,
-            }
+            result = self.check(self.layout(full))
+            if result:
+                seen.append(full)
+            return result
 
         found = place(list(self.fixed.values()), self.free_arms, self.stations)
         # Every start walks the same poses in a different order, so one that ran out of
@@ -645,6 +653,82 @@ def search_layouts(twins, bench, steps, fixed=(), start=0, avoid=(), seconds=Non
         "checked": search.plans,
         "failure": search.failure,
         "diagnosis": search.diagnosis(),
+    }
+
+
+# Metrics a layout can be improved toward, and whether less of each is better.
+OBJECTIVES = {
+    "run_s": True,
+    "finish_s": True,
+    "path_m": True,
+    "area_m2": True,
+    "clearance_m": False,
+    "reach_margin_m": False,
+    "elbow_deg": False,
+}
+NUDGES = (0.1, 0.05)  # metres an instrument is moved in one try
+GAIN = 0.005  # share of one objective a move must win to be kept
+CLEAR = 0.02  # metres of clearance no move may give up, unless the layout started tighter
+
+
+def _worth(candidate, current, objectives):
+    """How `candidate` compares with `current` over the objectives; below 0 is better."""
+    total = 0.0
+    for key in objectives:
+        now, new = max(current[key], 1e-6), max(candidate[key], 1e-6)
+        total += (new / now if OBJECTIVES[key] else now / new) - 1
+    return total
+
+
+def improve_layout(twins, layout, steps, objectives, start=0, idle=0, seconds=None, constraints=()):
+    """One chunk of moving the instruments of a working layout toward the objectives.
+
+    Each try moves one instrument that is not kept a short way along the bench and plans
+    the whole workflow again; the move stays when the chosen metrics come out better taken
+    together. `idle` counts tries since the last move that stayed: once every move has
+    been tried without one, the layout is as good as this search gets and `next` is None.
+    """
+    search = Search(twins, layout["bench"], steps, [], constraints)
+    current = search.check(layout)
+    if not current:
+        raise PlanError("path", search.failure or "The arm cannot run this layout")
+    movable = [
+        p["twin_id"]
+        for p in layout["placements"]
+        if not p.get("kept") and p["twin_id"] not in search.arms
+    ]
+    moves = [
+        (twin_id, dx * step, dz * step)
+        for step in NUDGES
+        for twin_id in movable
+        for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))
+    ]
+    deadline = time.monotonic() + (CHUNK_SECONDS if seconds is None else seconds)
+    index, tried, kept = start, 0, 0
+    while moves and idle < len(moves) and (not tried or time.monotonic() < deadline):
+        twin_id, dx, dz = moves[index % len(moves)]
+        index, tried, idle = index + 1, tried + 1, idle + 1
+        placements = [
+            {**p, "x": round(p["x"] + dx, 2) + 0.0, "z": round(p["z"] + dz, 2) + 0.0}
+            if p["twin_id"] == twin_id
+            else p
+            for p in current["layout"]["placements"]
+        ]
+        moved = next(p for p in placements if p["twin_id"] == twin_id)
+        others = [p for p in placements if p["twin_id"] != twin_id]
+        if not search.fits(twin_id, moved, others):
+            continue
+        candidate = search.check({**current["layout"], "placements": placements})
+        tight = candidate and candidate["clearance_m"] < min(current["clearance_m"], CLEAR)
+        if candidate and not tight and _worth(candidate, current, objectives) < -GAIN:
+            current, idle, kept = candidate, 0, kept + 1
+    done = not moves or idle >= len(moves)
+    return {
+        **current,
+        "next": None if done else index % len(moves),
+        "idle": idle,
+        "tried": tried,
+        "kept": kept,
     }
 
 

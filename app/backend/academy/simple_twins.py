@@ -27,7 +27,7 @@ from pydantic import Field, ValidationError, model_validator
 from . import arm_simulation
 from .arms import arm_for
 from .consolidate import consolidation
-from .layout_search import SHIFTS, robustness, search_layouts
+from .layout_search import OBJECTIVES, SHIFTS, improve_layout, robustness, search_layouts
 from .mock_contract import PlanError, execute_mock, site_keys
 from .models import StrictModel
 from .store import Conflict
@@ -570,6 +570,20 @@ class SearchLayouts(StrictModel):
 
 class StressLayout(LayoutDraft):
     start: int = Field(default=0, ge=0, lt=SHIFTS)
+
+
+class ImproveLayout(LayoutDraft):
+    # What the layout should get better at; a move stays when these improve together.
+    objectives: list[Literal[tuple(OBJECTIVES)]] = Field(min_length=1, max_length=len(OBJECTIVES))
+    start: int = Field(default=0, ge=0, le=1000)
+    # Moves tried since the last one that stayed, as the previous chunk returned it.
+    idle: int = Field(default=0, ge=0, le=1000)
+
+    @model_validator(mode="after")
+    def once(self):
+        if len(set(self.objectives)) != len(self.objectives):
+            raise ValueError("Name each objective once")
+        return self
 
 
 class BedrockTwins:
@@ -1408,6 +1422,28 @@ class SimpleTwinService:
             if data.start == 0:
                 result["consolidation"] = consolidation(twins, record["steps"])
             return result
+        except PlanError as exc:
+            raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
+
+    def improve_layout(self, owner, data):
+        """Read-only chunk: the layout with its instruments moved toward the objectives."""
+        record = self.get(owner)
+        layout = self.placed(record, data)
+        if not layout or not record["steps"]:
+            raise HTTPException(409, "Save a workflow and place its instruments first")
+        twins = {t["id"]: t for t in record["twins"] if t["confirmed"] and t["spec"]}
+        if any(p["twin_id"] not in twins for p in layout["placements"]):
+            raise HTTPException(409, "Confirm every instrument on the bench first")
+        try:
+            return improve_layout(
+                twins,
+                layout,
+                record["steps"],
+                data.objectives,
+                data.start,
+                data.idle,
+                constraints=record.get("constraints", []),
+            )
         except PlanError as exc:
             raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
 
