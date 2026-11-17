@@ -12,10 +12,26 @@ export type Profile = {
   experience: "new" | "some" | "experienced";
   onboarded: boolean;
 };
+export type Place =
+  "deck" | "heater_shaker" | "temperature" | "reader" | "stacker";
+export type DeckModule = Exclude<Place, "deck"> | "gripper";
 export type Action = {
-  kind: "pickup" | "aspirate" | "dispense" | "drop";
+  kind:
+    | "pickup"
+    | "aspirate"
+    | "dispense"
+    | "drop"
+    | "move"
+    | "heat"
+    | "shake"
+    | "read";
   well: "stock" | "A1" | "A2" | "A3";
   volume: number;
+  /** Where a move takes the sample plate. */
+  to?: Place;
+  /** °C for heat, rpm for shake. */
+  value?: number;
+  seconds?: number;
 };
 export type Experiment = {
   title: string;
@@ -26,6 +42,8 @@ export type Experiment = {
   source_volume: number;
   diluent_volume: number;
   actions: Action[];
+  /** Deck modules of a Workflow Studio design. */
+  modules?: DeckModule[];
 };
 export type Assessment = {
   scope?: "lesson-goal" | "model-checks";
@@ -48,6 +66,9 @@ export type TeachingState = {
   tips_used: number;
   tips_discarded: number;
   waste_volume: number;
+  /** Present once a design has deck modules. */
+  plate?: { at: Place; temperature: number | null; shaken: boolean };
+  readings?: { step: number; wells: Record<string, number> }[];
 };
 export type Session = {
   remote_active_run?: string | null;

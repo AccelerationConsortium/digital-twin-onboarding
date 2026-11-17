@@ -277,6 +277,44 @@
   --block-soft: var(--surface-3);
   --block-line: var(--line-strong);
 }
+.move,
+.heat,
+.shake,
+.read {
+  --block-ink: var(--ink);
+  --block-soft: var(--surface-2);
+  --block-line: var(--line-strong);
+}
+.moduleToggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+.moduleToggles button {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.moduleToggles button[aria-pressed="true"] {
+  border-color: var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+}
+.moduleSlot {
+  border-style: dashed;
+}
+.moduleName {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.2;
+}
 .blockList {
   list-style: none;
   padding: 0;

@@ -191,7 +191,16 @@ def test_ot2_requires_explicit_numbered_layout_and_existing_lessons_stay_flex(cl
     ("actions", "changes", "code"),
     [
         ([{"kind": "aspirate"}], {}, "no_tip"),
-        ([{"kind": "pickup"}, {"kind": "aspirate", "volume": 301}], {}, "capacity"),
+        # 1,001 µL in the tip: over the Flex pipette's 1,000 µL and the OT-2's 300 µL.
+        (
+            [
+                {"kind": "pickup"},
+                {"kind": "aspirate", "volume": 200},
+                {"kind": "aspirate", "volume": 801},
+            ],
+            {},
+            "capacity",
+        ),
         ([{"kind": "pickup"}, {"kind": "aspirate", "volume": 251}], {}, "source_empty"),
         (
             [
