@@ -596,22 +596,50 @@ export default function App() {
   const identityEpoch = useRef(0);
   // The run on screen, so the address change that opened it is not read as a new one.
   const shownRun = useRef<string | null>(null);
+  // Where this page sits in the visit history, so a refused Back can be undone.
+  const position = useRef<number>(window.history.state?.i ?? 0);
+  const undoing = useRef(false);
+  const push = (url: string) => {
+    position.current += 1;
+    window.history.pushState({ i: position.current }, "", url);
+  };
   const registerLeaveGuard = useCallback((guard: (() => boolean) | null) => {
     leaveGuard.current = guard;
   }, []);
   useEffect(() => {
     const routeChanged = (event: HashChangeEvent) => {
+      if (undoing.current) {
+        undoing.current = false;
+        return;
+      }
       if (movePlanLink()) return;
+      const at: number | undefined = window.history.state?.i;
+      // Unsaved work keeps the page: step back to it and leave the visited entry as it was.
+      const stay = () => {
+        if (at === undefined || at === position.current)
+          window.history.replaceState(window.history.state, "", event.oldURL);
+        else {
+          undoing.current = true;
+          window.history.go(position.current - at);
+        }
+      };
+      const arrive = () => {
+        // An entry a link made has no place yet: it follows the page it was opened from.
+        position.current = at ?? position.current + 1;
+        if (at === undefined)
+          window.history.replaceState({ i: position.current }, "");
+      };
       // Back or forward onto a run: open it again.
       const run = window.location.hash.match(/^#\/lab\/([a-f0-9-]+)$/)?.[1];
       if (run) {
         if (run === shownRun.current) return;
-        if (leaveGuard.current && !leaveGuard.current()) {
-          window.history.replaceState({}, "", event.oldURL);
-          return;
-        }
+        if (leaveGuard.current && !leaveGuard.current()) return stay();
+        arrive();
         const epoch = ++navigationEpoch.current;
         shownRun.current = run;
+        // The run before must not stay on screen under the new address.
+        setSession(null);
+        setView("overview");
         void api<Session>(`/sessions/${run}`)
           .then((found) => {
             if (epoch !== navigationEpoch.current) return;
@@ -629,10 +657,8 @@ export default function App() {
         /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|sim|workflow-course|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
-      if (leaveGuard.current && !leaveGuard.current()) {
-        window.history.replaceState({}, "", event.oldURL);
-        return;
-      }
+      if (leaveGuard.current && !leaveGuard.current()) return stay();
+      arrive();
       navigationEpoch.current += 1;
       shownRun.current = null;
       setSession(null);
@@ -720,7 +746,7 @@ export default function App() {
     shownRun.current = run.id;
     setSession(run);
     setView("lab");
-    window.location.hash = `/lab/${run.id}`;
+    push(`/#/lab/${run.id}`);
     window.scrollTo(0, 0);
   };
   const nav = (target: string) => {
@@ -742,8 +768,7 @@ export default function App() {
     shownRun.current = null;
     // A new history entry, so the browser's Back button returns to the page before.
     const url = target === "overview" ? "/" : `/#/${target}`;
-    if (url !== window.location.pathname + window.location.hash)
-      window.history.pushState({}, "", url);
+    if (url !== window.location.pathname + window.location.hash) push(url);
     if (target === "discovery") setDiscoverySeed(undefined);
     window.scrollTo(0, 0);
   };
@@ -994,7 +1019,11 @@ export default function App() {
                       setPendingStudio(null);
                       rememberStudioIntent(null);
                       intentStarted.current = false;
-                      window.history.replaceState({}, "", "/");
+                      window.history.replaceState(
+                        window.history.state,
+                        "",
+                        "/",
+                      );
                     } catch (e) {
                       setError((e as Error).message);
                     }

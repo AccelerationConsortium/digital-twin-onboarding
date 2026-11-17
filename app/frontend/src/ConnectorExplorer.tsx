@@ -437,7 +437,7 @@ export default function ConnectorExplorer({
   const setView = (next: View) => {
     setCurrentView(next);
     window.history.replaceState(
-      {},
+      window.history.state,
       "",
       next === "course" ? "/#/connector" : `/#/connector/${next}`,
     );

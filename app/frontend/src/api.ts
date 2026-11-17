@@ -25,7 +25,7 @@ export async function configureAuth(config: Config) {
   });
   if (window.location.pathname === "/auth/callback") {
     await manager.signinRedirectCallback();
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState(window.history.state, "", "/");
   }
 }
 export async function signIn() {

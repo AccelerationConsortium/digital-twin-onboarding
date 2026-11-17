@@ -117,8 +117,8 @@ ZONES = {
 HINTS = {
     "reach": "Instruments end up beyond the {arm}'s reach (about {reach:.2f} m). Allow front "
     "access, add a second arm, or keep fewer instruments in place.",
-    "access": "The {arm} cannot load {detail} from anywhere on this bench. Change where it is "
-    "loaded (front, or a lower height), or use an arm with a longer reach.",
+    "access": "{detail} cannot be loaded from anywhere on this bench by the arm that serves "
+    "it. Change where it is loaded (front, or a lower height), or use an arm with a longer reach.",
     "room": "The bench is too small for every instrument around the arm. Make the bench "
     "larger or leave unused instruments off it.",
     "collision": "Arm paths run into {blocker}. Let it move, or change its access side.",

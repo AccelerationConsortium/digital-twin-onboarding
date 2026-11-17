@@ -546,7 +546,7 @@ export default function InstrumentStudio({
   };
   const go = (next: Tab) => {
     setTab(next);
-    window.history.replaceState({}, "", `/#/plan/${next}`);
+    window.history.replaceState(window.history.state, "", `/#/plan/${next}`);
   };
   const leave = (next: Tab) => {
     if (
