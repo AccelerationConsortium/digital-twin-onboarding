@@ -242,6 +242,16 @@ def test_steps_on_separate_instruments_can_overlap():
         (28.0, 33.0),
     ]
     assert finish == 33.0  # 43 s one after another
+    # An instrument waiting without the sample does not hold the sample up.
+    steps = [
+        {"device_id": "a", "operation": "mix"},
+        {"device_id": "b", "operation": "wait"},
+    ]
+    trace = [
+        {"step": 1, "sample": "one", "location": "a", "elapsed_s": 10.0},
+        {"step": 2, "sample": "one", "location": "a", "elapsed_s": 40.0},
+    ]
+    assert schedule(steps, trace, [])[1] == 30.0
 
 
 def test_a_layout_is_improved_toward_the_chosen_objectives(client, monkeypatch):
@@ -276,3 +286,15 @@ def test_a_layout_is_improved_toward_the_chosen_objectives(client, monkeypatch):
     ]
     refused = client.post("/api/twins/layout/improve", json={**start["layout"], "objectives": []})
     assert refused.status_code == 422
+    # A layout that breaks a saved preference is not a starting point.
+    reader = next(
+        t["id"] for t in opened.json()["twins"] if t["spec"]["name"].startswith("Plate reader")
+    )
+    centre = next(p for p in start["layout"]["placements"] if p["twin_id"] == reader)
+    side = "right" if centre["x"] < 0 else "left"
+    version = client.get("/api/twins").json()["version"]
+    constrain(client, version, [{"kind": "zone", "twin_id": reader, "side": side}])
+    broken = client.post(
+        "/api/twins/layout/improve", json={**start["layout"], "objectives": ["path_m"]}
+    )
+    assert broken.status_code == 422 and "constraint" in broken.text

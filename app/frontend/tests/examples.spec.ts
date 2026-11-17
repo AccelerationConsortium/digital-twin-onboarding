@@ -273,7 +273,7 @@ test("a found layout is improved toward the chosen objectives", async ({
   );
 
   await page.getByRole("button", { name: "Search layouts" }).click();
-  const first = page.getByRole("button", { name: /^Layout 1/ });
+  const first = page.getByRole("button", { name: /^Layout \d+/ }).first();
   await expect(first).toContainText("m path", { timeout: 60_000 });
   await page.getByRole("button", { name: "Stop" }).click();
   // One plate goes through the workflow, so nothing overlaps and no parallel time is shown.

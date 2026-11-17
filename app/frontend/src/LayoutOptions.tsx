@@ -220,13 +220,14 @@ export default function LayoutOptions({
     n: i + 1,
     holds: holds[i + 1],
   }));
+  // Scored against every layout found, so hiding dominated ones never reorders the rest.
   // With several objectives, a layout is dominated only on those.
-  const listed = ranked(
+  const best = new Set(
     onlyBest
       ? tradeOffs(numbered, objectives.length > 1 ? objectives : undefined)
       : numbered,
-    objectives,
   );
+  const listed = ranked(numbered, objectives).filter((c) => best.has(c));
   const shown = all ? listed : listed.slice(0, SHOWN);
   const chosen =
     numbered.find((c) => sameLayout(c.layout, layout)) ?? listed[0];
@@ -433,7 +434,11 @@ export default function LayoutOptions({
             ) : (
               <button
                 className={studio.secondary}
-                disabled={running || shown.every((c) => c.holds !== undefined)}
+                disabled={
+                  running ||
+                  improving !== null ||
+                  shown.every((c) => c.holds !== undefined)
+                }
                 onClick={stress}
               >
                 Stress test

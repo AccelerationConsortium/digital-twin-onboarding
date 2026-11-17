@@ -668,7 +668,7 @@ OBJECTIVES = {
 }
 NUDGES = (0.1, 0.05)  # metres an instrument is moved in one try
 GAIN = 0.005  # share of one objective a move must win to be kept
-CLEAR = 0.02  # metres of clearance no move may give up, unless the layout started tighter
+CLEAR = 0.02  # metres of clearance a move may not go under; a tighter layout gets no tighter
 
 
 def _worth(candidate, current, objectives):
@@ -689,6 +689,10 @@ def improve_layout(twins, layout, steps, objectives, start=0, idle=0, seconds=No
     been tried without one, the layout is as good as this search gets and `next` is None.
     """
     search = Search(twins, layout["bench"], steps, [], constraints)
+    # The starting layout has to respect the saved preferences, or no result would.
+    for p in layout["placements"]:
+        if not search.preferred(p["twin_id"], p, layout["placements"]):
+            raise PlanError("constraint", search.failure)
     current = search.check(layout)
     if not current:
         raise PlanError("path", search.failure or "The arm cannot run this layout")

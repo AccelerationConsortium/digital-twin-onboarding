@@ -16,7 +16,10 @@ def schedule(steps, trace, motions):
     for step, entry in zip(steps, trace, strict=True):
         lasts = arm.get(entry["step"], entry["elapsed_s"] - before)
         before = entry["elapsed_s"]
-        uses = {("sample", entry["sample"]), ("device", step["device_id"])}
+        uses = {("device", step["device_id"])}
+        # A wait on an instrument the sample is not at holds the instrument, not the sample.
+        if step["operation"] != "wait" or entry.get("location") == step["device_id"]:
+            uses.add(("sample", entry["sample"]))
         if step["operation"] == "transfer":
             uses |= {("device", step["source_id"]), ("device", step["target_id"])}
         start = max((free.get(u, 0.0) for u in uses), default=0.0)
