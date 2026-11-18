@@ -399,3 +399,21 @@ def test_sandbox_instrument_is_part_of_persisted_definition_and_digest():
             json.dumps(without_instrument, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()
         assert workflow_digest(plan) != unbound_hash
+
+
+def test_the_ot2_pipette_stops_just_past_300_and_is_not_called_a_teaching_pipette(client):
+    actions = [
+        {"kind": "pickup"},
+        {"kind": "aspirate", "volume": 200},
+        {"kind": "aspirate", "volume": 101},
+    ]
+    ot2 = command(client, create(client, design("ot2", actions=actions)), "start")
+    while ot2["status"] == "running":
+        ot2 = command(client, ot2, "advance")
+    fault = ot2["events"][-1]
+    assert (ot2["status"], fault["code"]) == ("faulted", "capacity")
+    assert "teaching" not in fault["message"]
+    flex = command(client, create(client, design("flex", actions=actions)), "start")
+    while flex["status"] == "running":
+        flex = command(client, flex, "advance")
+    assert all(e.get("code") != "capacity" for e in flex["events"])
