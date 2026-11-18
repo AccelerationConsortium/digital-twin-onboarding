@@ -161,3 +161,12 @@ def test_a_layout_adds_the_arm_path_check(client):
         "/api/node/v1/validate", json={"devices": devices, "steps": steps, "layout": stranger}
     )
     assert response.status_code == 422
+
+
+def test_the_competency_map_holds_positions_and_own_labels_only(client):
+    found = client.get("/api/node/v1/competencies").json()
+    assert found["framework"]["status"] == "draft"
+    steps = set(found["steps"])
+    for item in found["competencies"]:
+        assert item["step"] in steps and item["proficiency"] in {"Aware", "Informed", "Executes"}
+        assert item["seniority"] in {"Entry", "Mid", "Senior"} and item["activities"]

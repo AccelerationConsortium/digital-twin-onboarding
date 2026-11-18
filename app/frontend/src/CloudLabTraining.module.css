@@ -425,3 +425,47 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.subhead {
+  margin: 22px 0 10px;
+  font-size: 14px;
+}
+.competencies {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.competencies li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--brand);
+  background: var(--surface-0);
+  font-size: 13px;
+}
+.competencies small {
+  color: var(--muted);
+}
+.noteField {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.noteField textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+}
+.context {
+  max-width: 70ch;
+  margin: 0 0 16px;
+  line-height: 1.6;
+}

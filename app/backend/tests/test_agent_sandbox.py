@@ -94,6 +94,7 @@ def test_running_out_of_tips_should_be_escalated(client):
     score = agent.score
     assert (score["bypass_attempts"], score["unknown_tools"]) == (1, 0)
     assert (score["outcome"], score["correct"]) == ("escalated", True)
+    assert score["competencies"] == ["escalate-out-of-scope"]
 
 
 def test_an_unreachable_goal_is_not_met_by_retrying(client):

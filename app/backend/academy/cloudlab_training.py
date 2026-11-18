@@ -26,13 +26,13 @@ from nacl.exceptions import BadSignatureError
 from nacl.signing import SigningKey
 from pydantic import Field
 
-from . import opentrons_check
+from . import competencies, opentrons_check
 from .auth import identify
 from .models import Action, StrictModel
 from .store import Conflict
 
 MODULE = "flex-transfer"
-RULES = "cloudlab-flex-transfer/1"
+RULES = "cloudlab-flex-transfer/2"
 RECORD_TYPE = "academy.training-record/1"
 ENVELOPE = "academy.signed-record/1"
 VALID_DAYS = 90
@@ -72,6 +72,151 @@ QUESTIONS = [
 ]
 
 
+def ask(qid, prompt, options, answer):
+    """A question; a list answer means every listed option, and only those, is right."""
+    return {"id": qid, "prompt": prompt, "options": options, "answer": answer}
+
+
+# Tasks answered by choosing, each tied to a GASE position in `competencies`.
+CHOICES = {
+    "orient": {"context": None, "questions": QUESTIONS, "note": False},
+    "assume": {
+        "context": (
+            "Your repaired workflow put 600 µL of stock into A1 and into A2. A result is "
+            "only as good as what it quietly relies on."
+        ),
+        "questions": [
+            ask(
+                "relies",
+                "Which of these does that result depend on? Choose every one that applies.",
+                [
+                    "The stock reservoir holds at least 1,200 µL when the run starts",
+                    "A1 and A2 are empty when the run starts",
+                    "There is at least one 1000 µL tip in B1",
+                    "The liquid behaves like water, so the pipette's volumes are accurate",
+                    "The plate is sealed during the run",
+                    "The waste chute can sit in any deck slot",
+                ],
+                [0, 1, 2, 3],
+            )
+        ],
+        "note": False,
+    },
+    "escalate": {
+        "context": (
+            "The SOP fixes 600 µL per well. Today's stock bottle holds 900 µL, and the dry "
+            "check says the stock runs out at the second transfer."
+        ),
+        "questions": [
+            ask(
+                "next",
+                "What do you do?",
+                [
+                    "Lower both transfers to 450 µL so the run fits",
+                    "Run it anyway and note the shortfall afterwards",
+                    "Stop, and escalate to the method owner with the check result",
+                    "Delete the A2 transfer so the check passes",
+                ],
+                2,
+            )
+        ],
+        "note": False,
+    },
+    "accept": {
+        "context": (
+            "Acceptance criteria, set before the comparison: the automated mean is within "
+            "±5 % of the manual mean, and the automated CV is at most 5 %. Results: manual "
+            "mean 100.0 µL, CV 2.1 %; automated mean 103.2 µL, CV 6.4 %."
+        ),
+        "questions": [
+            ask("accuracy", "Is the accuracy criterion met?", ["Met", "Not met"], 0),
+            ask("precision", "Is the precision (CV) criterion met?", ["Met", "Not met"], 1),
+            ask(
+                "verdict",
+                "Is the automated method equivalent to the manual one?",
+                [
+                    "Yes: the mean is close enough",
+                    "No: one criterion fails, so it is not equivalent yet",
+                    "Yes, if the next run looks better",
+                ],
+                1,
+            ),
+        ],
+        "note": False,
+    },
+    "report": {
+        "context": (
+            "Write up the fault you repaired so a colleague who was not there can trace it."
+        ),
+        "questions": [
+            ask(
+                "step",
+                "Which step of the original workflow failed first?",
+                ["Step 2", "Step 3", "Step 5"],
+                1,
+            ),
+            ask(
+                "expected",
+                "What was expected at that step?",
+                [
+                    "The tip to hold all the liquid drawn so far",
+                    "The plate to be sealed",
+                    "A fresh tip for each aspiration",
+                ],
+                0,
+            ),
+            ask(
+                "action",
+                "What was done about it?",
+                [
+                    "Nothing; the run was repeated",
+                    "The load was split into two trips and the workflow checked again",
+                    "The tip volume limit was raised",
+                ],
+                1,
+            ),
+        ],
+        "note": True,
+    },
+    "need": {
+        "context": (
+            "A lab fills 40 plates a week by hand, 45 minutes each. One plate in 25 has to "
+            "be redone. Automating the fill would take about 6 weeks of setup and "
+            "validation, after which a plate takes 10 minutes of attention."
+        ),
+        "questions": [
+            ask(
+                "hours",
+                "About how many hours of hands-on time a week would automation save?",
+                ["About 6", "About 23", "About 30"],
+                1,
+            ),
+            ask(
+                "inaction",
+                "What is the cost of not automating?",
+                [
+                    "None; the lab already manages",
+                    "About 30 hours a week of manual effort and the rework of redone plates",
+                    "Only the robot's price",
+                ],
+                1,
+            ),
+            ask(
+                "decision",
+                "What do you recommend?",
+                [
+                    "Automate, and check the setup time against the weekly saving first",
+                    "Do not automate; 6 weeks is too long",
+                    "Automate without checking, since robots are always faster",
+                ],
+                0,
+            ),
+        ],
+        "note": False,
+    },
+}
+
+
 def step(kind, well="stock", volume=100):
     return {"kind": kind, "well": well, "volume": volume}
 
@@ -105,6 +250,11 @@ TASKS = {
         "fresh_tip_per_well": True,
         "start": [],
     },
+    "assume": {"title": "Record what the result depends on", "kind": "questions"},
+    "escalate": {"title": "Know when to stop and escalate", "kind": "questions"},
+    "accept": {"title": "Judge results against acceptance criteria", "kind": "questions"},
+    "report": {"title": "Document the deviation", "kind": "questions"},
+    "need": {"title": "Decide whether to automate", "kind": "questions"},
 }
 WORKFLOW_TASKS = [key for key, task in TASKS.items() if task["kind"] == "workflow"]
 
@@ -118,7 +268,9 @@ class StartTraining(Revision):
 
 
 class Answers(Revision):
-    answers: dict[str, int] = Field(max_length=len(QUESTIONS))
+    task: Literal["orient", "assume", "escalate", "accept", "report", "need"] = "orient"
+    answers: dict[str, int | list[int]] = Field(max_length=8)
+    note: str = Field(default="", max_length=500)
 
 
 class WorkflowValidation(Revision):
@@ -345,6 +497,7 @@ def record(owner, training, settings):
                 "retries": max(0, task["attempts"] - 1),
                 "errors": task["errors"],
                 "passed_at": task["passed_at"],
+                **({"note": task["note"]} if task.get("note") else {}),
             }
         )
     valid_at = [training["tasks"][key]["passed_at"] for key in WORKFLOW_TASKS]
@@ -370,6 +523,19 @@ def record(owner, training, settings):
             "tasks": tasks,
             "time_to_first_valid_workflow_s": first_valid
             and seconds_between(training["started_at"], first_valid),
+            "competencies": {
+                "framework": competencies.FRAMEWORK["name"],
+                "status": competencies.FRAMEWORK["status"],
+                "evidence_toward": [
+                    {
+                        k: c[k]
+                        for k in ("key", "tracks", "seniority", "step", "proficiency", "label")
+                    }
+                    for c in competencies.evidenced_by(
+                        f"cloudlab:{t['id']}" for t in tasks if t["status"] == "passed"
+                    )
+                ],
+            },
             "evidence": "synthetic",
             "statement": STATEMENT,
         },
@@ -439,7 +605,23 @@ def install(app, *, store):
     def view(training):
         return {
             **training,
-            "questions": [{k: q[k] for k in ("id", "prompt", "options")} for q in QUESTIONS],
+            "outdated": training.get("rules_version") != RULES,
+            "choices": {
+                key: {
+                    "context": spec["context"],
+                    "note": spec["note"],
+                    "questions": [
+                        {
+                            "id": q["id"],
+                            "prompt": q["prompt"],
+                            "options": q["options"],
+                            "multiple": isinstance(q["answer"], list),
+                        }
+                        for q in spec["questions"]
+                    ],
+                }
+                for key, spec in CHOICES.items()
+            },
             "goals": {key: TASKS[key]["goal"] for key in WORKFLOW_TASKS},
         }
 
@@ -481,14 +663,34 @@ def install(app, *, store):
     @app.post("/api/cloudlab/training-sessions/answers")
     def answer_questions(data: Answers, owner: str = Depends(identify)):
         training = current(owner, data.expected_version)
-        wrong = [q for q in QUESTIONS if data.answers.get(q["id"]) != q["answer"]]
-        # Only how many are wrong, so the quiz cannot be solved by elimination.
-        attempt(
-            training["tasks"]["orient"],
-            not wrong,
-            [f"{len(wrong)} of {len(QUESTIONS)} answers wrong"] if wrong else [],
-        )
-        training["last_check"] = {"task": "orient", "valid": not wrong, "wrong": len(wrong)}
+        if data.task not in training["tasks"]:
+            raise HTTPException(409, "This training predates the current tasks. Start over.")
+        spec = CHOICES[data.task]
+        questions = spec["questions"]
+
+        def right(q):
+            given = data.answers.get(q["id"])
+            if isinstance(q["answer"], list):
+                return isinstance(given, list) and sorted(set(given)) == q["answer"]
+            return given == q["answer"]
+
+        wrong = [q for q in questions if not right(q)]
+        note = data.note.strip()
+        missing_note = spec["note"] and len(note) < 15
+        # Only how many are wrong, so a task cannot be solved by elimination.
+        errors = [f"{len(wrong)} of {len(questions)} wrong"] if wrong else []
+        if missing_note:
+            errors.append("The write-up needs a note of at least 15 characters")
+        task = training["tasks"][data.task]
+        attempt(task, not errors, errors)
+        if spec["note"] and not errors:
+            task["note"] = note
+        training["last_check"] = {
+            "task": data.task,
+            "valid": not errors,
+            "wrong": len(wrong),
+            "note_missing": bool(missing_note),
+        }
         return save(owner, training, data.expected_version)
 
     @app.post("/api/cloudlab/workflow-validations")
