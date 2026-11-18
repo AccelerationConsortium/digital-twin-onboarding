@@ -15,7 +15,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field, model_validator
 
-from . import cloudlab_training, opentrons_check, sll_adapter
+from . import cloudlab_training, competencies, opentrons_check, sll_adapter
 from .auth import identify
 from .library import COLLECTIONS
 from .mock_contract import PlanError, execute_mock
@@ -176,6 +176,11 @@ def install(app):
             "limits": {"devices": 12, "steps": 48},
             "evidence": EVIDENCE,
         }
+
+    @router.get("/competencies")
+    def competency_map(_owner: str = Depends(identify)):
+        """Where Academy activities sit in the GASE framework, by position and own label."""
+        return {"version": VERSION, **competencies.catalog()}
 
     @router.post("/validate")
     def validate(data: Workflow, _owner: str = Depends(identify)):

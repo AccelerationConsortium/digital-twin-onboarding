@@ -12,7 +12,24 @@ import { api, json } from "./api";
 import type { Action } from "./types";
 import s from "./CloudLabTraining.module.css";
 
-type TaskId = "orient" | "fault" | "own";
+type ChoiceId =
+  "orient" | "assume" | "escalate" | "accept" | "report" | "audit" | "need";
+type TaskId = ChoiceId | "fault" | "own";
+type Question = {
+  id: string;
+  prompt: string;
+  options: string[];
+  multiple: boolean;
+};
+type Answer = number | number[];
+type Competency = {
+  key: string;
+  tracks: string[];
+  seniority: string;
+  step: string;
+  proficiency: string;
+  label: string;
+};
 type Problem = {
   source: "rules" | "goal";
   step: number | null;
@@ -24,15 +41,20 @@ type Task = {
   attempts: number;
   errors: string[];
   actions?: Action[];
+  note?: string;
 };
 type Training = {
   version: number;
   started_at: string;
   tasks: Record<TaskId, Task>;
-  questions: { id: string; prompt: string; options: string[] }[];
+  outdated: boolean;
+  choices: Record<
+    ChoiceId,
+    { context: string | null; note: boolean; questions: Question[] }
+  >;
   goals: Record<"fault" | "own", string>;
   last_check:
-    | { task: "orient"; valid: boolean; wrong: number }
+    | { task: ChoiceId; valid: boolean; wrong: number; note_missing: boolean }
     | { task: "fault" | "own"; valid: boolean; problems: Problem[] }
     | null;
 };
@@ -51,8 +73,67 @@ type Capabilities = {
 
 /** Handed to the mock portal in this tab; the portal also accepts a downloaded file. */
 export const RECORD_HANDOFF = "academy-training-record";
-const ORDER: TaskId[] = ["orient", "fault", "own"];
-const STEP_LABELS = { orient: "Learn", fault: "Repair", own: "Write" };
+const ORDER: TaskId[] = [
+  "orient",
+  "fault",
+  "own",
+  "assume",
+  "escalate",
+  "accept",
+  "report",
+  "audit",
+  "need",
+];
+const STEP_LABELS: Record<TaskId, string> = {
+  orient: "Learn",
+  fault: "Repair",
+  own: "Write",
+  assume: "Assumptions",
+  escalate: "Escalate",
+  accept: "Accept",
+  report: "Report",
+  audit: "Audit",
+  need: "Decide",
+};
+/** What the button to each step says. */
+const NEXT: Record<TaskId | "record", string> = {
+  orient: "Next: learn the deck",
+  fault: "Next: repair a workflow",
+  own: "Next: write your own",
+  assume: "Next: record your assumptions",
+  escalate: "Next: know when to escalate",
+  accept: "Next: judge the results",
+  report: "Next: write up the deviation",
+  audit: "Next: audit a run log",
+  need: "Next: decide whether to automate",
+  record: "Next: your record",
+};
+const CHOICE_TASKS = new Set<TaskId>([
+  "orient",
+  "assume",
+  "escalate",
+  "accept",
+  "report",
+  "audit",
+  "need",
+]);
+const isChoice = (id: TaskId | "record"): id is ChoiceId =>
+  CHOICE_TASKS.has(id as TaskId);
+const after = (id: TaskId): TaskId | "record" =>
+  ORDER[ORDER.indexOf(id) + 1] ?? "record";
+/** The record inside a signed envelope; the portal is what checks the signature. */
+const unwrap = (envelope: { payload?: string }) =>
+  JSON.parse(
+    new TextDecoder().decode(
+      Uint8Array.from(
+        atob(
+          (envelope.payload ?? "").replace(/-/g, "+").replace(/_/g, "/") +
+            "=".repeat((4 - ((envelope.payload ?? "").length % 4)) % 4),
+        ),
+        (c) => c.charCodeAt(0),
+      ),
+    ),
+  );
 const PLACES: Record<string, string> = {
   stock: "Stock reservoir",
   plate: "Deep-well plate",
@@ -188,7 +269,11 @@ export default function CloudLabTraining({
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [step, setStep] = useState<TaskId | "record">("orient");
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [answers, setAnswers] = useState<
+    Partial<Record<ChoiceId, Record<string, Answer>>>
+  >({});
+  const [notes, setNotes] = useState<Partial<Record<ChoiceId, string>>>({});
+  const [evidence, setEvidence] = useState<Competency[] | null>(null);
   const [drafts, setDrafts] = useState<Partial<Record<TaskId, Action[]>>>({});
   const [busy, setBusy] = useState(false);
 
@@ -222,9 +307,12 @@ export default function CloudLabTraining({
       setCaps(c);
       if (t.training) {
         adopt(t.training);
+        // A training from earlier rules lacks the newer tasks; the page asks to start over.
         setStep(
-          ORDER.find((id) => t.training!.tasks[id].status !== "passed") ??
-            "record",
+          t.training.outdated
+            ? "orient"
+            : (ORDER.find((id) => t.training!.tasks[id]?.status !== "passed") ??
+                "record"),
         );
       }
       setLoaded(true);
@@ -270,19 +358,40 @@ export default function CloudLabTraining({
       );
       adopt(next);
       setAnswers({});
+      setNotes({});
       setStep("orient");
     });
 
-  const submitAnswers = () =>
+  const submitAnswers = (task: ChoiceId) =>
     run(async () => {
       if (!training) return;
       adopt(
         await api<Training>(
           "/cloudlab/training-sessions/answers",
-          json({ expected_version: training.version, answers }),
+          json({
+            expected_version: training.version,
+            task,
+            answers: answers[task] ?? {},
+            note: notes[task] ?? "",
+          }),
         ),
       );
     });
+
+  useEffect(() => {
+    if (step !== "record" || !training || training.outdated) return;
+    let alive = true;
+    setEvidence(null);
+    api<{ payload?: string }>("/cloudlab/qualifications/me")
+      .then((envelope) => {
+        if (alive)
+          setEvidence(unwrap(envelope).competencies?.evidence_toward ?? []);
+      })
+      .catch(() => alive && setEvidence([]));
+    return () => {
+      alive = false;
+    };
+  }, [step, training]);
 
   const validate = (task: "fault" | "own") =>
     run(async () => {
@@ -341,7 +450,98 @@ export default function CloudLabTraining({
     );
   const inst = caps.instrument;
   const check = training?.last_check;
-  const done = (id: TaskId) => training?.tasks[id].status === "passed";
+  const done = (id: TaskId) => training?.tasks[id]?.status === "passed";
+
+  const choiceTask = (task: ChoiceId) => {
+    if (!training) return null;
+    const spec = training.choices[task];
+    const given = answers[task] ?? {};
+    const set = (id: string, value: Answer) =>
+      setAnswers((a) => ({ ...a, [task]: { ...a[task], [id]: value } }));
+    const answered =
+      spec.questions.every((q) =>
+        q.multiple
+          ? Array.isArray(given[q.id]) && (given[q.id] as number[]).length > 0
+          : typeof given[q.id] === "number",
+      ) &&
+      (!spec.note || (notes[task] ?? "").trim().length > 0);
+    const mine =
+      check && check.task === task && "wrong" in check ? check : null;
+    return (
+      <>
+        {spec.questions.map((q) => (
+          <fieldset key={q.id} className={s.question}>
+            <legend>{q.prompt}</legend>
+            {q.options.map((option, index) => {
+              const picked = given[q.id];
+              const checked = q.multiple
+                ? Array.isArray(picked) && picked.includes(index)
+                : picked === index;
+              return (
+                <label key={option}>
+                  <input
+                    type={q.multiple ? "checkbox" : "radio"}
+                    name={`${task}-${q.id}`}
+                    checked={checked}
+                    onChange={() => {
+                      if (!q.multiple) return set(q.id, index);
+                      const now = Array.isArray(picked) ? picked : [];
+                      set(
+                        q.id,
+                        checked
+                          ? now.filter((i) => i !== index)
+                          : [...now, index],
+                      );
+                    }}
+                  />
+                  {option}
+                </label>
+              );
+            })}
+          </fieldset>
+        ))}
+        {spec.note && (
+          <label className={s.noteField}>
+            <span>Note for a colleague</span>
+            <textarea
+              rows={3}
+              maxLength={500}
+              value={notes[task] ?? ""}
+              onChange={(e) =>
+                setNotes((n) => ({ ...n, [task]: e.target.value }))
+              }
+            />
+          </label>
+        )}
+        <div className={s.actions}>
+          <button
+            className={s.primary}
+            disabled={busy || !answered}
+            onClick={() => submitAnswers(task)}
+          >
+            Check answers
+          </button>
+          {done(task) ? (
+            <button
+              className={s.secondary}
+              onClick={() => setStep(after(task))}
+            >
+              {NEXT[after(task)]}
+            </button>
+          ) : (
+            mine &&
+            !mine.valid && (
+              <span className={s.bad}>
+                {mine.wrong > 0 && `${mine.wrong} not right yet`}
+                {mine.wrong > 0 && mine.note_missing && " · "}
+                {mine.note_missing && "add a fuller note"}
+              </span>
+            )
+          )}
+        </div>
+      </>
+    );
+  };
 
   return (
     <main className={s.page}>
@@ -362,6 +562,11 @@ export default function CloudLabTraining({
             <li>Learn the deck and the container rules.</li>
             <li>Repair a workflow that the simulator rules stop.</li>
             <li>Write your own workflow and pass the same check.</li>
+            <li>
+              Record its assumptions, know when to escalate, judge results and
+              write up the deviation.
+            </li>
+            <li>Decide whether a workflow is worth automating.</li>
           </ol>
           <p className={s.note}>
             You get a signed training record to attach to a cloud lab run
@@ -369,6 +574,18 @@ export default function CloudLabTraining({
           </p>
           <button className={s.primary} disabled={busy} onClick={start}>
             Start training
+          </button>
+        </section>
+      ) : training.outdated ? (
+        <section className={s.card}>
+          <h2>The training has changed</h2>
+          <p className={s.note}>
+            Your progress was made under earlier rules, so a portal would not
+            accept its record. Start over to train under{" "}
+            <code>{caps.modules[0].rules_version}</code>.
+          </p>
+          <button className={s.primary} disabled={busy} onClick={start}>
+            Start over
           </button>
         </section>
       ) : (
@@ -440,52 +657,21 @@ export default function CloudLabTraining({
               </div>
               <div className={s.card}>
                 <h2>Check what you know</h2>
-                {training.questions.map((q) => {
-                  return (
-                    <fieldset key={q.id} className={s.question}>
-                      <legend>{q.prompt}</legend>
-                      {q.options.map((option, index) => (
-                        <label key={option}>
-                          <input
-                            type="radio"
-                            name={q.id}
-                            checked={answers[q.id] === index}
-                            onChange={() =>
-                              setAnswers((a) => ({ ...a, [q.id]: index }))
-                            }
-                          />
-                          {option}
-                        </label>
-                      ))}
-                    </fieldset>
-                  );
-                })}
-                <div className={s.actions}>
-                  <button
-                    className={s.primary}
-                    disabled={
-                      busy ||
-                      Object.keys(answers).length < training.questions.length
-                    }
-                    onClick={submitAnswers}
-                  >
-                    Check answers
-                  </button>
-                  {done("orient") ? (
-                    <button
-                      className={s.secondary}
-                      onClick={() => setStep("fault")}
-                    >
-                      Next: repair a workflow
-                    </button>
-                  ) : (
-                    check?.task === "orient" &&
-                    !check.valid && (
-                      <span className={s.bad}>{check.wrong} not right yet</span>
-                    )
-                  )}
-                </div>
+                {choiceTask("orient")}
               </div>
+            </section>
+          )}
+
+          {isChoice(step) && step !== "orient" && (
+            <section className={s.card}>
+              <div className={s.taskHead}>
+                <h2>{training.tasks[step].title}</h2>
+                <span>{done(step) ? "passed" : "open"}</span>
+              </div>
+              {training.choices[step].context && (
+                <p className={s.context}>{training.choices[step].context}</p>
+              )}
+              {choiceTask(step)}
             </section>
           )}
 
@@ -529,11 +715,9 @@ export default function CloudLabTraining({
                 {done(step) && (
                   <button
                     className={s.secondary}
-                    onClick={() => setStep(step === "fault" ? "own" : "record")}
+                    onClick={() => setStep(after(step))}
                   >
-                    {step === "fault"
-                      ? "Next: write your own"
-                      : "Next: your record"}
+                    {NEXT[after(step)]}
                   </button>
                 )}
               </div>
@@ -595,6 +779,30 @@ export default function CloudLabTraining({
                   })}
                 </tbody>
               </table>
+              <h3 className={s.subhead}>Evidence toward GASE competencies</h3>
+              {evidence === null ? (
+                <p className={s.note} aria-busy="true">
+                  Reading the record…
+                </p>
+              ) : evidence.length === 0 ? (
+                <p className={s.note}>Pass a task to add evidence.</p>
+              ) : (
+                <ul className={s.competencies}>
+                  {evidence.map((c) => (
+                    <li key={c.key}>
+                      <strong>{c.label}</strong>
+                      <small>
+                        {c.tracks.join(" · ")} · {c.seniority} · {c.step} ·{" "}
+                        {c.proficiency}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className={s.fine}>
+                Positions in the draft GASE Guidelines (SLAS). Labels are the
+                Academy's. Evidence from synthetic practice, not certification.
+              </p>
               <p className={s.note}>
                 Signed by the Academy and bound to rules version{" "}
                 <code>{caps.modules[0].rules_version}</code>. It is evidence for

@@ -72,7 +72,97 @@ test("a new learner trains on the Flex and a mock portal reads the record", asyn
   }
   await page.getByRole("button", { name: "Run dry check" }).click();
   await expect(page.getByText("reaches the goal")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Next: record your assumptions" })
+    .click();
+
+  // The steps the GASE Guidelines add: assumptions, escalation, acceptance,
+  // the deviation write-up and whether to automate at all.
+  const pick = (group: string, option: string) =>
+    page
+      .getByRole("group", { name: group })
+      .getByLabel(option, { exact: true })
+      .check();
+  const relies =
+    "Which of these does that result depend on? Choose every one that applies.";
+  for (const option of [
+    "The stock reservoir holds at least 1,200 µL when the run starts",
+    "A1 and A2 are empty when the run starts",
+    "There is at least one 1000 µL tip in B1",
+  ])
+    await pick(relies, option);
+  await page.getByRole("button", { name: "Check answers" }).click();
+  await expect(page.getByText("1 not right yet")).toBeVisible();
+  await pick(
+    relies,
+    "The liquid behaves like water, so the pipette's volumes are accurate",
+  );
+  await page.getByRole("button", { name: "Check answers" }).click();
+  await page
+    .getByRole("button", { name: "Next: know when to escalate" })
+    .click();
+  await pick(
+    "What do you do?",
+    "Stop, and escalate to the method owner with the check result",
+  );
+  await page.getByRole("button", { name: "Check answers" }).click();
+  await page.getByRole("button", { name: "Next: judge the results" }).click();
+  await pick("Is the accuracy criterion met?", "Met");
+  await pick("Is the precision (CV) criterion met?", "Not met");
+  await pick(
+    "Is the automated method equivalent to the manual one?",
+    "No: one criterion fails, so it is not equivalent yet",
+  );
+  await page.getByRole("button", { name: "Check answers" }).click();
+  await page
+    .getByRole("button", { name: "Next: write up the deviation" })
+    .click();
+  await pick("Which step of the original workflow failed first?", "Step 3");
+  await pick(
+    "What was expected at that step?",
+    "The tip to hold all the liquid drawn so far",
+  );
+  await pick(
+    "What was done about it?",
+    "The load was split into two trips and the workflow checked again",
+  );
+  await page
+    .getByLabel("Note for a colleague")
+    .fill("Step 3 drew 1,200 µL into a 1,000 µL tip; split into two trips.");
+  await page.getByRole("button", { name: "Check answers" }).click();
+  await page.getByRole("button", { name: "Next: audit a run log" }).click();
+  const findings =
+    "Which entries would an auditor flag? Choose every one that applies.";
+  for (const entry of [
+    "09:05 · (no user) · Changed the aspirate volume from 600 to 450 µL",
+    "09:41 · ada · Replaced results.csv with a cleaned copy; original deleted",
+    "Friday 16:00 · ada · Noted that the 09:05 change had been approved",
+  ])
+    await pick(findings, entry);
+  await page.getByRole("button", { name: "Check answers" }).click();
+  await page
+    .getByRole("button", { name: "Next: decide whether to automate" })
+    .click();
+  await pick(
+    "About how many hours of hands-on time a week would automation save?",
+    "About 23",
+  );
+  await pick(
+    "What is the cost of not automating?",
+    "About 30 hours a week of manual effort and the rework of redone plates",
+  );
+  await pick(
+    "What do you recommend?",
+    "Automate, and check the setup time against the weekly saving first",
+  );
+  await page.getByRole("button", { name: "Check answers" }).click();
+  await shot(page, "5a-decide");
   await page.getByRole("button", { name: "Next: your record" }).click();
+  await expect(
+    page.getByText(
+      "Escalates a problem the procedure does not cover instead of improvising",
+    ),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Your training record" }),
   ).toBeVisible();

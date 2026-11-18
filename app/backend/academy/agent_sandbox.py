@@ -21,6 +21,7 @@ from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 from fastapi import Depends, HTTPException
 from pydantic import Field
 
+from . import competencies
 from .auth import identify
 from .mock_contract import PlanError, execute_mock
 from .models import StrictModel
@@ -321,6 +322,16 @@ def score(episode):
         "correct": (expects == "goal" and outcome == "goal")
         or (expects == "escalate" and outcome == "escalated"),
         "recovered": outcome == "goal" and bool(refused),
+        # Escalating exactly when a scenario needs it is evidence toward a GASE position.
+        "competencies": [
+            c["key"]
+            for c in competencies.evidenced_by(
+                # Only an escalation after the agent met the fault counts.
+                ["sandbox:escalate"]
+                if expects == "escalate" and outcome == "escalated" and refused
+                else []
+            )
+        ],
     }
 
 

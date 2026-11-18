@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 import pytest
-from academy.cloudlab_training import QUESTIONS, TASKS
+from academy.cloudlab_training import CHOICES, QUESTIONS, TASKS
 from fastapi.testclient import TestClient
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
@@ -58,14 +58,50 @@ def finish(client):
         json={"expected_version": training["version"], "answers": RIGHT},
     ).json()
     training = check(client, training, "fault", REPAIRED)
-    return check(client, training, "own", OWN)
+    training = check(client, training, "own", OWN)
+    for task, answers in CHOICE_ANSWERS.items():
+        training = choose(client, training, task, answers)
+        assert training["last_check"]["valid"], (task, training["last_check"])
+    return training
+
+
+CHOICE_ANSWERS = {
+    task: {q["id"]: q["answer"] for q in spec["questions"]}
+    for task, spec in CHOICES.items()
+    if task != "orient"
+}
+NOTE = "Step 3 overfilled the tip; split into two trips and re-checked."
+
+
+def choose(client, training, task, answers, note=NOTE):
+    response = client.post(
+        "/api/cloudlab/training-sessions/answers",
+        json={
+            "expected_version": training["version"],
+            "task": task,
+            "answers": answers,
+            "note": note if CHOICES[task]["note"] else "",
+        },
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
 
 
 def test_capabilities_name_the_instrument_rules_and_tasks(client):
     found = client.get("/api/cloudlab/capabilities").json()
     assert found["instrument"]["volume_ul"] == [5, 1000]
-    assert found["modules"][0]["rules_version"] == "cloudlab-flex-transfer/1"
-    assert [t["id"] for t in found["modules"][0]["tasks"]] == ["orient", "fault", "own"]
+    assert found["modules"][0]["rules_version"] == "cloudlab-flex-transfer/2"
+    assert [t["id"] for t in found["modules"][0]["tasks"]] == [
+        "orient",
+        "fault",
+        "own",
+        "assume",
+        "escalate",
+        "accept",
+        "report",
+        "audit",
+        "need",
+    ]
     assert found["evidence"] == "synthetic"
 
 
@@ -114,8 +150,13 @@ def test_wrong_answers_are_recorded_and_stale_commands_rejected(client):
         "/api/cloudlab/training-sessions/answers",
         json={"expected_version": training["version"], "answers": wrong},
     ).json()
-    assert answered["last_check"] == {"task": "orient", "valid": False, "wrong": 1}
-    assert answered["tasks"]["orient"]["errors"] == ["1 of 4 answers wrong"]
+    assert answered["last_check"] == {
+        "task": "orient",
+        "valid": False,
+        "wrong": 1,
+        "note_missing": False,
+    }
+    assert answered["tasks"]["orient"]["errors"] == ["1 of 4 wrong"]
     assert answered["tasks"]["orient"]["status"] == "open"
     stale = client.post(
         "/api/cloudlab/training-sessions/answers",
@@ -126,7 +167,7 @@ def test_wrong_answers_are_recorded_and_stale_commands_rejected(client):
         client.post("/api/cloudlab/training-sessions", json={"expected_version": 0}).status_code
         == 409
     )
-    assert "answer" not in answered["questions"][0]
+    assert "answer" not in str(answered["choices"]["orient"])
 
 
 def payload(envelope):
@@ -146,7 +187,12 @@ def test_a_signed_record_verifies_and_an_edit_does_not(client):
     record = payload(envelope)
     assert record["complete"] and record["evidence"] == "synthetic"
     assert "does not authorize" in record["statement"]
-    assert [t["retries"] for t in record["tasks"]] == [0, 0, 0]
+    assert [t["retries"] for t in record["tasks"]] == [0] * 9
+    assert next(t for t in record["tasks"] if t["id"] == "report")["note"] == NOTE
+    keys = {c["key"] for c in record["competencies"]["evidence_toward"]}
+    assert {"troubleshoot-to-procedure", "escalate-out-of-scope", "audit-findings"} <= keys
+    assert record["competencies"]["status"] == "draft"
+    assert all(c["proficiency"] != "Leads" for c in record["competencies"]["evidence_toward"])
     assert record["time_to_first_valid_workflow_s"] is not None
     assert "Ada" not in str(record)
 
@@ -158,7 +204,7 @@ def test_a_signed_record_verifies_and_an_edit_does_not(client):
         "current": True,
         "complete": True,
         "problems": [],
-        "rules_version": "cloudlab-flex-transfer/1",
+        "rules_version": "cloudlab-flex-transfer/2",
         "record": record,
     }
     for edited in [
@@ -184,7 +230,7 @@ def test_a_portal_verifies_offline_with_only_the_published_key(client):
     finish(client)
     envelope = client.get("/api/cloudlab/qualifications/me").json()
     issuer = TestClient(client.app).get("/api/cloudlab/issuer").json()  # no sign-in
-    assert issuer["rules"] == {"flex-transfer": "cloudlab-flex-transfer/1"}
+    assert issuer["rules"] == {"flex-transfer": "cloudlab-flex-transfer/2"}
     assert datetime.fromisoformat(issuer["now"]).tzinfo is not None
     (jwk,) = issuer["keys"]
     assert jwk["kid"] == envelope["kid"] and "d" not in jwk
@@ -233,3 +279,62 @@ def test_each_learner_sees_only_their_own_training(app, client):
         mine = other.post("/api/cloudlab/records/verify", json={"record": record}).json()
         # A portal checks a record it is shown; it does not need the learner's account.
         assert mine["authentic"] and mine["complete"]
+
+
+def test_choice_tasks_are_graded_without_revealing_which_answer_is_wrong(client):
+    training = start(client)
+    assert "answer" not in str(training["choices"])
+    assert training["choices"]["assume"]["questions"][0]["multiple"] is True
+    repeated = choose(client, training, "assume", {"relies": [0, 0, 1, 2, 3]})
+    assert repeated["tasks"]["assume"]["status"] == "open"
+    partial = choose(client, repeated, "assume", {"relies": [0, 1]})
+    assert partial["last_check"] == {
+        "task": "assume",
+        "valid": False,
+        "wrong": 1,
+        "note_missing": False,
+    }
+    improvised = choose(client, partial, "escalate", {"next": 0})
+    assert improvised["tasks"]["escalate"]["status"] == "open"
+    right = choose(client, improvised, "escalate", {"next": 2})
+    assert right["tasks"]["escalate"]["status"] == "passed"
+
+
+def test_a_deviation_report_needs_a_note(client):
+    training = start(client)
+    answers = CHOICE_ANSWERS["report"]
+    bare = choose(client, training, "report", answers, note="short")
+    assert bare["last_check"]["note_missing"] and bare["tasks"]["report"]["status"] == "open"
+    written = choose(client, bare, "report", answers)
+    assert written["tasks"]["report"]["note"] == NOTE
+
+
+def test_a_record_names_only_competencies_its_passed_tasks_support(client):
+    training = start(client)
+    choose(client, training, "escalate", {"next": 2})
+    record = payload(client.get("/api/cloudlab/qualifications/me").json())
+    assert [c["key"] for c in record["competencies"]["evidence_toward"]] == [
+        "escalate-out-of-scope"
+    ]
+
+
+def test_new_rules_mark_earlier_training_and_records_out_of_date(client, monkeypatch):
+    from academy import cloudlab_training
+
+    finish(client)
+    envelope = client.get("/api/cloudlab/qualifications/me").json()
+    monkeypatch.setattr(cloudlab_training, "RULES", "cloudlab-flex-transfer/3")
+    current = client.get("/api/cloudlab/training-sessions/current").json()["training"]
+    assert current["outdated"] is True
+    stale = client.post(
+        "/api/cloudlab/training-sessions/answers",
+        json={"expected_version": current["version"], "answers": RIGHT},
+    )
+    assert stale.status_code == 409
+    restarted = client.post(
+        "/api/cloudlab/training-sessions", json={"expected_version": current["version"]}
+    ).json()
+    assert restarted["outdated"] is False
+    result = client.post("/api/cloudlab/records/verify", json={"record": envelope}).json()
+    assert (result["authentic"], result["current"]) == (True, False)
+    assert "Earned under rules that have since changed; retrain first" in result["problems"]

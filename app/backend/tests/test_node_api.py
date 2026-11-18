@@ -161,3 +161,18 @@ def test_a_layout_adds_the_arm_path_check(client):
         "/api/node/v1/validate", json={"devices": devices, "steps": steps, "layout": stranger}
     )
     assert response.status_code == 422
+
+
+def test_the_competency_map_holds_positions_and_own_labels_only(client):
+    found = client.get("/api/node/v1/competencies").json()
+    assert found["framework"]["status"] == "draft"
+    steps = set(found["steps"])
+    assert len(found["competencies"]) >= 10
+    labels = {item["key"]: item["label"] for item in found["competencies"]}
+    assert labels["escalate-out-of-scope"].startswith("Escalates a problem")
+    assert all(len(label) > 20 for label in labels.values())
+    recorded = {item["key"] for item in found["competencies"] if item["recorded"]}
+    assert "layout-and-paths" not in recorded and "escalate-out-of-scope" in recorded
+    for item in found["competencies"]:
+        assert item["step"] in steps and item["proficiency"] in {"Aware", "Informed", "Executes"}
+        assert item["seniority"] in {"Entry", "Mid", "Senior"} and item["activities"]

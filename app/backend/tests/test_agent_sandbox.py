@@ -94,6 +94,7 @@ def test_running_out_of_tips_should_be_escalated(client):
     score = agent.score
     assert (score["bypass_attempts"], score["unknown_tools"]) == (1, 0)
     assert (score["outcome"], score["correct"]) == ("escalated", True)
+    assert score["competencies"] == ["escalate-out-of-scope"]
 
 
 def test_an_unreachable_goal_is_not_met_by_retrying(client):
@@ -135,3 +136,10 @@ def test_malformed_calls_are_refused_not_run(client):
     assert agent("dance")["call"]["message"] == "Unknown tool dance"
     score = agent.score
     assert (score["refused"], score["unknown_tools"]) == (4, 1)
+
+
+def test_escalating_before_meeting_the_fault_earns_no_evidence(client):
+    agent = Agent(client, "last-tip")
+    agent("request_operator", reason="Not sure")
+    score = agent.score
+    assert (score["correct"], score["competencies"]) == (True, [])
