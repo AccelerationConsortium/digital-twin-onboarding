@@ -15,7 +15,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field, model_validator
 
-from . import cloudlab_training, opentrons_check
+from . import cloudlab_training, opentrons_check, sll_adapter
 from .auth import identify
 from .library import COLLECTIONS
 from .mock_contract import PlanError, execute_mock
@@ -68,6 +68,12 @@ class Replay(Workflow):
 
 class Assess(StrictModel):
     record: dict
+
+
+class SllProgram(StrictModel):
+    program: str = Field(min_length=1, max_length=sll_adapter.MAX_LENGTH)
+    instrument: Literal["flex", "ot2"] = "flex"
+    source_volume: float = Field(ge=0, le=15000)
 
 
 class OpentronsPlan(StrictModel):
@@ -159,7 +165,7 @@ def install(app):
             "layers": LAYERS,
             "library": {name: len(entries) for name, entries in COLLECTIONS.items()},
             "services": ["simulate", "validate", "replay", "assess"],
-            "adapters": ["opentrons"],
+            "adapters": ["opentrons", "sll-pipetting-subset"],
             "rules": {
                 "training": cloudlab_training.RULES,
                 "opentrons_api": opentrons_check.API_LEVEL,
@@ -228,5 +234,42 @@ def install(app):
             }
         )
         return {"version": VERSION, "valid": not result["stops"], **result}
+
+    @router.post("/adapters/sll/validate")
+    def sll(data: SllProgram, _owner: str = Depends(identify)):
+        """SLL pipetting unit operations, read without evaluation and checked as a plan."""
+        try:
+            units, actions, unsupported = sll_adapter.translate(data.program)
+        except sll_adapter.SllError as exc:
+            return {
+                "version": VERSION,
+                "valid": False,
+                "error": {"message": str(exc), "position": exc.position},
+                "units": [],
+                "unsupported": [],
+                "evidence": EVIDENCE,
+            }
+        if not actions:
+            result = {"stops": [], "unnoticed": []}
+        else:
+            result = opentrons_check.check(
+                {
+                    "instrument": data.instrument,
+                    "source_volume": data.source_volume,
+                    "diluent_volume": 0,
+                    "actions": actions,
+                }
+            )
+        return {
+            "version": VERSION,
+            "valid": bool(actions) and not result["stops"] and not unsupported,
+            "error": None,
+            "units": units,
+            "unsupported": unsupported,
+            "actions": actions,
+            "stops": result["stops"],
+            "unnoticed": result["unnoticed"],
+            "evidence": EVIDENCE,
+        }
 
     app.include_router(router)
