@@ -252,7 +252,8 @@ test("a planned arm path opens as waypoints to edit and check by hand", async ({
 test("a found layout is improved toward the chosen objectives", async ({
   page,
 }) => {
-  test.setTimeout(240_000);
+  // The improvement search tries every move; CI runners take about three times longer.
+  test.setTimeout(420_000);
   await page.goto("/");
   await page.getByPlaceholder("Your first name").fill("Ada");
   await page.getByRole("button", { name: "Enter the learning lab" }).click();
@@ -294,7 +295,7 @@ test("a found layout is improved toward the chosen objectives", async ({
   const improved = page.getByRole("button", {
     name: new RegExp(`^Layout \\d+ · improved from ${n}`),
   });
-  await expect(improved).toBeVisible({ timeout: 180_000 });
+  await expect(improved).toBeVisible({ timeout: 300_000 });
   await expect(improved).toHaveAttribute("aria-pressed", "true");
   const after = Number(
     (await improved.textContent())!.match(/([\d.]+) m path/)![1],
