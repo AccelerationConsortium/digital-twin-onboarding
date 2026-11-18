@@ -18,6 +18,7 @@ import {
   FlaskConical,
   History,
   Users,
+  Cloud,
   LayoutGrid,
   LogOut,
   Maximize2,
@@ -72,6 +73,9 @@ const InstrumentModules = lazy(() => import("./InstrumentModules"));
 const StudyGroups = lazy(() => import("./StudyGroups"));
 const WorkcellCase = lazy(() => import("./workcellCase/WorkcellCase"));
 const DilutionWorkspace = lazy(() => import("./DilutionWorkspace"));
+const CloudLabTraining = lazy(() => import("./CloudLabTraining"));
+const CloudLabPortal = lazy(() => import("./CloudLabPortal"));
+const CloudLabInstruments = lazy(() => import("./CloudLabInstruments"));
 const WorkflowMarketplace = lazy(() =>
   import("./Discovery").then((m) => ({ default: m.WorkflowMarketplace })),
 );
@@ -655,7 +659,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -692,7 +696,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -944,6 +948,15 @@ export default function App() {
               >
                 <Users size={18} /> Study groups
               </button>
+              <button
+                className={
+                  view === "cloudlab" || view === "portal" ? s.activeNav : ""
+                }
+                aria-current={view === "cloudlab" ? "page" : undefined}
+                onClick={() => nav("cloudlab")}
+              >
+                <Cloud size={18} /> Cloud lab onboarding
+              </button>
               {view === "lab" && (
                 <button className={s.activeNav}>
                   <FlaskConical size={18} /> Current experiment
@@ -1060,15 +1073,19 @@ export default function App() {
                               ? "My experiments"
                               : view === "groups"
                                 ? "Study groups"
-                                : view === "discovery"
-                                  ? "Discovery studio"
-                                  : view === "marketplace"
-                                    ? "Workflow marketplace"
-                                    : view === "connector"
-                                      ? "Connector explorer"
-                                      : view === "sim"
-                                        ? "Simulation lab"
-                                        : "Learning lab"))}
+                                : view === "cloudlab"
+                                  ? "Cloud lab onboarding"
+                                  : view === "portal"
+                                    ? "Mock cloud lab portal"
+                                    : view === "discovery"
+                                      ? "Discovery studio"
+                                      : view === "marketplace"
+                                        ? "Workflow marketplace"
+                                        : view === "connector"
+                                          ? "Connector explorer"
+                                          : view === "sim"
+                                            ? "Simulation lab"
+                                            : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -1172,6 +1189,9 @@ export default function App() {
                 <div className={s.instrumentPage}>
                   <InstrumentStories onDesign={createStudio} busy={busy} />
                   <InstrumentModules onDesign={createStudio} busy={busy} />
+                  <Suspense fallback={null}>
+                    <CloudLabInstruments />
+                  </Suspense>
                   <button className={s.planLink} onClick={() => nav("plan")}>
                     <span>
                       <strong>Bring your own instruments</strong>
@@ -1202,6 +1222,17 @@ export default function App() {
                 </div>
               ) : view === "sim" ? (
                 <SimulationLab onOpenInstruments={() => nav("plan/workflow")} />
+              ) : view === "cloudlab" ? (
+                <CloudLabTraining
+                  onPortal={() => nav("portal")}
+                  onError={showError}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
+              ) : view === "portal" ? (
+                <CloudLabPortal
+                  onTraining={() => nav("cloudlab")}
+                  onError={showError}
+                />
               ) : view === "groups" ? (
                 <StudyGroups
                   key={workspaceRouteRevision}

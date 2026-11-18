@@ -6,9 +6,19 @@ from fastapi.responses import JSONResponse
 from mangum import Mangum
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import arm_simulation, examples, groups, opentrons_check, sim2real_api
+from . import (
+    agent_sandbox,
+    arm_simulation,
+    cloudlab_training,
+    examples,
+    groups,
+    node_api,
+    opentrons_check,
+    sim2real_api,
+)
 from ._version import __version__
 from .auth import identify, local_signer, may_plan_layouts, require_layout_planner
+from .cloudlab import overview as cloudlab_overview
 from .connections import ConnectionService
 from .connector_api import router as connector_router
 from .connector_catalog import approved_release
@@ -281,6 +291,10 @@ def create_app(settings: Settings | None = None, store=None):
     def twins(owner: str = Depends(identify)):
         return app.state.twins.catalog(owner)
 
+    @app.get("/api/cloudlab/instruments")
+    def cloudlab_instruments(_owner: str = Depends(identify)):
+        return cloudlab_overview()
+
     @app.get("/api/twins/library")
     def instrument_library(
         q: str = Query(default="", max_length=80),
@@ -293,7 +307,7 @@ def create_app(settings: Settings | None = None, store=None):
     def instrument_models(
         q: str = Query(default="", max_length=80),
         domain: str = Query(default="", max_length=80),
-        collection: Literal["", "workcell", "chemlab"] = "",
+        collection: Literal["", "workcell", "chemlab", "cloudlab"] = "",
         offset: int = Query(default=0, ge=0, le=1000),
         _owner: str = Depends(identify),
     ):
@@ -730,6 +744,9 @@ def create_app(settings: Settings | None = None, store=None):
 
     sim2real_api.install(app, store=app.state.store, pairing=app.state.pairing)
     groups.install(app, store=app.state.store)
+    cloudlab_training.install(app, store=app.state.store)
+    node_api.install(app)
+    agent_sandbox.install(app, store=app.state.store)
     return app
 
 
