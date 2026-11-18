@@ -291,7 +291,7 @@ def create_app(settings: Settings | None = None, store=None):
     def instrument_models(
         q: str = Query(default="", max_length=80),
         domain: str = Query(default="", max_length=80),
-        collection: Literal["", "workcell", "chemlab"] = "",
+        collection: Literal["", "workcell", "chemlab", "cloudlab"] = "",
         offset: int = Query(default=0, ge=0, le=1000),
         _owner: str = Depends(identify),
     ):
