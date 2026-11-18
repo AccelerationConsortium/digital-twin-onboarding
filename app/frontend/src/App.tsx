@@ -63,6 +63,7 @@ const SimulationLab = lazy(() => import("./SimulationLab"));
 const InstrumentStudio = lazy(() => import("./InstrumentStudio"));
 const ModelLibrary = lazy(() => import("./ModelLibrary"));
 const WorkflowCourse = lazy(() => import("./WorkflowCourse"));
+const FaultPractice = lazy(() => import("./FaultPractice"));
 const LearningPaths = lazy(() => import("./LearningPaths"));
 const LearningLab = lazy(() => import("./LearningLab"));
 const ConnectorExplorer = lazy(() => import("./ConnectorExplorer"));
@@ -658,7 +659,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -695,7 +696,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -910,7 +911,9 @@ export default function App() {
                   [
                     "learn",
                     BookOpen,
-                    view === "learn" || view === "workflow-course",
+                    view === "learn" ||
+                      view === "workflow-course" ||
+                      view === "practice",
                   ],
                   ["sim", FlaskConical, view === "sim"],
                   ["marketplace", Store, view === "marketplace"],
@@ -1269,6 +1272,11 @@ export default function App() {
                 <WorkflowCourse
                   onBack={() => nav("learn/intermediate")}
                   registerLeaveGuard={registerLeaveGuard}
+                />
+              ) : view === "practice" ? (
+                <FaultPractice
+                  onBack={() => nav("learn/intermediate")}
+                  onOpen={open}
                 />
               ) : view === "connector" ? (
                 <ConnectorExplorer
