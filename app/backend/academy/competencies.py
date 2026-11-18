@@ -139,6 +139,11 @@ COMPETENCIES = {
 }
 
 
+# Activities whose completion is recorded as evidence today. Workcell planning practises
+# its competencies but keeps no record of them yet, so it is listed, never claimed.
+RECORDED = {"cloudlab", "sandbox"}
+
+
 def entry(key):
     tracks, seniority, step, proficiency, label, activities = COMPETENCIES[key]
     return {
@@ -149,6 +154,7 @@ def entry(key):
         "proficiency": proficiency,
         "label": label,
         "activities": activities,
+        "recorded": any(a.split(":")[0] in RECORDED for a in activities),
     }
 
 

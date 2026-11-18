@@ -136,3 +136,10 @@ def test_malformed_calls_are_refused_not_run(client):
     assert agent("dance")["call"]["message"] == "Unknown tool dance"
     score = agent.score
     assert (score["refused"], score["unknown_tools"]) == (4, 1)
+
+
+def test_escalating_before_meeting_the_fault_earns_no_evidence(client):
+    agent = Agent(client, "last-tip")
+    agent("request_operator", reason="Not sure")
+    score = agent.score
+    assert (score["correct"], score["competencies"]) == (True, [])

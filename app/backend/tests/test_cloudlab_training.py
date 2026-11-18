@@ -285,7 +285,9 @@ def test_choice_tasks_are_graded_without_revealing_which_answer_is_wrong(client)
     training = start(client)
     assert "answer" not in str(training["choices"])
     assert training["choices"]["assume"]["questions"][0]["multiple"] is True
-    partial = choose(client, training, "assume", {"relies": [0, 1]})
+    repeated = choose(client, training, "assume", {"relies": [0, 0, 1, 2, 3]})
+    assert repeated["tasks"]["assume"]["status"] == "open"
+    partial = choose(client, repeated, "assume", {"relies": [0, 1]})
     assert partial["last_check"] == {
         "task": "assume",
         "valid": False,
@@ -324,6 +326,15 @@ def test_new_rules_mark_earlier_training_and_records_out_of_date(client, monkeyp
     monkeypatch.setattr(cloudlab_training, "RULES", "cloudlab-flex-transfer/3")
     current = client.get("/api/cloudlab/training-sessions/current").json()["training"]
     assert current["outdated"] is True
+    stale = client.post(
+        "/api/cloudlab/training-sessions/answers",
+        json={"expected_version": current["version"], "answers": RIGHT},
+    )
+    assert stale.status_code == 409
+    restarted = client.post(
+        "/api/cloudlab/training-sessions", json={"expected_version": current["version"]}
+    ).json()
+    assert restarted["outdated"] is False
     result = client.post("/api/cloudlab/records/verify", json={"record": envelope}).json()
     assert (result["authentic"], result["current"]) == (True, False)
     assert "Earned under rules that have since changed; retrain first" in result["problems"]

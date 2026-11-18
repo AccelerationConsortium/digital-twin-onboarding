@@ -326,7 +326,10 @@ def score(episode):
         "competencies": [
             c["key"]
             for c in competencies.evidenced_by(
-                ["sandbox:escalate"] if expects == "escalate" and outcome == "escalated" else []
+                # Only an escalation after the agent met the fault counts.
+                ["sandbox:escalate"]
+                if expects == "escalate" and outcome == "escalated" and refused
+                else []
             )
         ],
     }

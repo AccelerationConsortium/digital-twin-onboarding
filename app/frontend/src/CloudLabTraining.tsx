@@ -307,9 +307,12 @@ export default function CloudLabTraining({
       setCaps(c);
       if (t.training) {
         adopt(t.training);
+        // A training from earlier rules lacks the newer tasks; the page asks to start over.
         setStep(
-          ORDER.find((id) => t.training!.tasks[id].status !== "passed") ??
-            "record",
+          t.training.outdated
+            ? "orient"
+            : (ORDER.find((id) => t.training!.tasks[id]?.status !== "passed") ??
+                "record"),
         );
       }
       setLoaded(true);
@@ -355,6 +358,7 @@ export default function CloudLabTraining({
       );
       adopt(next);
       setAnswers({});
+      setNotes({});
       setStep("orient");
     });
 

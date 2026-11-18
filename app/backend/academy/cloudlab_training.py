@@ -618,6 +618,8 @@ def install(app, *, store):
             raise HTTPException(404, "Start the training first")
         if training["version"] != expected:
             raise Conflict
+        if training.get("rules_version") != RULES:
+            raise HTTPException(409, "The training has changed since this began. Start over.")
         return training
 
     def save(owner, training, expected):
@@ -694,7 +696,8 @@ def install(app, *, store):
         def right(q):
             given = data.answers.get(q["id"])
             if isinstance(q["answer"], list):
-                return isinstance(given, list) and sorted(set(given)) == q["answer"]
+                # Repeating an option is not a valid answer, so no deduplication here.
+                return isinstance(given, list) and sorted(given) == q["answer"]
             return given == q["answer"]
 
         wrong = [q for q in questions if not right(q)]
