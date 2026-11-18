@@ -105,6 +105,14 @@ export default function CloudLabPortal({
     }
   };
 
+  // An attached file is untrusted until checked: show only well-formed task rows.
+  const tasks = (Array.isArray(record?.tasks) ? record.tasks : []).filter(
+    (t): t is RecordTask =>
+      typeof t === "object" &&
+      t !== null &&
+      typeof t.id === "string" &&
+      typeof t.title === "string",
+  );
   const eligible =
     !!verdict && verdict.authentic && verdict.current && verdict.complete;
   const rows: [string, boolean][] = verdict
@@ -164,7 +172,7 @@ export default function CloudLabPortal({
               </dd>
             </dl>
           )}
-          {Array.isArray(record?.tasks) && (
+          {tasks.length > 0 && (
             <table className={s.table}>
               <thead>
                 <tr>
@@ -174,7 +182,7 @@ export default function CloudLabPortal({
                 </tr>
               </thead>
               <tbody>
-                {record!.tasks!.map((t) => (
+                {tasks.map((t) => (
                   <tr key={t.id}>
                     <td>{t.title}</td>
                     <td className={t.status === "passed" ? s.passed : s.bad}>
