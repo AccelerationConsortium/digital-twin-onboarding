@@ -34,8 +34,10 @@ from .workcell_layout import (
     _yaw,
     access,
     corners,
+    entry,
     footprint,
     mount,
+    opening_sites,
     plan_workflow,
     validate_layout,
 )
@@ -73,20 +75,24 @@ def _pose(spec, side, point, toward):
     to the bench and to each other, as people arrange them, never at an odd angle.
     """
     facing = math.degrees(math.atan2(toward[0] - point[0], toward[1] - point[1]))
-    yaw = round(facing / 90) * 90 % 360
-    yaw = yaw - 360 if yaw > 180 else yaw
     x0, x1, z0, z1 = footprint(spec)
-    local = ((x0 + x1) / 2, z1 + TRAY if side == "front" else (z0 + z1) / 2)
+    local, turned = ((x0 + x1) / 2, (z0 + z1) / 2), 0.0
+    if side == "front":
+        # The face it is entered through is the one turned toward the arm.
+        (nx, nz), (px, pz), _ = entry(spec)
+        local, turned = (px + nx * TRAY, pz + nz * TRAY), math.degrees(math.atan2(nx, nz))
+    yaw = round((facing - turned) / 90) * 90 % 360
+    yaw = yaw - 360 if yaw > 180 else yaw
     rx, rz = _yaw(yaw, *local)
     # Adding 0.0 turns a rounded -0.0 into 0.0.
     x, z = round(point[0] - rx, 2) + 0.0, round(point[1] - rz, 2) + 0.0
     return {"x": x, "z": z, "yaw": yaw, "access": side}
 
 
-def _stretch(twins, arm, station):
+def _stretch(twins, arm, station, site=None):
     """Shoulder-to-flange distance at the station's pre-grasp pose."""
     spec = twins[station["twin_id"]]["spec"]
-    point, direction, rotation, reach = access(spec, station)
+    point, direction, rotation, reach = access(spec, station, site)
     flange = _add(_add(point, direction, reach), rotation[2], -TOOL)
     spec = twins[arm["twin_id"]]["spec"]
     base = mount(spec, arm)
@@ -362,17 +368,28 @@ class Search:
         spec = self.twins[station_id]["spec"]
         station = {"twin_id": station_id, **_pose(spec, side, (bx, bz + radius), (bx, bz))}
         profile = self.profile(arm_id)
-        if _stretch(self.twins, arm, station) > profile.reach - MARGIN:
+        # Through part of a face only the slots behind the opening can be served; every one
+        # of them is tried, and the workflow check later settles the slot it uses.
+        sites = [None]
+        if spec.get("opening") and spec.get("sites"):
+            sites = opening_sites(spec)
+            if not sites:
+                return False, ("access", f"No slot of {spec['name']} lies behind its opening")
+        if min(_stretch(self.twins, arm, station, site) for site in sites) > profile.reach - MARGIN:
             return False, (
                 "reach",
                 f"{spec['name']} is beyond the {profile.name}'s reach at {radius} m",
             )
         planner = Planner(self.twins, self.layout([arm, station]), self.twins[arm_id])
-        try:
-            planner.station(self.twins[station_id], {**planner.rest, GRIPPER: {station_id}})
-        except PlanError as exc:
-            return False, ("collision" if "hit" in str(exc) else "reach", str(exc))
-        return True, None
+        for site in sites:
+            try:
+                planner.station(
+                    self.twins[station_id], {**planner.rest, GRIPPER: {station_id}}, site=site
+                )
+                return True, None
+            except PlanError as exc:
+                failure = ("collision" if "hit" in str(exc) else "reach", str(exc))
+        return False, failure
 
     def arm_grid(self, arm_id, placed):
         half = max(abs(v) for v in footprint(self.twins[arm_id]["spec"]))
@@ -441,10 +458,12 @@ class Search:
                         yield pose
         if not reached:
             where = "the front" if (spec.get("access") or order["sides"][0]) == "front" else "above"
+            if spec.get("opening") and spec["opening"]["face"] != "front":
+                where = f"its {spec['opening']['face']} side"
             self.fail(
                 "access",
                 f"The {self.profile(home).name} cannot reach where {spec['name']} is loaded "
-                f"from {where}, at any distance",
+                f"{'through' if 'side' in where else 'from'} {where}, at any distance",
                 spec["name"],
             )
         elif not offered:

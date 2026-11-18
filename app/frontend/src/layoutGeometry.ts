@@ -86,6 +86,21 @@ export function centre(spec: TwinSpec, p: Placement): Point {
 }
 
 /** The side labware goes in: the twin's own, or the placement's where the twin has none. */
+/** Mirrors workcell_layout.entry: the tray point in front of the open part of the face
+ * an enclosure is entered through, and that face's bearing from the twin's front. */
+export function entry(spec: TwinSpec): [Point, number] {
+  const { x0, x1, z0, z1 } = footprint(spec);
+  const { face, start, end } = spec.opening ?? {
+    face: "front",
+    start: 0,
+    end: 1,
+  };
+  const middle = (start + end) / 2;
+  if (face === "front") return [[x0 + (x1 - x0) * middle, z1 + TRAY], 0];
+  const z = z0 + (z1 - z0) * middle;
+  return face === "left" ? [[x0 - TRAY, z], -90] : [[x1 + TRAY, z], 90];
+}
+
 export function loads(spec: TwinSpec, p?: Placement): Access {
   return spec.access ?? p?.access ?? "top";
 }
@@ -94,9 +109,30 @@ const TRAY = 0.08; // mirrors workcell_layout.TRAY
 
 /** Where an instrument without slots presents its tray, in front of its face. */
 export function frontFace(spec: TwinSpec, p: Placement): Point {
-  const { x0, x1, z1 } = footprint(spec);
-  const [rx, rz] = rotate(p.yaw, (x0 + x1) / 2, z1 + TRAY);
+  const [[x, z]] = entry(spec);
+  const [rx, rz] = rotate(p.yaw, x, z);
   return [p.x + rx, p.z + rz];
+}
+
+/** The open part of the face an enclosure is entered through, as a bench-plane segment. */
+export function openEdge(spec: TwinSpec, p: Placement): [Point, Point] | null {
+  if (!spec.opening) return null;
+  const { x0, x1, z0, z1 } = footprint(spec);
+  const { face, start, end } = spec.opening;
+  const ends: [Point, Point] =
+    face === "front"
+      ? [
+          [x0 + (x1 - x0) * start, z1],
+          [x0 + (x1 - x0) * end, z1],
+        ]
+      : [
+          [face === "left" ? x0 : x1, z0 + (z1 - z0) * start],
+          [face === "left" ? x0 : x1, z0 + (z1 - z0) * end],
+        ];
+  return ends.map(([x, z]) => {
+    const [rx, rz] = rotate(p.yaw, x, z);
+    return [p.x + rx, p.z + rz];
+  }) as [Point, Point];
 }
 
 export function overlaps(a: Point[], b: Point[]) {
@@ -165,14 +201,15 @@ function facing(
   // the nearest quarter turn so every instrument stands square to the bench.
   const exact =
     (Math.atan2(toward[0] - point[0], toward[1] - point[1]) * 180) / Math.PI;
-  let yaw = (((Math.round(exact / 90) * 90) % 360) + 360) % 360;
-  if (yaw > 180) yaw -= 360;
   const { x0, x1, z0, z1 } = footprint(spec);
-  const [rx, rz] = rotate(
-    yaw,
-    (x0 + x1) / 2,
-    loads(spec) === "front" ? z1 + TRAY : (z0 + z1) / 2,
-  );
+  // The face labware goes in through is the one turned toward the arm.
+  const [local, turned] =
+    loads(spec) === "front"
+      ? entry(spec)
+      : ([[(x0 + x1) / 2, (z0 + z1) / 2], 0] as [Point, number]);
+  let yaw = (((Math.round((exact - turned) / 90) * 90) % 360) + 360) % 360;
+  if (yaw > 180) yaw -= 360;
+  const [rx, rz] = rotate(yaw, local[0], local[1]);
   const round = (v: number) => Number(v.toFixed(2)) + 0;
   return { x: round(point[0] - rx), z: round(point[1] - rz), yaw };
 }

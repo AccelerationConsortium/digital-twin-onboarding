@@ -18,6 +18,7 @@ import {
   conflicts,
   corners,
   frontFace,
+  openEdge,
   isArm,
   loads,
   siteCentres,
@@ -215,6 +216,7 @@ export default function LayoutPanel({
           const shape = corners(spec, p);
           const [cx, cz] = centre(spec, p);
           const [fx, fz] = frontFace(spec, p);
+          const open = openEdge(spec, p);
           const arm = isArm({ spec });
           const classes = [
             s.footprint,
@@ -270,6 +272,15 @@ export default function LayoutPanel({
                   transform={`rotate(${-p.yaw} ${at[0]} ${at[1]})`}
                 />
               ))}
+              {open && (
+                <line
+                  className={s.opening}
+                  x1={open[0][0]}
+                  y1={open[0][1]}
+                  x2={open[1][0]}
+                  y2={open[1][1]}
+                />
+              )}
               {!arm &&
                 (loads(spec, p) === "front" && !spec.sites?.length ? (
                   <circle className={s.access} cx={fx} cy={fz} r={0.025} />

@@ -300,6 +300,46 @@ def side(spec, placement):
 
 
 TRAY = 0.08  # how far in front of its face an instrument presents its tray
+NORMALS = {"front": (0.0, 1.0), "left": (-1.0, 0.0), "right": (1.0, 0.0)}
+
+
+def entry(spec):
+    """Where an enclosure is entered: the face's outward normal, a point at the middle of
+    the open part of that face, and how far a slot at (x, z) lies inside it.
+
+    Local frame, bench plane. Without an opening the whole front is open.
+    """
+    x0, x1, z0, z1 = footprint(spec)
+    opening = spec.get("opening") or {"face": "front", "start": 0.0, "end": 1.0}
+    nx, nz = NORMALS[opening["face"]]
+    middle = (opening["start"] + opening["end"]) / 2
+    if opening["face"] == "front":
+        point = (x0 + (x1 - x0) * middle, z1)
+    else:
+        point = (x0 if opening["face"] == "left" else x1, z0 + (z1 - z0) * middle)
+    return (nx, nz), point, lambda x, z: (point[0] - x) * nx + (point[1] - z) * nz
+
+
+def opening_sites(spec):
+    """The slots behind the open part of the face, the shallowest first.
+
+    A slot counts when it lies within the opening along that face: left to right at the
+    front, back to front on a side. Without an opening every slot qualifies.
+    """
+    sites = spec.get("sites") or []
+    opening = spec.get("opening")
+    if not opening:
+        return [s["key"] for s in sites]
+    x0, x1, z0, z1 = footprint(spec)
+    inside = entry(spec)[2]
+
+    def along(site):
+        if opening["face"] == "front":
+            return (site["x"] - x0) / (x1 - x0)
+        return (site["z"] - z0) / (z1 - z0)
+
+    found = [s for s in sites if opening["start"] - 1e-9 <= along(s) <= opening["end"] + 1e-9]
+    return [s["key"] for s in sorted(found, key=lambda s: inside(s["x"], s["z"]))]
 
 
 def access(spec, placement, site=None):
@@ -322,13 +362,15 @@ def access(spec, placement, site=None):
     elif spec.get("sites"):
         sx, sz = site_xz(spec, site)
         local = (sx, (height / 2 if level is None else level) + 0.02, sz)
-        out = z1 - sz + APPROACH
-        nx, nz = _yaw(yaw, 0, 1)
+        normal, _, inside = entry(spec)
+        out = inside(sx, sz) + APPROACH
+        nx, nz = _yaw(yaw, *normal)
         reach = math.hypot(out, APPROACH)
         direction = (nx * out / reach, APPROACH / reach, nz * out / reach)
     else:
         y = max(0.08, height / 3) if level is None else level
-        local = ((x0 + x1) / 2, y + 0.02, z1 + TRAY)
+        (nx, nz), (px, pz), _ = entry(spec)
+        local = (px + nx * TRAY, y + 0.02, pz + nz * TRAY)
     rx, rz = _yaw(yaw, local[0], local[2])
     point = (placement["x"] + rx, local[1], placement["z"] + rz)
     ax, az = _yaw(yaw, 1, 0)

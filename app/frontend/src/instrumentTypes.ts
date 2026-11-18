@@ -67,6 +67,8 @@ export type TwinSpec = {
   /** Where labware goes in, and how high above the bench it then sits (metres). */
   access?: Access | null;
   level_m?: number | null;
+  /** The part of one face an enclosure is entered through; left out, its whole front. */
+  opening?: Opening | null;
 };
 export type Site = { key: string; x: number; z: number };
 export type ArmProfile = "ur3e" | "ur5e" | "ur10e";
@@ -199,6 +201,12 @@ export type Step = {
 };
 export const DEFAULT_SAMPLE = "sample";
 export type Access = "top" | "front";
+export type Opening = {
+  face: "front" | "left" | "right";
+  /** Fractions along the face: back to front on a side, left to right at the front. */
+  start: number;
+  end: number;
+};
 export type Placement = {
   twin_id: string;
   x: number;
