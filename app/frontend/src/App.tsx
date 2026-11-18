@@ -74,6 +74,7 @@ const WorkcellCase = lazy(() => import("./workcellCase/WorkcellCase"));
 const DilutionWorkspace = lazy(() => import("./DilutionWorkspace"));
 const CloudLabTraining = lazy(() => import("./CloudLabTraining"));
 const CloudLabPortal = lazy(() => import("./CloudLabPortal"));
+const CloudLabInstruments = lazy(() => import("./CloudLabInstruments"));
 const WorkflowMarketplace = lazy(() =>
   import("./Discovery").then((m) => ({ default: m.WorkflowMarketplace })),
 );
@@ -1185,6 +1186,9 @@ export default function App() {
                 <div className={s.instrumentPage}>
                   <InstrumentStories onDesign={createStudio} busy={busy} />
                   <InstrumentModules onDesign={createStudio} busy={busy} />
+                  <Suspense fallback={null}>
+                    <CloudLabInstruments />
+                  </Suspense>
                   <button className={s.planLink} onClick={() => nav("plan")}>
                     <span>
                       <strong>Bring your own instruments</strong>

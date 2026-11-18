@@ -18,6 +18,7 @@ from . import (
 )
 from ._version import __version__
 from .auth import identify, local_signer, may_plan_layouts, require_layout_planner
+from .cloudlab import overview as cloudlab_overview
 from .connections import ConnectionService
 from .connector_api import router as connector_router
 from .connector_catalog import approved_release
@@ -287,6 +288,10 @@ def create_app(settings: Settings | None = None, store=None):
     @app.get("/api/twins")
     def twins(owner: str = Depends(identify)):
         return app.state.twins.catalog(owner)
+
+    @app.get("/api/cloudlab/instruments")
+    def cloudlab_instruments(_owner: str = Depends(identify)):
+        return cloudlab_overview()
 
     @app.get("/api/twins/library")
     def instrument_library(
