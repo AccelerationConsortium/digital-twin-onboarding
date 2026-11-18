@@ -84,7 +84,11 @@ function ActionEditor({
     ]);
   return (
     // Locked while a check runs, so no edit is lost when its result arrives.
-    <fieldset className={s.editor} disabled={disabled}>
+    <fieldset
+      className={s.editor}
+      disabled={disabled}
+      aria-label="Workflow steps"
+    >
       <ol className={s.steps}>
         {actions.map((action, index) => (
           <li
@@ -244,7 +248,18 @@ export default function CloudLabTraining({
           "Your workflow edits are not checked yet. Leave anyway?",
         ),
     );
-    return () => registerLeaveGuard(null);
+    // Refreshing or closing the tab skips the app's own guard, so warn there too.
+    const warn = (event: BeforeUnloadEvent) => {
+      if (dirty) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => {
+      registerLeaveGuard(null);
+      window.removeEventListener("beforeunload", warn);
+    };
   }, [dirty, registerLeaveGuard]);
 
   const start = () =>
@@ -313,7 +328,7 @@ export default function CloudLabTraining({
 
   if (!loaded || !caps)
     return (
-      <main className={s.page} aria-busy={!failed}>
+      <main className={s.page} aria-busy={busy}>
         {failed && !busy && (
           <section className={s.card}>
             <p className={s.note}>Cloud lab onboarding could not be loaded.</p>
