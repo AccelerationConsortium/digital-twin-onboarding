@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from mangum import Mangum
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from . import arm_simulation, examples, groups, opentrons_check, sim2real_api
+from . import arm_simulation, cloudlab_training, examples, groups, opentrons_check, sim2real_api
 from ._version import __version__
 from .auth import identify, local_signer, may_plan_layouts, require_layout_planner
 from .connections import ConnectionService
@@ -708,6 +708,7 @@ def create_app(settings: Settings | None = None, store=None):
 
     sim2real_api.install(app, store=app.state.store, pairing=app.state.pairing)
     groups.install(app, store=app.state.store)
+    cloudlab_training.install(app, store=app.state.store)
     return app
 
 
