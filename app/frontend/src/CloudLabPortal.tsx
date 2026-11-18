@@ -5,7 +5,7 @@ import {
   Upload,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, json } from "./api";
 import { RECORD_HANDOFF } from "./CloudLabTraining";
 import s from "./CloudLabTraining.module.css";
@@ -17,10 +17,18 @@ type Verdict = {
   problems: string[];
   record: TrainingRecord | null;
 };
-type Envelope = { kid?: string; payload?: string; signature?: string };
+type Envelope = {
+  format?: string;
+  alg?: string;
+  kid?: string;
+  payload?: string;
+  signature?: string;
+};
 type Issuer = {
   keys: (JsonWebKey & { kid: string })[];
   rules: Record<string, string>;
+  format: string;
+  now: string;
 };
 type RecordTask = {
   id: string;
@@ -58,7 +66,14 @@ async function verifyHere(
   envelope: Envelope,
   issuer: Issuer,
 ): Promise<Verdict | null> {
-  const jwk = issuer.keys.find((k) => k.kid === envelope.kid);
+  const shaped =
+    typeof envelope === "object" &&
+    envelope !== null &&
+    envelope.format === issuer.format &&
+    envelope.alg === "EdDSA" &&
+    typeof envelope.payload === "string" &&
+    typeof envelope.signature === "string";
+  const jwk = shaped && issuer.keys.find((k) => k.kid === envelope.kid);
   let record: TrainingRecord | null = null;
   if (jwk && envelope.payload && envelope.signature) {
     let key: CryptoKey;
@@ -94,8 +109,10 @@ async function verifyHere(
   const sameRules =
     !!found.module?.id &&
     issuer.rules[found.module.id] === found.module.rules_version;
-  const expired =
-    !found.expires_at || Date.parse(found.expires_at) < Date.now();
+  // Judged by the issuer's clock, not this browser's, which the learner controls.
+  const lapse =
+    typeof found.expires_at === "string" ? Date.parse(found.expires_at) : NaN;
+  const expired = !(lapse >= Date.parse(issuer.now));
   const complete = found.complete === true;
   const problems = (
     [
@@ -127,7 +144,8 @@ function minutes(seconds: number | null | undefined) {
  * A stand-in for a cloud lab's run-request page. It sees only the record the learner
  * attaches and checks it itself with the Academy's published key, asking the Academy
  * only when this browser cannot verify Ed25519. Then it applies its own policy: passing
- * sends the request to operator review; it never approves a run.
+ * would send a real request to operator review; this mock sends nothing, and no portal
+ * here ever approves a run.
  */
 export default function CloudLabPortal({
   onTraining,
@@ -141,11 +159,18 @@ export default function CloudLabPortal({
   const [checkedHere, setCheckedHere] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attached, setAttached] = useState<Envelope | null>(null);
+  // Only the latest attachment's check may set the verdict.
+  const attempt = useRef(0);
 
   const check = async (envelope: Envelope) => {
+    const mine = ++attempt.current;
+    setAttached(envelope);
     setRecord(null);
     setVerdict(null);
     setSubmitted(false);
+    setFailed(false);
     setBusy(true);
     try {
       const issuer = await api<Issuer>("/cloudlab/issuer");
@@ -156,13 +181,17 @@ export default function CloudLabPortal({
           "/cloudlab/records/verify",
           json({ record: envelope }),
         ));
+      if (mine !== attempt.current) return;
       setCheckedHere(here !== null);
       setVerdict(found);
       setRecord(found.record);
     } catch (e) {
-      onError((e as Error).message);
+      if (mine === attempt.current) {
+        setFailed(true);
+        onError((e as Error).message);
+      }
     } finally {
-      setBusy(false);
+      if (mine === attempt.current) setBusy(false);
     }
   };
 
@@ -240,10 +269,14 @@ export default function CloudLabPortal({
               <dt>First valid workflow</dt>
               <dd>{minutes(record.time_to_first_valid_workflow_s)}</dd>
               <dt>Expires</dt>
-              <dd>{record.expires_at?.slice(0, 10) ?? "—"}</dd>
+              <dd>
+                {typeof record.expires_at === "string"
+                  ? record.expires_at.slice(0, 10)
+                  : "—"}
+              </dd>
             </dl>
           )}
-          {record?.tasks && (
+          {Array.isArray(record?.tasks) && (
             <table className={s.table}>
               <thead>
                 <tr>
@@ -253,7 +286,7 @@ export default function CloudLabPortal({
                 </tr>
               </thead>
               <tbody>
-                {record.tasks.map((t) => (
+                {record!.tasks!.map((t) => (
                   <tr key={t.id}>
                     <td>{t.title}</td>
                     <td className={t.status === "passed" ? s.passed : s.bad}>
@@ -273,6 +306,18 @@ export default function CloudLabPortal({
             <p className={s.note} aria-busy="true">
               Checking…
             </p>
+          ) : failed && attached ? (
+            <div className={s.problems} role="status">
+              <p>
+                <CircleSlash size={16} /> The record could not be checked
+              </p>
+              <button
+                className={s.secondary}
+                onClick={() => void check(attached)}
+              >
+                Check again
+              </button>
+            </div>
           ) : !verdict ? (
             <p className={s.note}>
               Attach the record from Academy cloud lab onboarding.{" "}
@@ -303,12 +348,13 @@ export default function CloudLabPortal({
                 submitted ? (
                   <div className={s.ok} role="status">
                     <p>
-                      <Clock size={16} /> Request sent to operator safety review
+                      <Clock size={16} /> Ready for operator safety review
                     </p>
                     <small>
-                      The record is one input. Operators still check access
-                      policy, the protocol itself and the instrument's state
-                      before anything runs.
+                      In a real portal the request would now go to the lab's
+                      operators, who still check access policy, the protocol and
+                      the instrument before anything runs. This mock sends
+                      nothing.
                     </small>
                   </div>
                 ) : (
