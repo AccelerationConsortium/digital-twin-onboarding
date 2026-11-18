@@ -45,6 +45,8 @@ const volume = (ul: number) =>
 export default function CloudLabInstruments() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [section, setSection] = useState("All");
   const [open, setOpen] = useState<Instrument | null>(null);
   const detail = useRef<HTMLElement>(null);
@@ -56,16 +58,33 @@ export default function CloudLabInstruments() {
 
   useEffect(() => {
     let alive = true;
+    setFailed(false);
     api<Overview>("/cloudlab/instruments")
       .then((found) => alive && setOverview(found))
-      // Visitors who have not signed in see the rest of the page without this section.
-      .catch((e) => alive && setHidden(e instanceof ApiError));
+      .catch((e) => {
+        if (!alive) return;
+        // Visitors who have not signed in see the rest of the page without this section.
+        if (e instanceof ApiError && e.status === 401) setHidden(true);
+        else setFailed(true);
+      });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [attempt]);
 
   if (hidden) return null;
+  if (failed)
+    return (
+      <section className={s.section} aria-labelledby="cloudlab-instruments">
+        <h2 id="cloudlab-instruments" className={s.title}>
+          In a cloud lab
+        </h2>
+        <p className={s.failed}>
+          The cloud lab instruments could not be loaded.{" "}
+          <button onClick={() => setAttempt((n) => n + 1)}>Try again</button>
+        </p>
+      </section>
+    );
   if (!overview) return <section className={s.section} aria-busy="true" />;
   const shown = overview.instruments.filter(
     (i) => section === "All" || i.section === section,
@@ -85,7 +104,12 @@ export default function CloudLabInstruments() {
           <button
             key={name}
             aria-pressed={section === name}
-            onClick={() => setSection(name)}
+            onClick={() => {
+              setSection(name);
+              // The open detail goes with the cards it belongs to.
+              if (open && name !== "All" && open.section !== name)
+                setOpen(null);
+            }}
           >
             {name}
           </button>

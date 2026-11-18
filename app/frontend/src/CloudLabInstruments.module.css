@@ -4,6 +4,7 @@
   margin-top: 56px;
   color: var(--ink);
 }
+.title,
 .header h2 {
   margin: 0 0 6px;
   font-family: "Manrope", sans-serif;
@@ -73,7 +74,7 @@
 .card small,
 .cardOpen small {
   overflow: hidden;
-  color: var(--faint);
+  color: var(--muted);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -81,7 +82,7 @@
 .box {
   display: grid;
   place-items: center;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1;
   margin-bottom: 6px;
   border-radius: var(--radius-sm);
   background: var(--surface-3);
@@ -213,4 +214,17 @@
   .detailBody {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+.failed {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.failed button {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
 }
