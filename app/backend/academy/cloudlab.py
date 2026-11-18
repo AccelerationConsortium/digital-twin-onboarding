@@ -36,6 +36,7 @@ INSTRUMENTS = {
             "volume": 2000,
             "slots": 12,
             "temps": (4, 110),
+            "note": "Academy twins hold 4–120 °C, so the 0 °C cooling floor is modelled as 4 °C.",
             "consumables": TIPS,
         },
         (1.7, 1.0, 0.9),
@@ -52,6 +53,7 @@ INSTRUMENTS = {
             "volume": 2000,
             "slots": 8,
             "temps": (4, 110),
+            "note": "Academy twins hold 4–120 °C, so the 0 °C cooling floor is modelled as 4 °C.",
             "consumables": TIPS,
         },
         (2.0, 1.0, 0.9),
@@ -194,6 +196,7 @@ INSTRUMENTS = {
             "volume": 2000,
             "slots": 12,
             "temps": (30, 120),
+            "note": "Academy twins hold 4–120 °C, so the oven above 120 °C is not modelled.",
         },
         "agilent_gc8890b",
     ),
@@ -254,6 +257,7 @@ INSTRUMENTS = {
             "volume": 1500,
             "slots": 96,
             "temps": (6, 51),
+            "note": "Academy twins hold at most 96 slots, so the twin models 96 of the 480 tubes.",
         },
         (1.5, 1.5, 2.5),
     ),
@@ -332,6 +336,10 @@ COLORS = ["#d9dcde", "#c9ced1", "#466e7d", "#365445", "#5a6470"]
 def entry(asset_id, name, experiment, section, published, spec, geometry):
     color = COLORS[sum(map(ord, asset_id)) % len(COLORS)]
     capabilities = f"{PROVIDER} lists this instrument for {experiment}: {published}."
+    # Where a published figure lies outside what an Academy twin can hold, say how it is cut.
+    spec = dict(spec)
+    if note := spec.pop("note", None):
+        capabilities += f" {note}"
     if isinstance(geometry, str):
         row = ROWS[geometry]
         stand_in = f"{row['maker']} {row['model']}"

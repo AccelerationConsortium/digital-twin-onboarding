@@ -421,6 +421,11 @@ def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geomet
     thermocycler = CLOUDLAB["thermocycler"]["spec"]
     assert thermocycler["limits"]["min_temp_c"] == 4 and thermocycler["limits"]["max_temp_c"] == 105
     assert thermocycler["container"] == {"vessel": "plate", "max_volume_ul": 100}
+    # A published figure the twin schema cannot hold is cut, and the entry says so.
+    nmr = CLOUDLAB["nmr"]["spec"]
+    assert nmr["resource"]["slots"] == 96 and "96 of the 480" in nmr["assumptions"]
+    gcms = CLOUDLAB["gcms"]["spec"]
+    assert gcms["limits"]["max_temp_c"] == 120 and "above 120 °C" in gcms["assumptions"]
 
 
 def test_cloudlab_twin_sizes_stay_estimated_and_record_their_source(client):

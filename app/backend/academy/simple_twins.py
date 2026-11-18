@@ -407,7 +407,7 @@ class ConfirmTwin(Revision):
 
 
 class MatchTwin(Revision):
-    collection: Literal["workcell", "simready", "chemlab", "cloudlab"]
+    collection: Literal["workcell", "simready", "chemlab"]
     asset_id: str = Field(min_length=1, max_length=80)
 
 
