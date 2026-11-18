@@ -111,6 +111,9 @@ def plan(data):
         trace = execute_mock(devices, steps)
         if data.layout:
             layout = data.layout.model_dump(mode="json")
+            unknown = {p["twin_id"] for p in layout["placements"]} - set(devices)
+            if unknown:
+                raise HTTPException(422, "Place only devices listed in this request")
             validate_layout(devices, layout)
             for motion in plan_workflow(devices, layout, steps):
                 trace[motion["step"] - 1]["motion"] = motion

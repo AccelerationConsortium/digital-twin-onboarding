@@ -1219,6 +1219,7 @@ export default function App() {
                 <CloudLabTraining
                   onPortal={() => nav("portal")}
                   onError={showError}
+                  registerLeaveGuard={registerLeaveGuard}
                 />
               ) : view === "portal" ? (
                 <CloudLabPortal

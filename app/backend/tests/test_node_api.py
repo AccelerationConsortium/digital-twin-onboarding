@@ -126,3 +126,38 @@ def test_the_node_needs_a_signed_in_caller(app):
         assert (
             anonymous.post("/api/node/v1/simulate", json={"devices": DEVICES, "steps": STEPS})
         ).status_code == 401
+
+
+def test_a_layout_adds_the_arm_path_check(client):
+    reader, heater, arm = (str(uuid4()) for _ in range(3))
+    devices = [
+        {"id": reader, "spec": TEMPLATES["reader"]},
+        {"id": heater, "spec": TEMPLATES["heater"]},
+        {"id": arm, "spec": TEMPLATES["transfer-arm"]},
+    ]
+    steps = [
+        {"device_id": heater, "operation": "load", "value": 150},
+        {"device_id": arm, "operation": "transfer", "source_id": heater, "target_id": reader},
+        {"device_id": reader, "operation": "read"},
+    ]
+
+    def layout(reader_x):
+        return {
+            "bench": {"width": 3.0, "depth": 1.6},
+            "placements": [
+                {"twin_id": arm, "x": 0, "z": 0, "yaw": 0, "access": "top"},
+                {"twin_id": heater, "x": -0.5, "z": 0.1, "yaw": 0, "access": "top"},
+                {"twin_id": reader, "x": reader_x, "z": 0.1, "yaw": -90, "access": "front"},
+            ],
+        }
+
+    placed = post(client, "simulate", {"devices": devices, "steps": steps, "layout": layout(0.8)})
+    assert placed["valid"] and placed["trace"][1]["motion"]["clearance_m"] > 0
+    far = post(client, "validate", {"devices": devices, "steps": steps, "layout": layout(1.25)})
+    assert not far["valid"] and far["error"]["layer"] == "geometry"
+    stranger = layout(0.8)
+    stranger["placements"][0]["twin_id"] = str(uuid4())
+    response = client.post(
+        "/api/node/v1/validate", json={"devices": devices, "steps": steps, "layout": stranger}
+    )
+    assert response.status_code == 422

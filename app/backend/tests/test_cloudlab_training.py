@@ -1,5 +1,6 @@
 import base64
 import json
+from datetime import datetime, timedelta
 
 import pytest
 from academy.cloudlab_training import QUESTIONS, TASKS
@@ -113,7 +114,8 @@ def test_wrong_answers_are_recorded_and_stale_commands_rejected(client):
         "/api/cloudlab/training-sessions/answers",
         json={"expected_version": training["version"], "answers": wrong},
     ).json()
-    assert answered["last_check"] == {"task": "orient", "valid": False, "wrong": ["pipette"]}
+    assert answered["last_check"] == {"task": "orient", "valid": False, "wrong": 1}
+    assert answered["tasks"]["orient"]["errors"] == ["1 of 4 answers wrong"]
     assert answered["tasks"]["orient"]["status"] == "open"
     stale = client.post(
         "/api/cloudlab/training-sessions/answers",
@@ -162,11 +164,20 @@ def test_a_signed_record_verifies_and_an_edit_does_not(client):
     for edited in [
         {**record, "expires_at": "2099-01-01T00:00:00+00:00"},
         {**record, "subject": "someone-else"},
+        {**record, "tasks": [{**t, "retries": 3, "errors": ["x"]} for t in record["tasks"]]},
     ]:
         result = verify(reseal(envelope, edited))
         assert (result["authentic"], result["current"], result["record"]) == (False, False, None)
     assert verify({**envelope, "kid": "0" * 16})["authentic"] is False
-    assert verify({"payload": "!!", "signature": "x"})["authentic"] is False
+    assert verify({k: v for k, v in envelope.items() if k != "format"})["authentic"] is False
+    assert verify({**envelope, "alg": "HS256"})["authentic"] is False
+    for broken in [
+        {"payload": "!!", "signature": "x"},
+        {**envelope, "signature": 5},
+        {**envelope, "payload": None},
+        reseal(envelope, {**record, "expires_at": 0}),
+    ]:
+        assert verify(broken)["authentic"] is False
 
 
 def test_a_portal_verifies_offline_with_only_the_published_key(client):
@@ -174,6 +185,7 @@ def test_a_portal_verifies_offline_with_only_the_published_key(client):
     envelope = client.get("/api/cloudlab/qualifications/me").json()
     issuer = TestClient(client.app).get("/api/cloudlab/issuer").json()  # no sign-in
     assert issuer["rules"] == {"flex-transfer": "cloudlab-flex-transfer/1"}
+    assert datetime.fromisoformat(issuer["now"]).tzinfo is not None
     (jwk,) = issuer["keys"]
     assert jwk["kid"] == envelope["kid"] and "d" not in jwk
     key = VerifyKey(base64.urlsafe_b64decode(jwk["x"] + "="))
@@ -184,6 +196,16 @@ def test_a_portal_verifies_offline_with_only_the_published_key(client):
         key.verify(raw + b" ", signature)
 
 
+def test_fetching_the_record_again_does_not_extend_it(client):
+    finish(client)
+    first = payload(client.get("/api/cloudlab/qualifications/me").json())
+    again = payload(client.get("/api/cloudlab/qualifications/me").json())
+    assert first["expires_at"] == again["expires_at"]
+    passed = max(t["passed_at"] for t in first["tasks"])
+    lapse = datetime.fromisoformat(first["expires_at"]) - datetime.fromisoformat(passed)
+    assert lapse == timedelta(days=90)
+
+
 def test_an_incomplete_record_is_authentic_but_not_complete(client):
     start(client)
     envelope = client.get("/api/cloudlab/qualifications/me").json()
@@ -192,7 +214,7 @@ def test_an_incomplete_record_is_authentic_but_not_complete(client):
     assert result["problems"] == ["Not every training task has been passed"]
 
 
-def test_without_a_key_nothing_is_signed_or_published(store, tmp_path):
+def test_without_a_key_no_keys_are_published(store, tmp_path):
     from academy.main import create_app
     from academy.settings import Settings
 
