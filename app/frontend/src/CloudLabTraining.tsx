@@ -32,7 +32,7 @@ type Training = {
   questions: { id: string; prompt: string; options: string[] }[];
   goals: Record<"fault" | "own", string>;
   last_check:
-    | { task: "orient"; valid: boolean; wrong: string[] }
+    | { task: "orient"; valid: boolean; wrong: number }
     | { task: "fault" | "own"; valid: boolean; problems: Problem[] }
     | null;
 };
@@ -64,10 +64,12 @@ function ActionEditor({
   actions,
   onChange,
   problemSteps,
+  disabled,
 }: {
   actions: Action[];
   onChange: (next: Action[]) => void;
   problemSteps: Set<number>;
+  disabled: boolean;
 }) {
   const set = (index: number, patch: Partial<Action>) =>
     onChange(actions.map((a, i) => (i === index ? { ...a, ...patch } : a)));
@@ -81,7 +83,8 @@ function ActionEditor({
       },
     ]);
   return (
-    <div className={s.editor}>
+    // Locked while a check runs, so no edit is lost when its result arrives.
+    <fieldset className={s.editor} disabled={disabled}>
       <ol className={s.steps}>
         {actions.map((action, index) => (
           <li
@@ -110,7 +113,12 @@ function ActionEditor({
                   max={1000}
                   value={action.volume}
                   onChange={(e) =>
-                    set(index, { volume: Number(e.target.value) || 0 })
+                    set(index, {
+                      volume: Math.min(
+                        1000,
+                        Math.max(1, Number(e.target.value) || 1),
+                      ),
+                    })
                   }
                 />
                 <span className={s.unit}>µL</span>
@@ -155,20 +163,26 @@ function ActionEditor({
           </button>
         ))}
       </div>
-    </div>
+    </fieldset>
   );
 }
+
+const same = (a: Action[] = [], b: Action[] = []) =>
+  JSON.stringify(a) === JSON.stringify(b);
 
 export default function CloudLabTraining({
   onPortal,
   onError,
+  registerLeaveGuard,
 }: {
   onPortal: () => void;
   onError: (message: string) => void;
+  registerLeaveGuard: (guard: (() => boolean) | null) => void;
 }) {
   const [caps, setCaps] = useState<Capabilities | null>(null);
   const [training, setTraining] = useState<Training | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [step, setStep] = useState<TaskId | "record">("orient");
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [drafts, setDrafts] = useState<Partial<Record<TaskId, Action[]>>>({});
@@ -192,8 +206,9 @@ export default function CloudLabTraining({
     });
   };
 
-  useEffect(() => {
-    void run(async () => {
+  const load = () =>
+    run(async () => {
+      setFailed(true);
       const [c, t] = await Promise.all([
         api<Capabilities>("/cloudlab/capabilities"),
         api<{ training: Training | null }>(
@@ -209,9 +224,28 @@ export default function CloudLabTraining({
         );
       }
       setLoaded(true);
+      setFailed(false);
     });
+  useEffect(() => {
+    void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const dirty =
+    !!training &&
+    (["fault", "own"] as const).some(
+      (id) => !same(drafts[id], training.tasks[id].actions),
+    );
+  useEffect(() => {
+    registerLeaveGuard(
+      () =>
+        !dirty ||
+        window.confirm(
+          "Your workflow edits are not checked yet. Leave anyway?",
+        ),
+    );
+    return () => registerLeaveGuard(null);
+  }, [dirty, registerLeaveGuard]);
 
   const start = () =>
     run(async () => {
@@ -277,7 +311,19 @@ export default function CloudLabTraining({
       onPortal();
     });
 
-  if (!loaded || !caps) return <main className={s.page} aria-busy="true" />;
+  if (!loaded || !caps)
+    return (
+      <main className={s.page} aria-busy={!failed}>
+        {failed && !busy && (
+          <section className={s.card}>
+            <p className={s.note}>Cloud lab onboarding could not be loaded.</p>
+            <button className={s.primary} onClick={load}>
+              Try again
+            </button>
+          </section>
+        )}
+      </main>
+    );
   const inst = caps.instrument;
   const check = training?.last_check;
   const done = (id: TaskId) => training?.tasks[id].status === "passed";
@@ -341,7 +387,7 @@ export default function CloudLabTraining({
                 <h2>The {inst.name} deck</h2>
                 <div
                   className={s.deck}
-                  role="img"
+                  role="group"
                   aria-label="Flex deck layout"
                 >
                   {["A", "B", "C", "D"].map((row) =>
@@ -380,13 +426,8 @@ export default function CloudLabTraining({
               <div className={s.card}>
                 <h2>Check what you know</h2>
                 {training.questions.map((q) => {
-                  const wrong =
-                    check?.task === "orient" && check.wrong.includes(q.id);
                   return (
-                    <fieldset
-                      key={q.id}
-                      className={wrong ? s.wrongQuestion : s.question}
-                    >
+                    <fieldset key={q.id} className={s.question}>
                       <legend>{q.prompt}</legend>
                       {q.options.map((option, index) => (
                         <label key={option}>
@@ -425,9 +466,7 @@ export default function CloudLabTraining({
                   ) : (
                     check?.task === "orient" &&
                     !check.valid && (
-                      <span className={s.bad}>
-                        {check.wrong.length} not right yet
-                      </span>
+                      <span className={s.bad}>{check.wrong} not right yet</span>
                     )
                   )}
                 </div>
@@ -453,6 +492,7 @@ export default function CloudLabTraining({
                 </p>
               )}
               <ActionEditor
+                disabled={busy}
                 actions={drafts[step] ?? []}
                 onChange={(next) => setDrafts((d) => ({ ...d, [step]: next }))}
                 problemSteps={
