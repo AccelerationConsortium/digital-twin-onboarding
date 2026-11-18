@@ -96,6 +96,14 @@ COMPETENCIES = {
         "Documents a deviation or failure so others can trace it",
         ["cloudlab:report"],
     ),
+    "audit-findings": (
+        ["Hardware", "Software", "Science"],
+        "Mid",
+        "Deploy to Production and Monitor",
+        "Executes",
+        "Finds and documents data-integrity gaps in a simulated audit",
+        ["cloudlab:audit"],
+    ),
     "automation-worth": (
         ["Hardware", "Software", "Science"],
         "Mid",

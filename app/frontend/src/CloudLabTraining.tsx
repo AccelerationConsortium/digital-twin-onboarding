@@ -12,7 +12,8 @@ import { api, json } from "./api";
 import type { Action } from "./types";
 import s from "./CloudLabTraining.module.css";
 
-type ChoiceId = "orient" | "assume" | "escalate" | "accept" | "report" | "need";
+type ChoiceId =
+  "orient" | "assume" | "escalate" | "accept" | "report" | "audit" | "need";
 type TaskId = ChoiceId | "fault" | "own";
 type Question = {
   id: string;
@@ -80,6 +81,7 @@ const ORDER: TaskId[] = [
   "escalate",
   "accept",
   "report",
+  "audit",
   "need",
 ];
 const STEP_LABELS: Record<TaskId, string> = {
@@ -90,6 +92,7 @@ const STEP_LABELS: Record<TaskId, string> = {
   escalate: "Escalate",
   accept: "Accept",
   report: "Report",
+  audit: "Audit",
   need: "Decide",
 };
 /** What the button to each step says. */
@@ -101,6 +104,7 @@ const NEXT: Record<TaskId | "record", string> = {
   escalate: "Next: know when to escalate",
   accept: "Next: judge the results",
   report: "Next: write up the deviation",
+  audit: "Next: audit a run log",
   need: "Next: decide whether to automate",
   record: "Next: your record",
 };
@@ -110,6 +114,7 @@ const CHOICE_TASKS = new Set<TaskId>([
   "escalate",
   "accept",
   "report",
+  "audit",
   "need",
 ]);
 const isChoice = (id: TaskId | "record"): id is ChoiceId =>

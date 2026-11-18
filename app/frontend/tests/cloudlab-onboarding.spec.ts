@@ -130,6 +130,16 @@ test("a new learner trains on the Flex and a mock portal reads the record", asyn
     .getByLabel("Note for a colleague")
     .fill("Step 3 drew 1,200 µL into a 1,000 µL tip; split into two trips.");
   await page.getByRole("button", { name: "Check answers" }).click();
+  await page.getByRole("button", { name: "Next: audit a run log" }).click();
+  const findings =
+    "Which entries would an auditor flag? Choose every one that applies.";
+  for (const entry of [
+    "09:05 · (no user) · Changed the aspirate volume from 600 to 450 µL",
+    "09:41 · ada · Replaced results.csv with a cleaned copy; original deleted",
+    "Friday 16:00 · ada · Noted that the 09:05 change had been approved",
+  ])
+    await pick(findings, entry);
+  await page.getByRole("button", { name: "Check answers" }).click();
   await page
     .getByRole("button", { name: "Next: decide whether to automate" })
     .click();

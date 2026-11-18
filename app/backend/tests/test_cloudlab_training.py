@@ -99,6 +99,7 @@ def test_capabilities_name_the_instrument_rules_and_tasks(client):
         "escalate",
         "accept",
         "report",
+        "audit",
         "need",
     ]
     assert found["evidence"] == "synthetic"
@@ -186,10 +187,10 @@ def test_a_signed_record_verifies_and_an_edit_does_not(client):
     record = payload(envelope)
     assert record["complete"] and record["evidence"] == "synthetic"
     assert "does not authorize" in record["statement"]
-    assert [t["retries"] for t in record["tasks"]] == [0] * 8
+    assert [t["retries"] for t in record["tasks"]] == [0] * 9
     assert next(t for t in record["tasks"] if t["id"] == "report")["note"] == NOTE
     keys = {c["key"] for c in record["competencies"]["evidence_toward"]}
-    assert {"troubleshoot-to-procedure", "escalate-out-of-scope", "record-assumptions"} <= keys
+    assert {"troubleshoot-to-procedure", "escalate-out-of-scope", "audit-findings"} <= keys
     assert record["competencies"]["status"] == "draft"
     assert all(c["proficiency"] != "Leads" for c in record["competencies"]["evidence_toward"])
     assert record["time_to_first_valid_workflow_s"] is not None

@@ -178,6 +178,28 @@ CHOICES = {
         ],
         "note": True,
     },
+    "audit": {
+        "context": (
+            "A simulated audit of yesterday's run log. Records have to show who did what "
+            "and when, be written at the time, and keep the original data."
+        ),
+        "questions": [
+            ask(
+                "findings",
+                "Which entries would an auditor flag? Choose every one that applies.",
+                [
+                    "09:02 · ada · Loaded plate P-17 on the Flex",
+                    "09:05 · (no user) · Changed the aspirate volume from 600 to 450 µL",
+                    "09:40 · ada · Run finished; results exported to results.csv",
+                    "09:41 · ada · Replaced results.csv with a cleaned copy; original deleted",
+                    "09:42 · ada · Control well A12 read 3 % low, within its limit",
+                    "Friday 16:00 · ada · Noted that the 09:05 change had been approved",
+                ],
+                [1, 3, 5],
+            )
+        ],
+        "note": False,
+    },
     "need": {
         "context": (
             "A lab fills 40 plates a week by hand, 45 minutes each. One plate in 25 has to "
@@ -254,6 +276,7 @@ TASKS = {
     "escalate": {"title": "Know when to stop and escalate", "kind": "questions"},
     "accept": {"title": "Judge results against acceptance criteria", "kind": "questions"},
     "report": {"title": "Document the deviation", "kind": "questions"},
+    "audit": {"title": "Audit a run log", "kind": "questions"},
     "need": {"title": "Decide whether to automate", "kind": "questions"},
 }
 WORKFLOW_TASKS = [key for key, task in TASKS.items() if task["kind"] == "workflow"]
@@ -268,7 +291,7 @@ class StartTraining(Revision):
 
 
 class Answers(Revision):
-    task: Literal["orient", "assume", "escalate", "accept", "report", "need"] = "orient"
+    task: Literal["orient", "assume", "escalate", "accept", "report", "audit", "need"] = "orient"
     answers: dict[str, int | list[int]] = Field(max_length=8)
     note: str = Field(default="", max_length=500)
 
