@@ -37,6 +37,7 @@ from .workcell_layout import (
     entry,
     footprint,
     mount,
+    opening_sites,
     plan_workflow,
     validate_layout,
 )
@@ -88,10 +89,10 @@ def _pose(spec, side, point, toward):
     return {"x": x, "z": z, "yaw": yaw, "access": side}
 
 
-def _stretch(twins, arm, station):
+def _stretch(twins, arm, station, site=None):
     """Shoulder-to-flange distance at the station's pre-grasp pose."""
     spec = twins[station["twin_id"]]["spec"]
-    point, direction, rotation, reach = access(spec, station)
+    point, direction, rotation, reach = access(spec, station, site)
     flange = _add(_add(point, direction, reach), rotation[2], -TOOL)
     spec = twins[arm["twin_id"]]["spec"]
     base = mount(spec, arm)
@@ -367,20 +368,19 @@ class Search:
         spec = self.twins[station_id]["spec"]
         station = {"twin_id": station_id, **_pose(spec, side, (bx, bz + radius), (bx, bz))}
         profile = self.profile(arm_id)
-        if _stretch(self.twins, arm, station) > profile.reach - MARGIN:
+        # Through part of a face only the slots behind the opening can be served; every one
+        # of them is tried, and the workflow check later settles the slot it uses.
+        sites = [None]
+        if spec.get("opening") and spec.get("sites"):
+            sites = opening_sites(spec)
+            if not sites:
+                return False, ("access", f"No slot of {spec['name']} lies behind its opening")
+        if min(_stretch(self.twins, arm, station, site) for site in sites) > profile.reach - MARGIN:
             return False, (
                 "reach",
                 f"{spec['name']} is beyond the {profile.name}'s reach at {radius} m",
             )
         planner = Planner(self.twins, self.layout([arm, station]), self.twins[arm_id])
-        # Through part of a face only some slots can be reached: the three nearest the
-        # opening are tried, and the workflow check later settles the slot it uses.
-        sites = [None]
-        if spec.get("opening") and spec.get("sites"):
-            inside = entry(spec)[2]
-            sites = [s["key"] for s in sorted(spec["sites"], key=lambda s: inside(s["x"], s["z"]))][
-                :3
-            ]
         for site in sites:
             try:
                 planner.station(

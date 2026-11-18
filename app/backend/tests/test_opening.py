@@ -124,3 +124,36 @@ def test_a_saved_instrument_takes_an_opening_unless_its_layout_needs_the_front(c
     assert saved.status_code == 200, saved.text
     twin = next(t for t in saved.json()["twins"] if t["id"] == flex["id"])
     assert twin["spec"]["opening"] == LEFT_FRONT
+
+
+def test_only_slots_behind_the_open_part_are_served():
+    from academy.workcell_layout import footprint, opening_sites
+
+    _, _, flex = cell(LEFT_FRONT)
+    spec = flex["spec"]
+    x0, x1, z0, z1 = footprint(spec)
+    keys = opening_sites(spec)
+    assert keys and len(keys) < len(spec["sites"])
+    middle = (z0 + z1) / 2
+    for site in spec["sites"]:
+        behind = site["key"] in keys
+        assert behind == (site["z"] >= middle - 1e-9), site
+    # Shallowest first: the left-most slots, nearest the left face.
+    xs = [next(s["x"] for s in spec["sites"] if s["key"] == k) for k in keys]
+    assert xs == sorted(xs)
+    shut = {**spec, "opening": {"face": "left", "start": 0.0, "end": 0.2}}
+    assert all(
+        next(s for s in spec["sites"] if s["key"] == k)["z"] <= z0 + (z1 - z0) * 0.2 + 1e-9
+        for k in opening_sites(shut)
+    )
+
+
+def test_an_opening_needs_drawn_slots_and_counts_as_geometry():
+    from academy.simple_twins import detail_layers
+
+    _, _, flex = cell(None)
+    spec = {**flex["spec"], "access": "front"}
+    with pytest.raises(ValidationError, match="slots drawn"):
+        TwinSpec(**{**spec, "sites": [], "opening": LEFT_FRONT})
+    opened = {**spec, "opening": LEFT_FRONT}
+    assert "geometry" in detail_layers(spec, opened)[1]

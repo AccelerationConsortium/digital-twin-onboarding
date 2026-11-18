@@ -152,6 +152,9 @@ class TwinSpec(StrictModel):
             raise ValueError("Name and unique operations are required")
         if self.opening and self.access != "front":
             raise ValueError("Only an instrument entered from a side has an opening")
+        if self.opening and not self.sites:
+            # Only a twin with drawn slots is modelled as an enclosure with walls.
+            raise ValueError("An opening needs the instrument's slots drawn")
         if self.limits.min_temp_c > self.limits.max_temp_c:
             raise ValueError("Minimum temperature must not exceed maximum temperature")
         holds = "load" in self.operations
@@ -201,7 +204,7 @@ def detail_layers(old, new):
     changed = {
         layer
         for layer, keys in {
-            "geometry": ["parts"],
+            "geometry": ["parts", "opening", "access"],
             "volume": [],
             "container": [],
             "resource": ["resource"],
@@ -209,7 +212,7 @@ def detail_layers(old, new):
             "state": ["operations"],
             "constraint": ["limits"],
         }.items()
-        if any(old[k] != new[k] for k in keys)
+        if any(old.get(k) != new.get(k) for k in keys)
     }
     if old["container"]["max_volume_ul"] != new["container"]["max_volume_ul"]:
         changed.add("volume")

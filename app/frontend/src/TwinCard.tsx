@@ -154,6 +154,14 @@ function ResidualForm({
   );
 }
 
+/** Which choice an opening is; any other range is kept as it is, never rounded to a half. */
+function openPart(opening: TwinSpec["opening"]) {
+  if (!opening || (opening.start === 0 && opening.end === 1)) return "whole";
+  if (opening.start === 0 && opening.end === 0.5) return "first";
+  if (opening.start === 0.5 && opening.end === 1) return "second";
+  return "custom";
+}
+
 export default function TwinCard({
   twin,
   busy,
@@ -409,16 +417,10 @@ export default function TwinCard({
                 <label className={s.field}>
                   Open part
                   <select
-                    value={
-                      !draft.opening ||
-                      (draft.opening.start === 0 && draft.opening.end === 1)
-                        ? "whole"
-                        : draft.opening.start === 0
-                          ? "first"
-                          : "second"
-                    }
+                    value={openPart(draft.opening)}
                     onChange={(e) => {
                       const face = draft.opening?.face ?? "front";
+                      if (e.target.value === "custom") return;
                       const [start, end] =
                         e.target.value === "first"
                           ? [0, 0.5]
@@ -445,6 +447,12 @@ export default function TwinCard({
                         ? "Front half"
                         : "Right half"}
                     </option>
+                    {openPart(draft.opening) === "custom" && draft.opening && (
+                      <option value="custom">
+                        {Math.round(draft.opening.start * 100)}–
+                        {Math.round(draft.opening.end * 100)} % of the side
+                      </option>
+                    )}
                   </select>
                 </label>
               )}

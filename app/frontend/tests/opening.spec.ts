@@ -37,5 +37,23 @@ test("a Flex entered through half of a side window gets layouts through that hal
 
   // The open half is marked on the bench.
   await page.getByRole("tab", { name: "4 · Layout" }).click();
-  await expect(page.locator("svg line[class*='opening']")).toHaveCount(1);
+  const line = page.locator("svg line[class*='opening']");
+  await expect(line).toHaveCount(1);
+  // The saved opening is the front half of the left side, and the bench draws half
+  // the Flex's depth, not the whole side.
+  const twins = await (await page.request.get("/api/twins")).json();
+  const twin = twins.twins.find((t: { spec?: { opening?: unknown } }) =>
+    Boolean(t.spec?.opening),
+  );
+  expect(twin.spec.opening).toEqual({ face: "left", start: 0.5, end: 1 });
+  const parts = twin.spec.parts as { size: number[]; position: number[] }[];
+  const depth =
+    Math.max(...parts.map((p) => p.position[2] + p.size[2] / 2)) -
+    Math.min(...parts.map((p) => p.position[2] - p.size[2] / 2));
+  const [x1, y1, x2, y2] = await Promise.all(
+    ["x1", "y1", "x2", "y2"].map(async (k) =>
+      Number(await line.getAttribute(k)),
+    ),
+  );
+  expect(Math.hypot(x2 - x1, y2 - y1)).toBeCloseTo(depth / 2, 2);
 });

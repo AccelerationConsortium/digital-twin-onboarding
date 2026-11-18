@@ -320,6 +320,28 @@ def entry(spec):
     return (nx, nz), point, lambda x, z: (point[0] - x) * nx + (point[1] - z) * nz
 
 
+def opening_sites(spec):
+    """The slots behind the open part of the face, the shallowest first.
+
+    A slot counts when it lies within the opening along that face: left to right at the
+    front, back to front on a side. Without an opening every slot qualifies.
+    """
+    sites = spec.get("sites") or []
+    opening = spec.get("opening")
+    if not opening:
+        return [s["key"] for s in sites]
+    x0, x1, z0, z1 = footprint(spec)
+    inside = entry(spec)[2]
+
+    def along(site):
+        if opening["face"] == "front":
+            return (site["x"] - x0) / (x1 - x0)
+        return (site["z"] - z0) / (z1 - z0)
+
+    found = [s for s in sites if opening["start"] - 1e-9 <= along(s) <= opening["end"] + 1e-9]
+    return [s["key"] for s in sorted(found, key=lambda s: inside(s["x"], s["z"]))]
+
+
 def access(spec, placement, site=None):
     """Where and how a station is served, always with the gripper pointing down.
 
