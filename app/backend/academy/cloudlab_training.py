@@ -6,11 +6,15 @@ is checked against the rules in `opentrons_check` and against what it was meant 
 so removing the faulty step never counts as a repair.
 
 The training record is evidence for a cloud lab's operators, never permission. It is
-signed so a portal can tell it was issued here and not edited, and it names the rules
-version it was earned under, so a record from older rules reads as out of date rather
-than as passed. Everything here is synthetic: no robot, Isaac/GPU or chemistry.
+signed with Ed25519 over its exact bytes, so a portal holding only the published public
+key can tell it was issued here and not edited, without calling back or seeing anything
+else about the learner. It names the rules version it was earned under, so a record from
+older rules reads as out of date rather than as passed. Everything here is synthetic:
+no robot, Isaac/GPU or chemistry.
 """
 
+import base64
+import binascii
 import hashlib
 import hmac
 import json
@@ -18,6 +22,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import Depends, HTTPException
+from nacl.exceptions import BadSignatureError
+from nacl.signing import SigningKey
 from pydantic import Field
 
 from . import opentrons_check
@@ -28,6 +34,7 @@ from .store import Conflict
 MODULE = "flex-transfer"
 RULES = "cloudlab-flex-transfer/1"
 RECORD_TYPE = "academy.training-record/1"
+ENVELOPE = "academy.signed-record/1"
 VALID_DAYS = 90
 KEY = f"cloudlab-training#{MODULE}"
 STOCK_START = 5000.0
@@ -260,22 +267,61 @@ def subject(owner):
     return hashlib.sha256(f"academy-training-subject:{owner}".encode()).hexdigest()[:24]
 
 
-def canonical(record):
-    body = {k: v for k, v in record.items() if k != "signature"}
-    return json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+def b64url(raw):
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def unb64url(text):
+    return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
 
 
 def signing_key(settings):
+    """The issuer key, derived from the app secret; without one nothing is signed."""
     if not settings.secret:
         raise HTTPException(
             503, "Training records cannot be signed here: no record key is configured"
         )
-    return hmac.new(settings.secret.encode(), b"academy-training-record-v1", "sha256").digest()
+    seed = hmac.new(settings.secret.encode(), b"academy-training-record-ed25519-v1", "sha256")
+    return SigningKey(seed.digest())
+
+
+def public_jwk(settings):
+    raw = bytes(signing_key(settings).verify_key)
+    kid = hashlib.sha256(raw).hexdigest()[:16]
+    return {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "alg": "EdDSA",
+        "use": "sig",
+        "kid": kid,
+        "x": b64url(raw),
+    }
 
 
 def sign(record, settings):
-    value = hmac.new(signing_key(settings), canonical(record), "sha256").hexdigest()
-    return {**record, "signature": {"alg": "HMAC-SHA256", "value": value}}
+    """An envelope whose signature covers the payload bytes exactly as they travel."""
+    payload = json.dumps(record, ensure_ascii=False, separators=(",", ":")).encode()
+    return {
+        "format": ENVELOPE,
+        "alg": "EdDSA",
+        "kid": public_jwk(settings)["kid"],
+        "payload": b64url(payload),
+        "signature": b64url(signing_key(settings).sign(payload).signature),
+    }
+
+
+def opened(envelope, settings):
+    """The record inside an envelope, or None when the signature does not hold."""
+    key = signing_key(settings).verify_key
+    try:
+        if envelope.get("kid") != public_jwk(settings)["kid"]:
+            return None
+        payload = unb64url(envelope["payload"])
+        key.verify(payload, unb64url(envelope["signature"]))
+        found = json.loads(payload)
+    except (KeyError, TypeError, ValueError, binascii.Error, BadSignatureError):
+        return None
+    return found if isinstance(found, dict) else None
 
 
 def seconds_between(start, end):
@@ -323,16 +369,14 @@ def record(owner, training, settings):
     )
 
 
-def verify(record, settings):
+def verify(envelope, settings):
     """Whether a presented record was issued here unedited, and whether it is still current.
 
     Reads nothing about the learner: a portal learns only what the record itself says.
     """
-    signature = record.get("signature") or {}
-    expected = hmac.new(signing_key(settings), canonical(record), "sha256").hexdigest()
-    authentic = isinstance(signature.get("value"), str) and hmac.compare_digest(
-        signature["value"], expected
-    )
+    record = opened(envelope, settings)
+    authentic = record is not None
+    record = record or {}
     known = record.get("type") == RECORD_TYPE
     same_rules = (record.get("module") or {}).get("rules_version") == RULES
     try:
@@ -344,10 +388,13 @@ def verify(record, settings):
         message
         for failed, message in [
             (not authentic, "The signature does not match: edited, or not issued here"),
-            (not known, "This is not an Academy training record"),
-            (not same_rules, "Earned under rules that have since changed; retrain first"),
-            (expired, "The record has expired"),
-            (not complete, "Not every training task has been passed"),
+            (authentic and not known, "This is not an Academy training record"),
+            (
+                authentic and not same_rules,
+                "Earned under rules that have since changed; retrain first",
+            ),
+            (authentic and expired, "The record has expired"),
+            (authentic and not complete, "Not every training task has been passed"),
         ]
         if failed
     ]
@@ -357,6 +404,7 @@ def verify(record, settings):
         "complete": authentic and complete,
         "problems": problems,
         "rules_version": RULES,
+        "record": record if authentic else None,
     }
 
 
@@ -381,6 +429,16 @@ def install(app, *, store):
             **training,
             "questions": [{k: q[k] for k in ("id", "prompt", "options")} for q in QUESTIONS],
             "goals": {key: TASKS[key]["goal"] for key in WORKFLOW_TASKS},
+        }
+
+    @app.get("/api/cloudlab/issuer")
+    def record_issuer():
+        """What a verifier needs and nothing else: the public key and the current rules."""
+        return {
+            "issuer": "Digital Twin Academy",
+            "format": ENVELOPE,
+            "keys": [public_jwk(settings)] if settings.secret else [],
+            "rules": {MODULE: RULES},
         }
 
     @app.get("/api/cloudlab/capabilities")
