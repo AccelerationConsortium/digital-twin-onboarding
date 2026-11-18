@@ -12,6 +12,7 @@ parses text without evaluating anything. Locations are the teaching model's stoc
 A1–A3; any other operation, option or location is reported, never guessed.
 """
 
+import math
 import re
 
 MAX_LENGTH = 20_000
@@ -32,7 +33,13 @@ class SllError(ValueError):
 
 def tokens(text):
     position, found = 0, []
-    text = re.sub(r"\(\*.*?\*\)", " ", text, flags=re.S)  # SLL comments
+    # Blank out SLL comments, keeping their length and line breaks so positions hold.
+    text = re.sub(
+        r"\(\*.*?\*\)",
+        lambda m: re.sub(r"[^\n]", " ", m.group()),
+        text,
+        flags=re.S,
+    )
     while position < len(text):
         if text[position:].strip() == "":
             break
@@ -85,6 +92,8 @@ def parse(text):
             node = ("call", value, sequence("]"))
         elif kind == "number":
             number = float(value.replace("*^", "e"))
+            if not math.isfinite(number):
+                raise SllError(f"{value} is too large a number", where)
             if at < len(items) and items[at][0] == "symbol" and items[at][1] in UNITS:
                 number *= UNITS[items[at][1]]
                 at += 1
@@ -122,10 +131,9 @@ def operations(program):
     found = []
     for node in parse(program):
         if node[0] == "call" and node[1] in WRAPPERS:
-            (inner,) = node[2] or [("list", [])]
-            if inner[0] != "list":
+            if len(node[2]) != 1 or node[2][0][0] != "list":
                 raise SllError(f"{node[1]} takes a list of unit operations")
-            found.extend(inner[1])
+            found.extend(node[2][0][1])
         elif node[0] == "list":
             found.extend(node[1])
         else:
@@ -135,7 +143,11 @@ def operations(program):
 
 def location(node, option):
     if node[0] != "string" or node[1] not in WELLS:
-        shown = node[1] if node[0] in {"string", "symbol"} else node[0]
+        shown = node[1] if node[0] in {"string", "symbol"} else None
+        if node[0] == "call":
+            raise SllError(
+                f"{option} {node[1]}[...] is not a teaching-model location; use stock, A1, A2 or A3"
+            )
         raise SllError(f"{option} {shown!r} is not stock, A1, A2 or A3 in the teaching model")
     return node[1]
 
@@ -155,6 +167,8 @@ def translate(program):
         for arg in args:
             if arg[0] != "rule" or arg[1][0] != "symbol":
                 raise SllError(f"Transfer {index}: give options as Name -> value")
+            if arg[1][1] in options:
+                raise SllError(f"Transfer {index} gives {arg[1][1]} twice")
             options[arg[1][1]] = arg[2]
         extra = sorted(set(options) - {"Source", "Destination", "Amount"})
         if extra:

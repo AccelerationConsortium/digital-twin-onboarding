@@ -75,7 +75,17 @@ def test_unmodelled_operations_and_options_are_reported_not_guessed(client):
         (
             'Transfer[Source -> Object[Sample, "id:1"], Destination -> "A1", '
             "Amount -> 10 Microliter]",
-            "Source",
+            "Source Object[...] is not a teaching-model location; use stock, A1, A2 or A3",
+        ),
+        (
+            'Transfer[Source -> "stock", Source -> "A2", Destination -> "A1", '
+            "Amount -> 10 Microliter]",
+            "Transfer 1 gives Source twice",
+        ),
+        ("ExperimentRoboticSamplePreparation[{}, {}]", "takes a list of unit operations"),
+        (
+            'Transfer[Source -> "stock", Destination -> "A1", Amount -> 1*^400 Microliter]',
+            "too large a number",
         ),
     ],
 )
@@ -94,3 +104,10 @@ def test_nothing_in_a_program_is_evaluated(client):
         "Import is not in this adapter yet",
     ]
     assert result["actions"] == []
+
+
+def test_positions_after_a_comment_point_at_the_source():
+    program = '(* note *)\nTransfer[Source -> "stock" Destination]'
+    with pytest.raises(SllError) as caught:
+        translate(program)
+    assert program[caught.value.position :].startswith("Destination")
