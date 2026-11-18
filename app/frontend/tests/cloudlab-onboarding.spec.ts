@@ -92,7 +92,7 @@ test("a new learner trains on the Flex and a mock portal reads the record", asyn
     .getByRole("button", { name: "Submit for operator review" })
     .click();
   await expect(
-    page.getByText("Request sent to operator safety review"),
+    page.getByText("Ready for operator safety review"),
   ).toBeVisible();
   await shot(page, "7-review");
 
