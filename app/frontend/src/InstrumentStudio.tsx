@@ -68,6 +68,7 @@ const START_CHUNKS = 3;
 const collectionLabels = {
   workcell: "Workcell model",
   chemlab: "ChemLab · NC",
+  cloudlab: "Cloud lab",
   simready: "SimReady",
 } as const;
 const units: Partial<Record<Operation, [string, string]>> = {
