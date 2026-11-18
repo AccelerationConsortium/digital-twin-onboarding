@@ -8,7 +8,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api, json } from "./api";
+import { api, ApiError, json } from "./api";
 import type { Action } from "./types";
 import s from "./CloudLabTraining.module.css";
 
@@ -274,6 +274,8 @@ export default function CloudLabTraining({
   >({});
   const [notes, setNotes] = useState<Partial<Record<ChoiceId, string>>>({});
   const [evidence, setEvidence] = useState<Competency[] | null>(null);
+  // A deployment without a record key signs nothing; the record step says so.
+  const [unsigned, setUnsigned] = useState(false);
   const [drafts, setDrafts] = useState<Partial<Record<TaskId, Action[]>>>({});
   const [busy, setBusy] = useState(false);
 
@@ -387,7 +389,11 @@ export default function CloudLabTraining({
         if (alive)
           setEvidence(unwrap(envelope).competencies?.evidence_toward ?? []);
       })
-      .catch(() => alive && setEvidence([]));
+      .catch((e) => {
+        if (!alive) return;
+        setUnsigned(e instanceof ApiError && e.status === 503);
+        setEvidence([]);
+      });
     return () => {
       alive = false;
     };
@@ -780,7 +786,12 @@ export default function CloudLabTraining({
                 </tbody>
               </table>
               <h3 className={s.subhead}>Evidence toward GASE competencies</h3>
-              {evidence === null ? (
+              {unsigned ? (
+                <p className={s.note} role="status">
+                  This deployment cannot sign training records yet, so there is
+                  no record to attach or download. Your progress is saved.
+                </p>
+              ) : evidence === null ? (
                 <p className={s.note} aria-busy="true">
                   Reading the record…
                 </p>
@@ -811,14 +822,14 @@ export default function CloudLabTraining({
               <div className={s.actions}>
                 <button
                   className={s.primary}
-                  disabled={busy}
+                  disabled={busy || unsigned}
                   onClick={sendToPortal}
                 >
                   <Send size={15} /> Attach to a run request
                 </button>
                 <button
                   className={s.secondary}
-                  disabled={busy}
+                  disabled={busy || unsigned}
                   onClick={download}
                 >
                   <Download size={15} /> Download record
