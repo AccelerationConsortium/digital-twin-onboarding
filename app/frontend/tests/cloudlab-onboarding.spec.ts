@@ -84,6 +84,9 @@ test("a new learner trains on the Flex and a mock portal reads the record", asyn
     page.getByRole("heading", { name: "Request a run" }),
   ).toBeVisible();
   await expect(page.getByText("Every training task passed")).toBeVisible();
+  await expect(
+    page.getByText("Checked in this browser with the Academy's public key."),
+  ).toBeVisible();
   await shot(page, "6-portal");
   await page
     .getByRole("button", { name: "Submit for operator review" })
@@ -92,6 +95,31 @@ test("a new learner trains on the Flex and a mock portal reads the record", asyn
     page.getByText("Ready for operator safety review"),
   ).toBeVisible();
   await shot(page, "7-review");
+
+  // An edited record fails the signature check before any policy applies.
+  const envelope = await (
+    await page.request.get("/api/cloudlab/qualifications/me")
+  ).json();
+  const record = JSON.parse(
+    Buffer.from(envelope.payload, "base64url").toString(),
+  );
+  record.expires_at = "2099-01-01T00:00:00+00:00";
+  const edited = {
+    ...envelope,
+    payload: Buffer.from(JSON.stringify(record)).toString("base64url"),
+  };
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "edited.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(edited)),
+  });
+  await expect(
+    page.getByText("This request cannot be submitted yet"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("The signature does not match: edited, or not issued here"),
+  ).toBeVisible();
+  await shot(page, "7b-edited");
 
   // Phone width: the repair step still fits without sideways scrolling.
   await page.setViewportSize({ width: 390, height: 844 });

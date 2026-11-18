@@ -1,7 +1,12 @@
+import base64
+import json
 from datetime import datetime, timedelta
 
+import pytest
 from academy.cloudlab_training import QUESTIONS, TASKS
 from fastapi.testclient import TestClient
+from nacl.exceptions import BadSignatureError
+from nacl.signing import VerifyKey
 
 RIGHT = {q["id"]: q["answer"] for q in QUESTIONS}
 
@@ -124,9 +129,21 @@ def test_wrong_answers_are_recorded_and_stale_commands_rejected(client):
     assert "answer" not in answered["questions"][0]
 
 
+def payload(envelope):
+    return json.loads(base64.urlsafe_b64decode(envelope["payload"] + "=="))
+
+
+def reseal(envelope, record):
+    """The same signature over different bytes, as an edited file would carry."""
+    raw = json.dumps(record, separators=(",", ":")).encode()
+    return {**envelope, "payload": base64.urlsafe_b64encode(raw).rstrip(b"=").decode()}
+
+
 def test_a_signed_record_verifies_and_an_edit_does_not(client):
     finish(client)
-    record = client.get("/api/cloudlab/qualifications/me").json()
+    envelope = client.get("/api/cloudlab/qualifications/me").json()
+    assert envelope["format"] == "academy.signed-record/1" and envelope["alg"] == "EdDSA"
+    record = payload(envelope)
     assert record["complete"] and record["evidence"] == "synthetic"
     assert "does not authorize" in record["statement"]
     assert [t["retries"] for t in record["tasks"]] == [0, 0, 0]
@@ -136,32 +153,53 @@ def test_a_signed_record_verifies_and_an_edit_does_not(client):
     def verify(body):
         return client.post("/api/cloudlab/records/verify", json={"record": body}).json()
 
-    assert verify(record) == {
+    assert verify(envelope) == {
         "authentic": True,
         "current": True,
         "complete": True,
         "problems": [],
         "rules_version": "cloudlab-flex-transfer/1",
+        "record": record,
     }
-    edited = {**record, "tasks": [{**t, "retries": 0, "errors": ["x"]} for t in record["tasks"]]}
-    edited["complete"] = True
-    edited["expires_at"] = "2099-01-01T00:00:00+00:00"
-    assert verify(edited)["authentic"] is False
-    old = {**record, "module": {**record["module"], "rules_version": "cloudlab-flex-transfer/0"}}
-    assert verify(old)["authentic"] is False and verify(old)["current"] is False
-    for broken in [
-        {**record, "signature": "x", "module": "x"},
-        {**record, "expires_at": 0},
-        {**record, "expires_at": "2099-01-01T00:00:00"},
+    for edited in [
+        {**record, "expires_at": "2099-01-01T00:00:00+00:00"},
+        {**record, "subject": "someone-else"},
+        {**record, "tasks": [{**t, "retries": 3, "errors": ["x"]} for t in record["tasks"]]},
     ]:
-        result = verify(broken)
-        assert result["authentic"] is False and result["current"] is False
+        result = verify(reseal(envelope, edited))
+        assert (result["authentic"], result["current"], result["record"]) == (False, False, None)
+    assert verify({**envelope, "kid": "0" * 16})["authentic"] is False
+    assert verify({k: v for k, v in envelope.items() if k != "format"})["authentic"] is False
+    assert verify({**envelope, "alg": "HS256"})["authentic"] is False
+    for broken in [
+        {"payload": "!!", "signature": "x"},
+        {**envelope, "signature": 5},
+        {**envelope, "payload": None},
+        reseal(envelope, {**record, "expires_at": 0}),
+    ]:
+        assert verify(broken)["authentic"] is False
+
+
+def test_a_portal_verifies_offline_with_only_the_published_key(client):
+    finish(client)
+    envelope = client.get("/api/cloudlab/qualifications/me").json()
+    issuer = TestClient(client.app).get("/api/cloudlab/issuer").json()  # no sign-in
+    assert issuer["rules"] == {"flex-transfer": "cloudlab-flex-transfer/1"}
+    assert datetime.fromisoformat(issuer["now"]).tzinfo is not None
+    (jwk,) = issuer["keys"]
+    assert jwk["kid"] == envelope["kid"] and "d" not in jwk
+    key = VerifyKey(base64.urlsafe_b64decode(jwk["x"] + "="))
+    raw = base64.urlsafe_b64decode(envelope["payload"] + "==")
+    signature = base64.urlsafe_b64decode(envelope["signature"] + "==")
+    assert key.verify(raw, signature) == raw
+    with pytest.raises(BadSignatureError):
+        key.verify(raw + b" ", signature)
 
 
 def test_fetching_the_record_again_does_not_extend_it(client):
     finish(client)
-    first = client.get("/api/cloudlab/qualifications/me").json()
-    again = client.get("/api/cloudlab/qualifications/me").json()
+    first = payload(client.get("/api/cloudlab/qualifications/me").json())
+    again = payload(client.get("/api/cloudlab/qualifications/me").json())
     assert first["expires_at"] == again["expires_at"]
     passed = max(t["passed_at"] for t in first["tasks"])
     lapse = datetime.fromisoformat(first["expires_at"]) - datetime.fromisoformat(passed)
@@ -170,10 +208,19 @@ def test_fetching_the_record_again_does_not_extend_it(client):
 
 def test_an_incomplete_record_is_authentic_but_not_complete(client):
     start(client)
-    record = client.get("/api/cloudlab/qualifications/me").json()
-    result = client.post("/api/cloudlab/records/verify", json={"record": record}).json()
+    envelope = client.get("/api/cloudlab/qualifications/me").json()
+    result = client.post("/api/cloudlab/records/verify", json={"record": envelope}).json()
     assert (result["authentic"], result["current"], result["complete"]) == (True, True, False)
     assert result["problems"] == ["Not every training task has been passed"]
+
+
+def test_without_a_key_no_keys_are_published(store, tmp_path):
+    from academy.main import create_app
+    from academy.settings import Settings
+
+    app = create_app(Settings(data_path=str(tmp_path / "x.sqlite")), store=store)
+    with TestClient(app) as anonymous:
+        assert anonymous.get("/api/cloudlab/issuer").json()["keys"] == []
 
 
 def test_each_learner_sees_only_their_own_training(app, client):

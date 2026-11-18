@@ -15,7 +15,20 @@ type Verdict = {
   current: boolean;
   complete: boolean;
   problems: string[];
-  rules_version: string;
+  record: TrainingRecord | null;
+};
+type Envelope = {
+  format?: string;
+  alg?: string;
+  kid?: string;
+  payload?: string;
+  signature?: string;
+};
+type Issuer = {
+  keys: (JsonWebKey & { kid: string })[];
+  rules: Record<string, string>;
+  format: string;
+  now: string;
 };
 type RecordTask = {
   id: string;
@@ -28,11 +41,99 @@ type TrainingRecord = {
   subject?: string;
   issued_at?: string;
   expires_at?: string;
-  module?: { instrument?: string; rules_version?: string };
+  type?: string;
+  complete?: boolean;
+  module?: { id?: string; instrument?: string; rules_version?: string };
   tasks?: RecordTask[];
   time_to_first_valid_workflow_s?: number | null;
   statement?: string;
 };
+
+const bytes = (text: string) =>
+  Uint8Array.from(
+    atob(
+      text.replace(/-/g, "+").replace(/_/g, "/") +
+        "=".repeat((4 - (text.length % 4)) % 4),
+    ),
+    (c) => c.charCodeAt(0),
+  );
+
+/**
+ * Check a record the way an independent portal would: with the issuer's public key and
+ * current rules only. Null when this browser cannot verify Ed25519 itself.
+ */
+async function verifyHere(
+  envelope: Envelope,
+  issuer: Issuer,
+): Promise<Verdict | null> {
+  const shaped =
+    typeof envelope === "object" &&
+    envelope !== null &&
+    envelope.format === issuer.format &&
+    envelope.alg === "EdDSA" &&
+    typeof envelope.payload === "string" &&
+    typeof envelope.signature === "string";
+  const jwk = shaped && issuer.keys.find((k) => k.kid === envelope.kid);
+  let record: TrainingRecord | null = null;
+  if (jwk && envelope.payload && envelope.signature) {
+    let key: CryptoKey;
+    try {
+      key = await crypto.subtle.importKey(
+        "jwk",
+        { kty: jwk.kty, crv: jwk.crv, x: jwk.x },
+        { name: "Ed25519" },
+        false,
+        ["verify"],
+      );
+    } catch {
+      return null;
+    }
+    try {
+      const payload = bytes(envelope.payload);
+      if (
+        await crypto.subtle.verify(
+          { name: "Ed25519" },
+          key,
+          bytes(envelope.signature),
+          payload,
+        )
+      )
+        record = JSON.parse(new TextDecoder().decode(payload));
+    } catch {
+      record = null;
+    }
+  }
+  const authentic = record !== null;
+  const found = record ?? {};
+  const known = found.type === "academy.training-record/1";
+  const sameRules =
+    !!found.module?.id &&
+    issuer.rules[found.module.id] === found.module.rules_version;
+  // Judged by the issuer's clock, not this browser's, which the learner controls.
+  const lapse =
+    typeof found.expires_at === "string" ? Date.parse(found.expires_at) : NaN;
+  const expired = !(lapse >= Date.parse(issuer.now));
+  const complete = found.complete === true;
+  const problems = (
+    [
+      [!authentic, "The signature does not match: edited, or not issued here"],
+      [authentic && !known, "This is not an Academy training record"],
+      [
+        authentic && !sameRules,
+        "Earned under rules that have since changed; retrain first",
+      ],
+      [authentic && expired, "The record has expired"],
+      [authentic && !complete, "Not every training task has been passed"],
+    ] as [boolean, string][]
+  ).flatMap(([failed, message]) => (failed ? [message] : []));
+  return {
+    authentic,
+    current: authentic && known && sameRules && !expired,
+    complete: authentic && complete,
+    problems,
+    record,
+  };
+}
 
 function minutes(seconds: number | null | undefined) {
   if (seconds == null) return "—";
@@ -41,9 +142,10 @@ function minutes(seconds: number | null | undefined) {
 
 /**
  * A stand-in for a cloud lab's run-request page. It sees only the record the learner
- * attaches, asks the Academy whether that record is authentic and current, then applies
- * its own policy. Passing would send a real request to operator review; this mock sends
- * nothing, and no portal here ever approves a run.
+ * attaches and checks it itself with the Academy's published key, asking the Academy
+ * only when this browser cannot verify Ed25519. Then it applies its own policy: passing
+ * would send a real request to operator review; this mock sends nothing, and no portal
+ * here ever approves a run.
  */
 export default function CloudLabPortal({
   onTraining,
@@ -54,25 +156,35 @@ export default function CloudLabPortal({
 }) {
   const [record, setRecord] = useState<TrainingRecord | null>(null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [checkedHere, setCheckedHere] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [attached, setAttached] = useState<Envelope | null>(null);
   // Only the latest attachment's check may set the verdict.
   const attempt = useRef(0);
 
-  const check = async (next: TrainingRecord) => {
+  const check = async (envelope: Envelope) => {
     const mine = ++attempt.current;
-    setRecord(next);
+    setAttached(envelope);
+    setRecord(null);
     setVerdict(null);
     setSubmitted(false);
     setFailed(false);
     setBusy(true);
     try {
-      const found = await api<Verdict>(
-        "/cloudlab/records/verify",
-        json({ record: next }),
-      );
-      if (mine === attempt.current) setVerdict(found);
+      const issuer = await api<Issuer>("/cloudlab/issuer");
+      const here = await verifyHere(envelope, issuer);
+      const found =
+        here ??
+        (await api<Verdict>(
+          "/cloudlab/records/verify",
+          json({ record: envelope }),
+        ));
+      if (mine !== attempt.current) return;
+      setCheckedHere(here !== null);
+      setVerdict(found);
+      setRecord(found.record);
     } catch (e) {
       if (mine === attempt.current) {
         setFailed(true);
@@ -142,7 +254,7 @@ export default function CloudLabPortal({
           <label className={s.upload}>
             <Upload size={16} />
             <span>
-              {record ? "Attach a different record" : "Attach your record"}
+              {verdict ? "Attach a different record" : "Attach your record"}
             </span>
             <input
               type="file"
@@ -198,33 +310,29 @@ export default function CloudLabPortal({
 
         <div className={s.card}>
           <h2>Portal checks</h2>
-          {!record ? (
+          {busy ? (
+            <p className={s.note} aria-busy="true">
+              Checking…
+            </p>
+          ) : failed && attached ? (
+            <div className={s.problems} role="status">
+              <p>
+                <CircleSlash size={16} /> The record could not be checked
+              </p>
+              <button
+                className={s.secondary}
+                onClick={() => void check(attached)}
+              >
+                Check again
+              </button>
+            </div>
+          ) : !verdict ? (
             <p className={s.note}>
               Attach the record from Academy cloud lab onboarding.{" "}
               <button className={s.textButton} onClick={onTraining}>
                 Go to training
               </button>
             </p>
-          ) : !verdict ? (
-            busy ? (
-              <p className={s.note} aria-busy="true">
-                Checking…
-              </p>
-            ) : (
-              failed && (
-                <div className={s.problems} role="status">
-                  <p>
-                    <CircleSlash size={16} /> The record could not be checked
-                  </p>
-                  <button
-                    className={s.secondary}
-                    onClick={() => void check(record)}
-                  >
-                    Check again
-                  </button>
-                </div>
-              )
-            )
           ) : (
             <>
               <ul className={s.checklist}>
@@ -239,6 +347,11 @@ export default function CloudLabPortal({
                   </li>
                 ))}
               </ul>
+              <p className={s.fine}>
+                {checkedHere
+                  ? "Checked in this browser with the Academy's public key."
+                  : "This browser cannot check Ed25519, so the Academy checked it."}
+              </p>
               {eligible ? (
                 submitted ? (
                   <div className={s.ok} role="status">
