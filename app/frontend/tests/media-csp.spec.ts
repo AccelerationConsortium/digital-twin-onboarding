@@ -54,3 +54,55 @@ test("CSP permits Canadian KVS signaling while blocking other regions and hosts"
   );
   expect(blocked.some((url) => url.includes("untrusted.invalid"))).toBe(true);
 });
+
+test("CSP lets 3D models load their embedded textures but no other hosts", async ({
+  page,
+}) => {
+  const source = readFileSync(path.resolve("../../platform/main.tf"), "utf8");
+  const policy = source
+    .match(/content_security_policy = "([^"]+)"/)![1]
+    .replaceAll("${var.region}", "ca-central-1")
+    .replace(
+      "${aws_cognito_user_pool.learners.endpoint}",
+      "cognito-idp.ca-central-1.amazonaws.com/example",
+    )
+    .replace(
+      "${aws_cognito_user_pool_domain.learners.domain}",
+      "academy-example",
+    );
+  await page.route("**/csp-textures", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      headers: { "Content-Security-Policy": policy },
+      body: "<!doctype html><title>Model texture policy check</title>",
+    }),
+  );
+  await page.goto("/csp-textures");
+  const result = await page.evaluate(async () => {
+    // GLTFLoader turns a GLB's embedded images into blob: URLs and fetches them.
+    const png = Uint8Array.from(
+      atob(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==",
+      ),
+      (c) => c.charCodeAt(0),
+    );
+    const url = URL.createObjectURL(new Blob([png], { type: "image/png" }));
+    const fetched = await fetch(url).then(
+      (r) => r.ok,
+      () => false,
+    );
+    const image = await new Promise<boolean>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+    const outside = await fetch("https://untrusted.invalid/model.glb").then(
+      () => true,
+      () => false,
+    );
+    return { fetched, image, outside };
+  });
+  expect(result).toEqual({ fetched: true, image: true, outside: false });
+});
