@@ -18,6 +18,17 @@ type Instrument = {
   limits: { min_temp_c: number; max_temp_c: number; max_duration_s: number };
   consumables: { name: string; stock: number }[];
   size_m: [number, number, number];
+  access: "top" | "front";
+  level_m: number | null;
+  opening: {
+    face: "front" | "left" | "right";
+    start: number;
+    end: number;
+  } | null;
+  drawer_m: number | null;
+  model_size_m: [number, number, number] | null;
+  layout_model: string | null;
+  geometry_basis: Record<string, string>;
   stand_in: string | null;
   mesh: Mesh | null;
   attribution: string;
@@ -30,6 +41,14 @@ type Overview = {
   instruments: Instrument[];
 };
 
+const BASIS_NAMES: Record<string, string> = {
+  size: "Size",
+  access: "Loading face",
+  level_m: "Loading height",
+  opening: "Opening",
+  drawer_m: "Drawer",
+  sites: "Slot",
+};
 const CAN: Record<Operation, string> = {
   load: "Load",
   transfer: "Transfer",
@@ -40,6 +59,27 @@ const CAN: Record<Operation, string> = {
 };
 const volume = (ul: number) =>
   ul >= 1000 ? `${(ul / 1000).toLocaleString()} mL` : `${ul} µL`;
+
+/** Where a geometry value comes from, in a few words; the full basis sits under Sources. */
+const basisLabel = (basis: string | undefined, item: Instrument) => {
+  const kind = basis?.split(":")[0];
+  if (kind === "datasheet") return `${item.layout_model} datasheet`;
+  if (kind === "manufacturer")
+    return `manufacturer figure for a comparable ${item.stand_in}`;
+  if (kind === "engineering_assumption")
+    return `ChemLab-Assets estimate for a comparable ${item.stand_in}`;
+  if (kind === "footprint") return `footprint of a comparable ${item.stand_in}`;
+  if (basis === "unset") return "not published";
+  return "Academy estimate";
+};
+const metres = (v: number[]) => `${v.map((x) => x.toFixed(2)).join(" × ")} m`;
+/** Where along the front a plate goes in, from the open part of that face. */
+const part = (opening: Instrument["opening"]) => {
+  if (!opening || opening.face !== "front") return "";
+  const middle = (opening.start + opening.end) / 2;
+  return middle < 0.4 ? ", left" : middle > 0.6 ? ", right" : "";
+};
+const sourceUrl = (basis: string) => basis.match(/https?:\/\/[^\s,]+/)?.[0];
 
 /** The instruments a cloud lab lists, as teaching twins a learner can look at. */
 export default function CloudLabInstruments() {
@@ -206,12 +246,43 @@ export default function CloudLabInstruments() {
                 ))}
                 <dt>Size</dt>
                 <dd>
-                  {open.size_m.map((v) => v.toFixed(2)).join(" × ")} m ·{" "}
-                  {open.stand_in
-                    ? `footprint of a comparable ${open.stand_in}`
-                    : "Academy estimate"}
+                  {metres(open.size_m)} ·{" "}
+                  {basisLabel(open.geometry_basis.size, open)}
+                  {open.model_size_m &&
+                    metres(open.model_size_m) !== metres(open.size_m) &&
+                    ` (3D model ${metres(open.model_size_m)})`}
+                </dd>
+                <dt>Plate goes in</dt>
+                <dd>
+                  {open.access === "front" ? "At the front" : "From above"}
+                  {part(open.opening)}
+                  {open.level_m !== null &&
+                    `, ${open.level_m.toFixed(2)} m above the bench`}
+                  {open.drawer_m !== null &&
+                    `; its drawer comes out ${open.drawer_m.toFixed(2)} m`}{" "}
+                  · {basisLabel(open.geometry_basis.access, open)}
                 </dd>
               </dl>
+              <details className={s.sources}>
+                <summary>Sources</summary>
+                <ul>
+                  {Object.entries(open.geometry_basis).map(([key, basis]) => {
+                    const url = sourceUrl(basis);
+                    return (
+                      <li key={key}>
+                        <b>{BASIS_NAMES[key] ?? key}</b>{" "}
+                        {url ? (
+                          <a href={url} target="_blank" rel="noreferrer">
+                            {basis.replace(`, ${url}`, "")}
+                          </a>
+                        ) : (
+                          basis
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
               {open.narrowed && <p className={s.narrowed}>{open.narrowed}</p>}
               <p className={s.fine}>
                 Synthetic teaching twin, not this instrument's specification.{" "}

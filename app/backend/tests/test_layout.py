@@ -451,3 +451,58 @@ def test_a_layout_is_replanned_with_every_instrument_slightly_misplaced(client):
         "/api/twins/layout/robustness", json={"bench": BENCH, "placements": broken}
     )
     assert response.status_code == 422
+
+
+def test_a_front_loaded_cloud_lab_reader_is_served_through_its_front():
+    from academy.cloudlab import CLOUDLAB
+
+    specs = {
+        "pr": CLOUDLAB["plate-reader"]["spec"],
+        "ht": TEMPLATES["heater"],
+        "ar": TEMPLATES["transfer-arm"],
+    }
+    twins = {
+        key: {"id": key, "spec": deepcopy(spec), "confirmed": True, "mode": "mock"}
+        for key, spec in specs.items()
+    }
+    assert twins["pr"]["spec"]["access"] == "front"
+    # The placement asks for top access; the twin's own front loading wins.
+    rows = placements("pr", "ht", "ar", pr={"x": 0.75, "z": 0.1, "yaw": -90, "access": "top"})
+    layout = {"bench": BENCH, "placements": rows}
+    [motion] = wl.plan_workflow(twins, layout, workflow("pr", "ht", "ar"))
+    assert motion["target_id"] == "pr" and motion["clearance_m"] >= wl.SAFETY
+    place = next(p for p in rows if p["twin_id"] == "pr")
+    point, direction, _, _ = wl.access(twins["pr"]["spec"], place)
+    # The plate is set down on a tray in front of the reader's front face, toward the arm.
+    nx, nz = wl._yaw(place["yaw"], 0, 1)
+    depth = twins["pr"]["spec"]["parts"][0]["size"][2]
+    ahead = (point[0] - place["x"]) * nx + (point[2] - place["z"]) * nz
+    assert nx * -place["x"] > 0
+    # Out by the drawer's travel, opposite the lower-left carrier opening.
+    spec = twins["pr"]["spec"]
+    assert abs(ahead - (depth / 2 + spec["drawer_m"])) < 1e-6
+    middle = (spec["opening"]["start"] + spec["opening"]["end"]) / 2
+    tx, tz = wl._yaw(place["yaw"], 1, 0)
+    width = spec["parts"][0]["size"][0]
+    along = (point[0] - place["x"]) * tx + (point[2] - place["z"]) * tz
+    assert abs(along - (middle - 0.5) * width) < 1e-6
+    assert abs(point[1] - (spec["level_m"] + 0.02)) < 1e-6 and direction == (0.0, 1.0, 0.0)
+
+
+def test_a_drawer_needs_room_to_come_out():
+    import pytest
+    from academy.cloudlab import CLOUDLAB
+
+    reader = {"id": "pr", "spec": CLOUDLAB["plate-reader"]["spec"]}
+    block = {"id": "wall", "spec": wall("Shelf", [0.3, 0.3, 0.3])}
+    twins = {"pr": reader, "wall": block}
+    # The reader faces +z; the shelf stands 0.1 m in front of its carrier opening.
+    front = CLOUDLAB["plate-reader"]["spec"]["parts"][0]["size"][2] / 2
+    rows = [
+        {"twin_id": "pr", "x": 0, "z": 0, "yaw": 0, "access": "front"},
+        {"twin_id": "wall", "x": -0.1, "z": front + 0.25, "yaw": 0, "access": "top"},
+    ]
+    with pytest.raises(wl.PlanError, match="drawer runs into Shelf"):
+        wl.validate_layout(twins, {"bench": BENCH, "placements": rows})
+    rows[1]["x"] = 0.6  # clear of the drawer
+    wl.validate_layout(twins, {"bench": BENCH, "placements": rows})

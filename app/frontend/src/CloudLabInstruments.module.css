@@ -194,6 +194,22 @@
 .facts dd {
   margin: 0;
 }
+.sources {
+  margin: 0 0 14px;
+  font-size: 12px;
+}
+.sources summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.sources ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.sources a {
+  color: inherit;
+  overflow-wrap: anywhere;
+}
 .narrowed {
   padding: 8px 12px;
   border-left: 3px solid var(--warn);

@@ -31,6 +31,8 @@ import LayoutRefine from "./LayoutRefine";
 import s from "./LayoutPanel.module.css";
 
 const PAD = 0.12;
+// Size bases, strongest first.
+const BASES = ["checked", "datasheet", "catalogued", "estimated"];
 const round = (v: number) => Math.round(v * 100) / 100;
 const clamp = (v: number, limit: number) =>
   Math.max(-limit, Math.min(limit, v));
@@ -96,10 +98,15 @@ export default function LayoutPanel({
   const name = (id: string | null) => (id && specs.get(id)?.name) || "—";
   const bad = conflicts(layout, specs);
   const placed = new Set(layout.placements.map((p) => p.twin_id));
-  // A simulated layout is only as good as the dimensions it was given.
+  // A simulated layout is only as good as the dimensions it was given, weakest first.
   const unchecked = twins
     .filter((t) => placed.has(t.id) && t.size_basis !== "checked")
-    .map((t) => t.spec!.name);
+    .sort(
+      (a, b) =>
+        BASES.indexOf(b.size_basis ?? "estimated") -
+        BASES.indexOf(a.size_basis ?? "estimated"),
+    )
+    .map((t) => `${t.spec!.name} (${t.size_basis ?? "estimated"})`);
   const current = layout.placements.find((p) => p.twin_id === selected);
   const { width, depth } = layout.bench;
   const update = (id: string, patch: Partial<Placement>) =>
