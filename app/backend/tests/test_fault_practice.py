@@ -1,6 +1,10 @@
 """Find-the-fault practice: predict, name the cause, repair; the answer stays hidden until then."""
 
 from academy.fault_practice import CAUSES, ITEMS, _plan, outcome
+from academy.teaching import control, execute_step, new_session
+
+# The model's own name for a cause, where it differs; tip_left fails an end check instead.
+CODES = {"source_short": "source_empty", "dispense_more": "insufficient_liquid"}
 
 
 def start(client):
@@ -101,6 +105,7 @@ def test_an_exercise_hides_its_answer_until_the_cause_is_named(client):
     assert summary["summary"] == {
         "answered": 1,
         "predicted": 1,
+        "predicted_of": 1,
         "diagnosed": 1,
         "repaired": 1,
         "first_try": 0,
@@ -140,3 +145,144 @@ def test_exercises_belong_to_their_learner(client, app):
             json={"version": 1, "stops": False},
         )
         assert answer.status_code == 404
+
+
+def run(index):
+    session = control(new_session(_plan(index)), "start")
+    while session["status"] == "running":
+        session = execute_step(session)
+    return session
+
+
+def test_each_item_faults_for_the_cause_it_teaches():
+    for index, (cause, *_) in enumerate(ITEMS):
+        session = run(index)
+        if cause == "tip_left":
+            failed = [c for c in session["assessment"]["checks"] if not c["passed"]]
+            assert session["status"] == "completed" and "tip discarded" in failed[0]["label"]
+        else:
+            assert session["status"] == "faulted", cause
+            assert session["events"][-1]["code"] == CODES.get(cause, cause), cause
+
+
+def finish_to_repair(client):
+    exercise = start(client)
+    body = {"version": exercise["version"]}
+    predicted = client.put(
+        f"/api/practice/{exercise['id']}/prediction", json={**body, "stops": True, "step": 1}
+    ).json()
+    return client.put(
+        f"/api/practice/{exercise['id']}/diagnosis",
+        json={"version": predicted["version"], "cause": predicted["choices"][0]["cause"]},
+    ).json()
+
+
+def advance_to(client, number):
+    """Finish exercises with their correct plans until the given item is open."""
+    while True:
+        exercise = finish_to_repair(client)
+        if exercise["number"] == number:
+            return exercise
+        save(client, exercise, **_plan(exercise["number"] - 1, faulty=False).model_dump())
+        done = client.post(
+            f"/api/practice/{exercise['id']}/repair", json={"version": exercise["version"]}
+        ).json()
+        assert done["repaired"], done["last_check"]
+
+
+def test_dropping_the_failing_module_step_is_not_a_repair(client):
+    # Item 10 asks the heater for 20 °C; deleting the heat step makes the run pass.
+    exercise = advance_to(client, 10)
+    plan = _plan(9).model_dump()
+    plan["actions"] = [a for a in plan["actions"] if a["kind"] != "heat"]
+    save(client, exercise, **plan)
+    checked = client.post(
+        f"/api/practice/{exercise['id']}/repair", json={"version": exercise["version"]}
+    ).json()
+    assert (
+        not checked["repaired"] and "no longer does what it was meant to" in checked["last_check"]
+    )
+    save(client, exercise, **_plan(9, faulty=False).model_dump())
+    fixed = client.post(
+        f"/api/practice/{exercise['id']}/repair", json={"version": checked["version"]}
+    ).json()
+    assert fixed["repaired"]
+
+
+def test_emptying_extra_stock_is_not_a_repair(client):
+    exercise = advance_to(client, 1)
+    wasteful = _plan(0, faulty=False).model_dump()
+    wasteful["actions"] = [
+        {"kind": "pickup"},
+        {"kind": "aspirate", "well": "stock", "volume": 200},
+        {"kind": "dispense", "well": "A1", "volume": 100},
+        {"kind": "drop"},
+    ]
+    save(client, exercise, **wasteful)
+    checked = client.post(
+        f"/api/practice/{exercise['id']}/repair", json={"version": exercise["version"]}
+    ).json()
+    assert not checked["repaired"]
+
+
+def test_a_late_prediction_leaves_the_score_on_both_sides(client):
+    exercise = start(client)
+    session = client.get(f"/api/sessions/{exercise['session_id']}").json()
+    client.post(f"/api/sessions/{session['id']}/start", json={"version": session["version"]})
+    late = client.put(
+        f"/api/practice/{exercise['id']}/prediction",
+        json={"version": exercise["version"], "stops": True, "step": 1},
+    ).json()
+    client.put(
+        f"/api/practice/{exercise['id']}/diagnosis",
+        json={"version": late["version"], "cause": late["choices"][0]["cause"]},
+    )
+    summary = client.get("/api/practice").json()["summary"]
+    assert (summary["answered"], summary["predicted"], summary["predicted_of"]) == (1, 0, 0)
+
+
+def test_every_step_of_an_exercise_belongs_to_its_learner(client, app):
+    from fastapi.testclient import TestClient
+
+    exercise = finish_to_repair(client)
+    with TestClient(app) as other:
+        assert other.post("/api/auth/guest", json={"name": "Grace"}).status_code == 200
+        version = {"version": exercise["version"]}
+        assert (
+            other.put(
+                f"/api/practice/{exercise['id']}/diagnosis", json={**version, "cause": "no_tip"}
+            ).status_code
+            == 404
+        )
+        assert other.post(f"/api/practice/{exercise['id']}/repair", json=version).status_code == 404
+        assert other.get(f"/api/sessions/{exercise['session_id']}").status_code == 404
+
+
+def test_only_one_exercise_opens_even_when_starts_race(client, app, monkeypatch):
+    import pytest
+    from academy.store import Conflict
+
+    practice = app.state.practice
+    first = start(client)
+    (owner,) = [
+        o for o in _owners(practice.store) if practice.store.get(o, f"practice#{first['id']}")
+    ]
+    # A second start that read before the first was saved sees nothing open.
+    monkeypatch.setattr(practice, "records", lambda _owner: [])
+    stale_get = practice.store.get
+    monkeypatch.setattr(
+        practice.store,
+        "get",
+        lambda o, key: None if key == "practice-open" else stale_get(o, key),
+    )
+    with pytest.raises(Conflict):
+        practice.start(owner)
+
+
+def _owners(store):
+    if hasattr(store, "path"):
+        import sqlite3
+
+        with sqlite3.connect(store.path) as db:
+            return [row[0] for row in db.execute("SELECT DISTINCT owner FROM records")]
+    return list({item["pk"] for item in store.table.scan()["Items"]})

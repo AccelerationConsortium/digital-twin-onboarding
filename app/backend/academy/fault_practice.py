@@ -22,6 +22,9 @@ from .teaching import control, execute_step, new_session
 
 LIMIT = 60  # exercises one learner keeps
 PREFIX = "practice#"
+LOCK = "practice-open"  # outside PREFIX: which exercise is open, written conditionally
+# Steps a repair must keep doing; dropping one is not a repair even if volumes still match.
+KEPT = ("heat", "shake", "read", "move")
 LAYOUTS = {
     "flex": {"stock": "D1", "plate": "D2", "tips": "B1", "waste": "D3"},
     "ot2": {"stock": "1", "plate": "2", "tips": "4", "waste": "12"},
@@ -215,6 +218,7 @@ def outcome(experiment: Experiment) -> dict:
         session = execute_step(session)
     fault = session["events"][-1] if session["status"] == "faulted" else None
     state = session["state"]
+    performed = [a["kind"] for a in experiment.model_dump()["actions"]]
     return {
         "stops": bool(fault),
         "step": fault["step"] if fault else None,
@@ -226,6 +230,10 @@ def outcome(experiment: Experiment) -> dict:
                 for k, w in state["wells"].items()
                 if k != "stock"
             },
+            # How much stock was drawn, so a larger starting fill is still a repair but
+            # emptying extra stock into waste is not.
+            "stock_used": round(experiment.source_volume - state["wells"]["stock"]["volume"], 3),
+            "steps": {kind: performed.count(kind) for kind in KEPT},
             "plate": (state.get("plate") or {}).get("at", "deck"),
             "readings": len(state.get("readings", [])),
         },
@@ -296,13 +304,16 @@ class FaultPractice:
     def listing(self, owner):
         records = self.records(owner)
         done = [r for r in records if r["diagnosis"] is not None]
+        # A prediction made after seeing the run counts for neither side of the score.
+        before = [r for r in done if not (r["prediction"] or {}).get("after_run")]
         return {
             "evidence": "synthetic",
             "total": len(ITEMS),
             "exercises": [public(r) for r in records],
             "summary": {
                 "answered": len(done),
-                "predicted": sum(bool(r["prediction_correct"]) for r in done),
+                "predicted": sum(bool(r["prediction_correct"]) for r in before),
+                "predicted_of": len(before),
                 "diagnosed": sum(r["diagnosis"] == ITEMS[r["item"]][0] for r in done),
                 "repaired": sum(r["repaired"] for r in records),
                 "first_try": sum(r["repaired"] and r["attempts"] == 1 for r in records),
@@ -313,7 +324,8 @@ class FaultPractice:
         records = self.records(owner)
         if len(records) >= LIMIT:
             raise HTTPException(422, f"You have reached the {LIMIT}-exercise limit")
-        if any(r["phase"] != "done" for r in records):
+        lock = self.store.get(owner, LOCK)
+        if any(r["phase"] != "done" for r in records) or (lock and lock["open"]):
             raise HTTPException(409, "Finish the exercise you have open first")
         # Items come in order and start again once every one has been met.
         item = len(records) % len(ITEMS)
@@ -333,6 +345,9 @@ class FaultPractice:
             "repaired": False,
             "last_check": None,
         }
+        # Two starts at once both see nothing open; only one can take the lock.
+        claimed = {"version": (lock["version"] if lock else 0) + 1, "open": record["id"]}
+        self.store.put(owner, LOCK, claimed, lock["version"] if lock else None)
         self.store.put(owner, f"session#{session['id']}", session, None)
         self.store.put(owner, PREFIX + record["id"], record, None)
         return public(record)
@@ -401,4 +416,9 @@ class FaultPractice:
             )
         else:
             record.update(repaired=True, phase="done", last_check="Repaired.")
+            lock = self.store.get(owner, LOCK)
+            if lock and lock["open"] == record["id"]:
+                self.store.put(
+                    owner, LOCK, {"version": lock["version"] + 1, "open": None}, lock["version"]
+                )
         return self._save(owner, record)

@@ -34,6 +34,8 @@ type Practice = {
   summary: {
     answered: number;
     predicted: number;
+    /** Predictions made before running; later ones are not scored. */
+    predicted_of: number;
     diagnosed: number;
     repaired: number;
     first_try: number;
@@ -121,12 +123,14 @@ export default function FaultPractice({
       )}
       {summary && summary.answered > 0 && (
         <dl className={s.score} aria-label="Your results">
-          <div>
-            <dt>Predicted</dt>
-            <dd>
-              {summary.predicted} / {summary.answered}
-            </dd>
-          </div>
+          {summary.predicted_of > 0 && (
+            <div>
+              <dt>Predicted</dt>
+              <dd>
+                {summary.predicted} / {summary.predicted_of}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Cause named</dt>
             <dd>
