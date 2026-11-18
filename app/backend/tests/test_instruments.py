@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 from academy.chemlab import CHEMLAB
+from academy.cloudlab import CLOUDLAB
 from academy.simple_twins import TEMPLATES, TwinSpec, usda
 from academy.simready import SIMREADY
 from academy.workcell_models import catalog as workcell_catalog
@@ -362,6 +363,8 @@ def test_simready_asset_starts_an_attributed_twin_without_external_references(cl
         {"chemlab_id": "not-in-catalog"},
         {"chemlab_id": "mt_xpr204e", "simready_id": "franka-fr3"},
         {"chemlab_id": "mt_xpr204e", "template_id": "heater"},
+        {"cloudlab_id": "not-in-catalog"},
+        {"cloudlab_id": "thermocycler", "chemlab_id": "mt_xpr204e"},
     ],
 )
 def test_simready_source_must_be_a_single_known_asset(client, source):
@@ -403,6 +406,46 @@ def test_chemlab_assets_are_pinned_non_commercial_one_box_specs():
     assert CHEMLAB["ika_rv10_digital_v"]["spec"]["operations"] == ["load", "heat", "wait"]
 
 
+def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geometry():
+    for asset in CLOUDLAB.values():
+        assert TwinSpec.model_validate(asset["spec"]).model_dump(mode="json") == asset["spec"]
+        assert len(asset["spec"]["parts"]) == 1
+        assert asset["url"] == "https://www.emeraldcloudlab.com/instrumentation/"
+        assumptions = asset["spec"]["assumptions"]
+        assert asset["experiment"] in assumptions and "teaching defaults" in assumptions
+        if asset["stand_in"]:
+            assert asset["license"] == "CC-BY-NC-4.0" and asset["stand_in"] in assumptions
+            assert "not this instrument's size" in assumptions
+        else:
+            assert asset["mesh"] is None and "Academy estimate" in assumptions
+    thermocycler = CLOUDLAB["thermocycler"]["spec"]
+    assert thermocycler["limits"]["min_temp_c"] == 4 and thermocycler["limits"]["max_temp_c"] == 105
+    assert thermocycler["container"] == {"vessel": "plate", "max_volume_ul": 100}
+    # A published figure the twin schema cannot hold is cut, and the entry says so.
+    nmr = CLOUDLAB["nmr"]["spec"]
+    assert nmr["resource"]["slots"] == 96 and "96 of the 480" in nmr["assumptions"]
+    gcms = CLOUDLAB["gcms"]["spec"]
+    assert gcms["limits"]["max_temp_c"] == 120 and "above 120 °C" in gcms["assumptions"]
+
+
+def test_cloudlab_twin_sizes_stay_estimated_and_record_their_source(client):
+    twin_id, catalog = add(client, 0, cloudlab_id="analytical-hplc")
+    twin = catalog["twins"][0]
+    asset = CLOUDLAB["analytical-hplc"]
+    assert (twin["source"], twin["spec"], twin["size_basis"]) == (
+        "cloudlab_asset",
+        asset["spec"],
+        "estimated",
+    )
+    assert twin["asset"]["stand_in"] == asset["stand_in"] and "spec" not in twin["asset"]
+    assert twin["asset"]["mesh"] == asset["mesh"]
+    confirm(client, twin_id, catalog["version"], twin["spec"])
+    text = client.get(f"/api/twins/{twin_id}/usd").text
+    assert asset["attribution"] in text and asset["url"] in text
+    hits = client.get("/api/twins/library", params={"q": "thermocycler"}).json()["results"]
+    assert ("cloudlab", "thermocycler") in {(r["collection"], r["id"]) for r in hits}
+
+
 def test_library_search_ranks_name_matches_and_spans_both_collections(client):
     def search(q):
         response = client.get("/api/twins/library", params={"q": q})
@@ -412,8 +455,13 @@ def test_library_search_ranks_name_matches_and_spans_both_collections(client):
     from academy.workcell_models import catalog as workcell
 
     featured = search("")
-    assert featured["size"] == len(CHEMLAB) + len(SIMREADY) + len(workcell())
-    assert {r["collection"] for r in featured["results"]} == {"workcell", "chemlab", "simready"}
+    assert featured["size"] == len(CHEMLAB) + len(SIMREADY) + len(workcell()) + len(CLOUDLAB)
+    assert {r["collection"] for r in featured["results"]} == {
+        "workcell",
+        "chemlab",
+        "simready",
+        "cloudlab",
+    }
     # Instruments drawn with a full 3D model lead the featured list.
     assert [r["collection"] for r in featured["results"][: len(workcell())]] == ["workcell"] * len(
         workcell()
@@ -440,7 +488,11 @@ def test_model_library_pages_every_drawn_instrument_by_domain(client):
         return response.json()
 
     everything = browse()
-    drawn = sum(1 for a in CHEMLAB.values() if a.get("mesh")) + len(workcell_catalog())
+    drawn = (
+        sum(1 for a in CHEMLAB.values() if a.get("mesh"))
+        + sum(1 for a in CLOUDLAB.values() if a.get("mesh"))
+        + len(workcell_catalog())
+    )
     assert everything["size"] == everything["total"] == drawn
     assert sum(everything["domains"].values()) == drawn
     assert len(everything["results"]) == 24 and everything["results"][0]["collection"] == "workcell"

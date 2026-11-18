@@ -1,15 +1,21 @@
-"""Search across the pinned starting-point collections: workcell models, SimReady, ChemLab."""
+"""Search across the starting-point collections: workcell models, SimReady, ChemLab, cloud lab."""
 
 import difflib
 import math
 import re
 
 from .chemlab import CHEMLAB
+from .cloudlab import CLOUDLAB
 from .simready import SIMREADY
 from .workcell_models import catalog as workcell_catalog
 
 # Registered 3D models first: they are the instruments drawn in full in the 3D view.
-COLLECTIONS = {"workcell": workcell_catalog(), "simready": SIMREADY, "chemlab": CHEMLAB}
+COLLECTIONS = {
+    "workcell": workcell_catalog(),
+    "simready": SIMREADY,
+    "chemlab": CHEMLAB,
+    "cloudlab": CLOUDLAB,
+}
 # Library entries with an instrument lesson in Meet the instruments.
 LESSONS = {
     ("workcell", "opentrons-ot2"): "ot2",
@@ -336,14 +342,17 @@ def browse(query="", domain="", collection="", offset=0, limit=24):
 
 
 # Photo matching: Astra picks from this closed list; the server only ever offers listed keys.
-KEYS = [f"{c}:{i}" for c, assets in COLLECTIONS.items() for i in assets]
+# Cloud lab entries are instrument classes without a make or model, so a photo never
+# identifies one.
+PHOTO = {c: assets for c, assets in COLLECTIONS.items() if c != "cloudlab"}
+KEYS = [f"{c}:{i}" for c, assets in PHOTO.items() for i in assets]
 MATCHES = 3
 
 
 def listing():
-    """One line per library entry, given to Astra alongside the photo."""
+    """One line per library entry a photo can match, given to Astra alongside the photo."""
     return "\n".join(
-        f"{c}:{i} | {a['label']}" for c, assets in COLLECTIONS.items() for i, a in assets.items()
+        f"{c}:{i} | {a['label']}" for c, assets in PHOTO.items() for i, a in assets.items()
     )
 
 

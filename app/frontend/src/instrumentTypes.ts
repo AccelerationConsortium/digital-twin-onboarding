@@ -117,7 +117,7 @@ export type SimReadyAsset = Omit<SimReadyProvenance, "id"> & {
   spec: TwinSpec;
 };
 export type LibraryEntry = {
-  collection: "workcell" | "simready" | "chemlab";
+  collection: "workcell" | "simready" | "chemlab" | "cloudlab";
   id: string;
   name: string;
   label: string;
@@ -171,6 +171,7 @@ export type Twin = {
     | "academy_template"
     | "simready_asset"
     | "chemlab_asset"
+    | "cloudlab_asset"
     | "workcell_asset";
   asset?: SimReadyProvenance | null;
   identification?: Identification | null;
