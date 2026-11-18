@@ -380,7 +380,10 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
         "label": f"{PROVIDER} {name}",
         "provider": PROVIDER,
         "domain": f"Cloud lab · {section}",
+        "section": section,
         "experiment": experiment,
+        "published": published,
+        "narrowed": note,
         "featured": asset_id in FEATURED,
         "url": SOURCE,
         "retrieved": RETRIEVED,
@@ -390,6 +393,42 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
 
 
 CLOUDLAB = {key: entry(key, *row) for key, row in INSTRUMENTS.items()}
+
+
+def overview():
+    """Every cloud lab instrument as Meet the instruments shows it, by ECL section."""
+    found = []
+    for key, asset in CLOUDLAB.items():
+        spec = asset["spec"]
+        width, height, depth = spec["parts"][0]["size"]  # Y-up twin box
+        found.append(
+            {
+                "id": key,
+                "name": spec["name"],
+                "section": asset["section"],
+                "experiment": asset["experiment"],
+                "published": asset["published"],
+                "narrowed": asset["narrowed"],
+                "operations": spec["operations"],
+                "holds": spec["container"],
+                "slots": spec["resource"]["slots"],
+                "limits": spec["limits"],
+                "consumables": spec["consumables"],
+                "size_m": [width, depth, height],
+                "stand_in": asset["stand_in"],
+                "mesh": asset["mesh"],
+                "attribution": asset["attribution"],
+                "license": asset["license"],
+            }
+        )
+    return {
+        "provider": PROVIDER,
+        "source": SOURCE,
+        "retrieved": RETRIEVED,
+        "sections": list(dict.fromkeys(i["section"] for i in found)),
+        "instruments": found,
+        "evidence": "synthetic",
+    }
 
 
 def provenance(asset_id):

@@ -773,3 +773,14 @@ def test_no_two_routes_share_a_method_and_path(app):
     # FastAPI silently lets the first registration win; a shared path breaks one feature.
     seen = [(m, r.path) for r in app.routes for m in getattr(r, "methods", ()) or ()]
     assert len(seen) == len(set(seen)), sorted({x for x in seen if seen.count(x) > 1})
+
+
+def test_meet_the_instruments_lists_every_cloud_lab_instrument(client):
+    found = client.get("/api/cloudlab/instruments").json()
+    assert len(found["instruments"]) == len(CLOUDLAB) and found["evidence"] == "synthetic"
+    assert found["sections"][0] == "Transfers"
+    hplc = next(i for i in found["instruments"] if i["id"] == "analytical-hplc")
+    assert hplc["experiment"] == "ExperimentHPLC" and "48 HPLC vials" in hplc["published"]
+    assert hplc["stand_in"] and hplc["mesh"]
+    nmr = next(i for i in found["instruments"] if i["id"] == "nmr")
+    assert nmr["mesh"] is None and "96 of the 480" in nmr["narrowed"]

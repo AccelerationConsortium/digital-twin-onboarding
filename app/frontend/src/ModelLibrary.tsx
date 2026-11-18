@@ -249,7 +249,7 @@ export default function ModelLibrary({
 }
 
 /** Drawn when the card scrolls into view; a box icon stands in until then. */
-function Thumbnail({ mesh }: { mesh: Mesh }) {
+export function Thumbnail({ mesh }: { mesh: Mesh }) {
   const host = useRef<HTMLSpanElement>(null);
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -282,7 +282,7 @@ function Thumbnail({ mesh }: { mesh: Mesh }) {
   );
 }
 
-function Preview({ mesh }: { mesh: Mesh }) {
+export function Preview({ mesh }: { mesh: Mesh }) {
   const host = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const key = mesh.url ?? mesh.kind;
