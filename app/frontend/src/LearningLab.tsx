@@ -589,12 +589,14 @@ export default function LearningLab({
               >
                 <span>{i < session.cursor ? <Check size={12} /> : i + 1}</span>
                 {
-                  {
-                    pickup: "Pick up tip",
-                    aspirate: "Aspirate",
-                    dispense: "Dispense",
-                    drop: "Discard tip",
-                  }[action.kind]
+                  (
+                    {
+                      pickup: "Pick up tip",
+                      aspirate: "Aspirate",
+                      dispense: "Dispense",
+                      drop: "Discard tip",
+                    } as Record<string, string>
+                  )[action.kind]
                 }
                 <small>
                   {i < session.cursor

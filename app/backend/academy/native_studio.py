@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from .models import OT2_SLOTS, SLOTS, Experiment, StrictModel
+from .models import MODULE_KINDS, OT2_SLOTS, SLOTS, Experiment, StrictModel
 from .native_plan import VolumeRange
 
 STUDIO = "workflow-sandbox"
@@ -77,6 +77,14 @@ def studio_preflight(plan: Experiment, capability: StudioCapability) -> list[Stu
         ]
     if studio_scene(plan) != capability.scene:
         return [StudioIssue(code="instrument", message="This host supports a different instrument")]
+    if plan.modules or any(a.kind in MODULE_KINDS for a in plan.actions):
+        return [
+            StudioIssue(
+                code="modules",
+                message="Deck modules run in the teaching model only; the digital twin scene "
+                "has none",
+            )
+        ]
     for name, slot in plan.layout.items():
         if slot not in capability.slots[name]:
             issue("slot", f"The qualified scene cannot place {name} in slot {slot}")

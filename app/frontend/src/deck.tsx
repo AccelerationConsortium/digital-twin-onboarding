@@ -9,7 +9,8 @@ export const LABWARE: Record<string, { name: string; detail: string }> = {
 export const SLOTS = "ABCD"
   .split("")
   .flatMap((row) => [1, 2, 3].map((col) => `${row}${col}`));
-export const LABELS = {
+// Lessons use the four pipetting steps; module steps belong to Workflow Studio.
+export const LABELS: Record<string, string> = {
   pickup: "Pick up tip",
   aspirate: "Aspirate",
   dispense: "Dispense",

@@ -415,6 +415,7 @@ class CreateTwin(Revision):
     template_id: Literal["liquid-handler", "heater", "reader", "transfer-arm"] | None = None
     simready_id: str | None = Field(default=None, max_length=80)
     chemlab_id: str | None = Field(default=None, max_length=80)
+    cloudlab_id: str | None = Field(default=None, max_length=80)
     workcell_id: str | None = Field(default=None, max_length=80)
     image: str | None = Field(default=None, max_length=1_400_000)
     mime: Literal["image/png", "image/jpeg", "image/webp"] = "image/png"
@@ -425,6 +426,7 @@ class CreateTwin(Revision):
             self.template_id,
             self.simready_id,
             self.chemlab_id,
+            self.cloudlab_id,
             self.workcell_id,
             self.image,
         )
@@ -450,11 +452,13 @@ def size_basis(twin):
     """How far a twin's dimensions can be trusted; a layout is as good as its weakest one.
 
     `checked`: the learner compared them with the real instrument. `catalogued`: the
-    unedited footprint of a library entry. `estimated`: a template, a photo sketch or
-    hand-edited parts.
+    unedited footprint of a library entry. `estimated`: a template, a photo sketch,
+    hand-edited parts or a cloud lab entry, whose footprint is a stand-in.
     """
     if twin.get("size_checked"):
         return "checked"
+    if twin["source"] == "cloudlab_asset":
+        return "estimated"
     if twin["source"].endswith("_asset") and not twin.get("size_edited"):
         return "catalogued"
     return "estimated"
@@ -1073,11 +1077,12 @@ def drawn(twin):
 
     Twins added before an entry had a model stored no mesh; they pick it up on read.
     """
-    from . import chemlab, workcell_models
+    from . import chemlab, cloudlab, workcell_models
 
     asset = twin.get("asset")
     entries = {
         "chemlab_asset": chemlab.CHEMLAB,
+        "cloudlab_asset": cloudlab.CLOUDLAB,
         "workcell_asset": workcell_models.catalog(),
     }.get(twin.get("source"), {})
     mesh = asset and entries.get(asset.get("id"), {}).get("mesh")
@@ -1173,12 +1178,13 @@ def library_pick(role):
     then anything that can do what the role does. An entry must support the role's
     operations and slots; its vessel is a teaching default and follows the role.
     """
-    from . import chemlab, simready, workcell_models
+    from . import chemlab, cloudlab, simready, workcell_models
     from .library import COLLECTIONS, search
     from .workflow_brief import fits
 
     provenance = {
         "chemlab": chemlab.provenance,
+        "cloudlab": cloudlab.provenance,
         "simready": simready.provenance,
         "workcell": workcell_models.provenance,
     }
@@ -1498,12 +1504,14 @@ class SimpleTwinService:
             raise HTTPException(409, "This device already exists. Reload the saved workspace.")
         if len(record["twins"]) >= 12:
             raise HTTPException(422, "A simple workcell supports at most 12 devices")
-        from . import chemlab, simready, workcell_models
+        from . import chemlab, cloudlab, simready, workcell_models
 
         if data.simready_id and data.simready_id not in simready.SIMREADY:
             raise HTTPException(422, "Unknown SimReady asset")
         if data.chemlab_id and data.chemlab_id not in chemlab.CHEMLAB:
             raise HTTPException(422, "Unknown ChemLab asset")
+        if data.cloudlab_id and data.cloudlab_id not in cloudlab.CLOUDLAB:
+            raise HTTPException(422, "Unknown cloud lab instrument")
         if data.workcell_id and data.workcell_id not in workcell_models.catalog():
             raise HTTPException(422, "Unknown workcell model")
         source, assets, provenance, asset_id = (
@@ -1511,6 +1519,8 @@ class SimpleTwinService:
             if data.simready_id
             else ("chemlab_asset", chemlab.CHEMLAB, chemlab.provenance, data.chemlab_id)
             if data.chemlab_id
+            else ("cloudlab_asset", cloudlab.CLOUDLAB, cloudlab.provenance, data.cloudlab_id)
+            if data.cloudlab_id
             else (
                 "workcell_asset",
                 workcell_models.catalog(),
@@ -1586,7 +1596,7 @@ class SimpleTwinService:
 
     def match(self, owner, twin_id, data):
         """Replace a photo sketch with a library footprint Astra offered for it."""
-        from . import chemlab, simready, workcell_models
+        from . import chemlab, cloudlab, simready, workcell_models
 
         record = self.current(owner, data.expected_version)
         twin = self.found(record, twin_id)
@@ -1597,6 +1607,7 @@ class SimpleTwinService:
             raise HTTPException(422, "Choose one of the library matches offered for this photo")
         assets, provenance = {
             "chemlab": (chemlab.CHEMLAB, chemlab.provenance),
+            "cloudlab": (cloudlab.CLOUDLAB, cloudlab.provenance),
             "simready": (simready.SIMREADY, simready.provenance),
             "workcell": (workcell_models.catalog(), workcell_models.provenance),
         }[data.collection]

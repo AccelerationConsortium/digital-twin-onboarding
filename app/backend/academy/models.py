@@ -6,6 +6,13 @@ SLOTS = {f"{row}{col}" for row in "ABCD" for col in range(1, 4)}
 OT2_SLOTS = {str(slot) for slot in range(1, 13)}
 DEFAULT_LAYOUT = {"stock": "D1", "plate": "D2", "tips": "B1", "waste": "D3"}
 WELLS = {"stock", "A1", "A2", "A3"}
+# Deck modules a Workflow Studio design can add, and the slot each one takes.
+MODULE_SLOTS = {
+    "flex": {"heater_shaker": "C1", "temperature": "A1", "reader": "B3", "stacker": "C3"},
+    "ot2": {"heater_shaker": "7", "temperature": "6"},
+}
+MODULE_KINDS = {"move", "heat", "shake", "read"}
+Module = Literal["gripper", "heater_shaker", "temperature", "reader", "stacker"]
 
 
 class StrictModel(BaseModel):
@@ -13,9 +20,23 @@ class StrictModel(BaseModel):
 
 
 class Action(StrictModel):
-    kind: Literal["pickup", "aspirate", "dispense", "drop"]
+    kind: Literal["pickup", "aspirate", "dispense", "drop", "move", "heat", "shake", "read"]
     well: Literal["stock", "A1", "A2", "A3"] = "stock"
     volume: float = Field(default=100, gt=0, le=1000)
+    # Where a move takes the sample plate.
+    to: Literal["deck", "heater_shaker", "temperature", "reader", "stacker"] = "deck"
+    # °C for heat, rpm for shake.
+    value: float = Field(default=0, ge=0, le=5000)
+    seconds: float = Field(default=0, ge=0, le=3600)
+
+    @model_serializer(mode="wrap")
+    def keep_pipetting_wire_format(self, handler):
+        definition = handler(self)
+        # Pipetting steps keep the three fields saved plans and native hashes were made with.
+        if self.kind not in MODULE_KINDS:
+            for field in ("to", "value", "seconds"):
+                definition.pop(field, None)
+        return definition
 
 
 def default_actions() -> list[Action]:
@@ -43,10 +64,13 @@ class Experiment(StrictModel):
     source_volume: float = Field(default=1000, ge=0, le=1500)
     diluent_volume: float = Field(default=100, ge=0, le=1500)
     actions: list[Action] = Field(default_factory=default_actions, max_length=64)
+    modules: list[Module] = Field(default_factory=list, max_length=5)
 
     @model_serializer(mode="wrap")
     def keep_fixed_flex_wire_format(self, handler):
         definition = handler(self)
+        if not self.modules:
+            definition.pop("modules", None)
         # Existing courses have always implied Flex. Preserve their native hashes and
         # gateway schema while making the new instrument choice explicit in studio plans.
         if self.course_id != "workflow-sandbox":
@@ -60,8 +84,30 @@ class Experiment(StrictModel):
                 raise ValueError("This lesson uses the Opentrons Flex")
             if not self.actions:
                 raise ValueError("This lesson needs at least one workflow step")
+        if self.course_id != "workflow-sandbox" and (
+            self.modules or any(a.kind in MODULE_KINDS for a in self.actions)
+        ):
+            raise ValueError("Deck modules belong to Workflow Studio designs")
+        if len(set(self.modules)) != len(self.modules):
+            raise ValueError("Add each module once")
+        taken = MODULE_SLOTS[self.instrument]
+        for module in self.modules:
+            if module != "gripper" and module not in taken:
+                raise ValueError("The OT-2 has no plate reader or stacker; use a Flex for those")
+        if self.instrument == "ot2" and "gripper" in self.modules:
+            raise ValueError("The OT-2 has no gripper; labware is moved by hand")
+        if (
+            self.modules or any(a.kind in MODULE_KINDS for a in self.actions)
+        ) and self.diluent_volume > 360:
+            raise ValueError("With modules the plate is a flat one whose wells hold 360 µL")
         if set(self.layout) != set(DEFAULT_LAYOUT):
             raise ValueError("Use the stock vial, destination plate, tip rack and waste")
+        for module in self.modules:
+            if taken.get(module) in self.layout.values():
+                raise ValueError(
+                    f"Slot {taken[module]} is where the {module.replace('_', ' ')} goes; "
+                    "move the labware there to another slot"
+                )
         slots = SLOTS if self.instrument == "flex" else OT2_SLOTS
         if not set(self.layout.values()) <= slots:
             raise ValueError(
@@ -152,7 +198,7 @@ COURSES = [
             "Compose steps and explore liquid amounts",
             "Explain observations and revise your design",
         ],
-        "model_note": "Synthetic teaching model: one 300 µL pipette, four liquid locations, ideal mixing and fresh-tip rules. No hardware, Isaac/GPU or chemical validation.",
+        "model_note": "Synthetic teaching model: the instrument's own pipette (1,000 µL on the Flex, 300 µL on the OT-2), four liquid locations, optional deck modules, ideal mixing and fresh-tip rules. No hardware, Isaac/GPU or chemical validation.",
     },
     {
         "id": "workflow-readiness",
