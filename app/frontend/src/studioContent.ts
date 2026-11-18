@@ -1,4 +1,4 @@
-import type { Action, Experiment } from "./types";
+import type { Action, DeckModule, Experiment, Place } from "./types";
 
 export type Instrument = "flex" | "ot2";
 export type Starter = "transfer" | "distribute" | "dilution" | "blank";
@@ -88,6 +88,36 @@ export const ACTION_LABELS: Record<Action["kind"], string> = {
   aspirate: "Aspirate",
   dispense: "Dispense",
   drop: "Discard tip",
+  move: "Move plate",
+  heat: "Set temperature",
+  shake: "Shake",
+  read: "Read plate",
+};
+export const PIPETTING: Action["kind"][] = [
+  "pickup",
+  "aspirate",
+  "dispense",
+  "drop",
+];
+export const MODULE_STEPS: Action["kind"][] = ["move", "heat", "shake", "read"];
+
+/** Deck modules a design can add, and the slot each takes (as the backend places them). */
+export const MODULES: Record<
+  DeckModule,
+  { name: string; slots: Partial<Record<Instrument, string>> }
+> = {
+  gripper: { name: "Gripper", slots: { flex: "" } },
+  heater_shaker: { name: "Heater-Shaker", slots: { flex: "C1", ot2: "7" } },
+  temperature: { name: "Temperature Module", slots: { flex: "A1", ot2: "6" } },
+  reader: { name: "Plate reader", slots: { flex: "B3" } },
+  stacker: { name: "Stacker", slots: { flex: "C3" } },
+};
+export const PLACE_NAMES: Record<Place, string> = {
+  deck: "Deck",
+  heater_shaker: "Heater-Shaker",
+  temperature: "Temperature Module",
+  reader: "Plate reader",
+  stacker: "Stacker",
 };
 
 export const ACTION_HINTS: Record<Action["kind"], string> = {
@@ -95,4 +125,8 @@ export const ACTION_HINTS: Record<Action["kind"], string> = {
   aspirate: "Draw liquid from the selected container into the tip.",
   dispense: "Release liquid from the tip into the selected container.",
   drop: "Discard the tip and any liquid left inside it.",
+  move: "Carry the sample plate to the deck or onto a module.",
+  heat: "Set the module the plate is on to a temperature.",
+  shake: "Shake the plate on the Heater-Shaker.",
+  read: "Measure the plate inside the plate reader.",
 };

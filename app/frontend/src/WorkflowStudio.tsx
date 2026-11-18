@@ -25,11 +25,22 @@ import {
   Unplug,
 } from "lucide-react";
 import { api, ApiError, json } from "./api";
-import type { Action, Experiment, Session, TeachingState } from "./types";
+import type {
+  Action,
+  DeckModule,
+  Experiment,
+  Place,
+  Session,
+  TeachingState,
+} from "./types";
 import NativeStudioRun, { hasPendingNativeSubmission } from "./NativeStudioRun";
 import {
   ACTION_HINTS,
   ACTION_LABELS,
+  MODULE_STEPS,
+  MODULES,
+  PIPETTING,
+  PLACE_NAMES,
   INSTRUMENT_NAMES,
   makeStudioExperiment,
   STARTERS,
@@ -68,6 +79,9 @@ const startingState = (experiment: Experiment): TeachingState => ({
   tips_used: 0,
   tips_discarded: 0,
   waste_volume: 0,
+  ...(experiment.modules?.length
+    ? { plate: { at: "deck", temperature: null, shaken: false }, readings: [] }
+    : {}),
 });
 
 function LiquidVessel({
@@ -150,13 +164,15 @@ export default function WorkflowStudio({
         ? null
         : draft.actions[session.cursor];
   const activeAsset = activeStep
-    ? activeStep.kind === "pickup"
-      ? "tips"
-      : activeStep.kind === "drop"
-        ? "waste"
-        : activeStep.well === "stock"
-          ? "stock"
-          : "plate"
+    ? MODULE_STEPS.includes(activeStep.kind)
+      ? "plate"
+      : activeStep.kind === "pickup"
+        ? "tips"
+        : activeStep.kind === "drop"
+          ? "waste"
+          : activeStep.well === "stock"
+            ? "stock"
+            : "plate"
     : null;
   const wells =
     session.status === "draft" ? startingWells(draft) : shownState.wells;
@@ -329,9 +345,39 @@ export default function WorkflowStudio({
       ...value,
       actions: [
         ...value.actions,
-        { kind, well: kind === "dispense" ? "A1" : "stock", volume: 100 },
+        {
+          kind,
+          well: kind === "dispense" ? "A1" : "stock",
+          volume: 100,
+          ...(kind === "move"
+            ? {
+                to:
+                  (value.modules ?? []).find(
+                    (m): m is Exclude<DeckModule, "gripper"> => m !== "gripper",
+                  ) ?? "deck",
+              }
+            : kind === "heat"
+              ? { value: 37 }
+              : kind === "shake"
+                ? { value: 500, seconds: 30 }
+                : {}),
+        },
       ],
     }));
+  const modules = draft.modules ?? [];
+  const toggleModule = (module: DeckModule) =>
+    setDraft((value) => {
+      const now = value.modules ?? [];
+      return {
+        ...value,
+        modules: now.includes(module)
+          ? now.filter((m) => m !== module)
+          : [...now, module],
+      };
+    });
+  const moduleAt = (slot: string) =>
+    modules.find((m) => MODULES[m].slots[instrument] === slot);
+  const plateAt = shownState.plate?.at ?? "deck";
   const move = (index: number, delta: number) =>
     setDraft((value) => {
       const actions = [...value.actions];
@@ -508,17 +554,19 @@ export default function WorkflowStudio({
             role="group"
             aria-label="Add a workflow block"
           >
-            {(Object.keys(ACTION_LABELS) as Action["kind"][]).map((kind) => (
-              <button
-                className={s[kind]}
-                key={kind}
-                disabled={!editable || draft.actions.length >= 64}
-                onClick={() => addAction(kind)}
-                aria-label={`Add ${ACTION_LABELS[kind].toLowerCase()} block`}
-              >
-                <Plus size={14} /> {ACTION_LABELS[kind]}
-              </button>
-            ))}
+            {[...PIPETTING, ...(modules.length ? MODULE_STEPS : [])].map(
+              (kind) => (
+                <button
+                  className={s[kind]}
+                  key={kind}
+                  disabled={!editable || draft.actions.length >= 64}
+                  onClick={() => addAction(kind)}
+                  aria-label={`Add ${ACTION_LABELS[kind].toLowerCase()} block`}
+                >
+                  <Plus size={14} /> {ACTION_LABELS[kind]}
+                </button>
+              ),
+            )}
           </div>
           <ol className={s.blockList}>
             {draft.actions.map((action, index) => (
@@ -554,9 +602,14 @@ export default function WorkflowStudio({
                       })
                     }
                   >
-                    {Object.entries(ACTION_LABELS).map(([kind, label]) => (
+                    {[
+                      ...PIPETTING,
+                      ...(modules.length || MODULE_STEPS.includes(action.kind)
+                        ? MODULE_STEPS
+                        : []),
+                    ].map((kind) => (
                       <option value={kind} key={kind}>
-                        {label}
+                        {ACTION_LABELS[kind]}
                       </option>
                     ))}
                   </select>
@@ -647,6 +700,76 @@ export default function WorkflowStudio({
                         <span>µL</span>
                       </span>
                     </label>
+                  </div>
+                ) : action.kind === "move" ? (
+                  <div className={s.blockParameters}>
+                    <label>
+                      TO
+                      <select
+                        aria-label={`Step ${index + 1} destination`}
+                        value={action.to ?? "deck"}
+                        disabled={!editable}
+                        onChange={(event) =>
+                          editAction(index, { to: event.target.value as Place })
+                        }
+                      >
+                        {(Object.keys(PLACE_NAMES) as Place[])
+                          .filter(
+                            (place) =>
+                              place === "deck" ||
+                              place === action.to ||
+                              modules.includes(place),
+                          )
+                          .map((place) => (
+                            <option key={place} value={place}>
+                              {PLACE_NAMES[place]}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                ) : action.kind === "heat" || action.kind === "shake" ? (
+                  <div className={s.blockParameters}>
+                    <label>
+                      {action.kind === "heat" ? "TEMPERATURE" : "SPEED"}
+                      <span className={s.volumeInput}>
+                        <input
+                          type="number"
+                          aria-label={`Step ${index + 1} ${action.kind === "heat" ? "temperature" : "speed"}`}
+                          min={0}
+                          max={5000}
+                          value={action.value ?? 0}
+                          disabled={!editable}
+                          onChange={(event) =>
+                            editAction(index, {
+                              value: Number(event.target.value),
+                            })
+                          }
+                        />
+                        <span>{action.kind === "heat" ? "°C" : "rpm"}</span>
+                      </span>
+                    </label>
+                    {action.kind === "shake" && (
+                      <label>
+                        FOR
+                        <span className={s.volumeInput}>
+                          <input
+                            type="number"
+                            aria-label={`Step ${index + 1} duration`}
+                            min={0}
+                            max={3600}
+                            value={action.seconds ?? 0}
+                            disabled={!editable}
+                            onChange={(event) =>
+                              editAction(index, {
+                                seconds: Number(event.target.value),
+                              })
+                            }
+                          />
+                          <span>s</span>
+                        </span>
+                      </label>
+                    )}
                   </div>
                 ) : (
                   <p className={s.blockHint}>{ACTION_HINTS[action.kind]}</p>
@@ -775,6 +898,28 @@ export default function WorkflowStudio({
               <strong>{format(shownState.pipette.volume)} µL in tip</strong>
               <span>{shownState.tips_used} tips used</span>
             </div>
+            {modules.length > 0 && (
+              <div className={s.pipetteState} aria-label="Sample plate">
+                <span>Plate on</span>
+                <strong>{PLACE_NAMES[plateAt]}</strong>
+                <span>
+                  {[
+                    shownState.plate?.temperature != null &&
+                      `${format(shownState.plate.temperature)} °C`,
+                    shownState.plate?.shaken && "shaken",
+                    shownState.readings?.length &&
+                      `read: ${Object.entries(
+                        shownState.readings[shownState.readings.length - 1]
+                          .wells,
+                      )
+                        .map(([well, v]) => `${well} ${format(v)}%`)
+                        .join(" · ")}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "room temperature"}
+                </span>
+              </div>
+            )}
           </section>
           <section
             className={s.deckPanel}
@@ -789,19 +934,33 @@ export default function WorkflowStudio({
             </div>
             <div className={s.deck} data-testid="studio-deck">
               {slots(instrument).map((slot) => {
-                const asset = Object.keys(draft.layout).find(
+                const module = moduleAt(slot);
+                // The plate is drawn where it stands: in its slot, or on the module holding it.
+                const here = Object.keys(draft.layout).find(
                   (key) => draft.layout[key] === slot,
                 );
+                const asset =
+                  module && plateAt === module
+                    ? "plate"
+                    : here === "plate" && plateAt !== "deck"
+                      ? undefined
+                      : here;
                 return (
                   <button
                     key={slot}
-                    className={`${s.slot} ${asset ? s.occupied : ""} ${asset === selectedAsset && editable ? s.selectedSlot : ""} ${asset && activeAsset === asset ? s.activeSlot : ""}`}
-                    aria-label={`Slot ${slot}: ${asset ? assetNames[asset] : "empty"}`}
-                    disabled={!editable || slot === draft.layout.waste}
+                    className={`${s.slot} ${asset || module ? s.occupied : ""} ${asset === selectedAsset && editable ? s.selectedSlot : ""} ${asset && activeAsset === asset ? s.activeSlot : ""} ${module ? s.moduleSlot : ""}`}
+                    aria-label={`Slot ${slot}: ${[module && MODULES[module].name, asset && assetNames[asset]].filter(Boolean).join(" with ") || "empty"}`}
+                    disabled={
+                      !editable || slot === draft.layout.waste || !!module
+                    }
                     onClick={() => place(slot)}
                   >
                     <span className={s.slotId}>{slot}</span>
-                    {asset === "stock" ? (
+                    {module && !asset ? (
+                      <span className={s.moduleName}>
+                        {MODULES[module].name}
+                      </span>
+                    ) : asset === "stock" ? (
                       <LiquidVessel volume={wells.stock.volume} />
                     ) : asset === "plate" ? (
                       <span className={s.miniWells}>
@@ -833,7 +992,11 @@ export default function WorkflowStudio({
                       <Plus className={s.emptySlot} size={13} />
                     )}
                     {asset && (
-                      <span className={s.assetName}>{assetNames[asset]}</span>
+                      <span className={s.assetName}>
+                        {module
+                          ? `On ${MODULES[module].name}`
+                          : assetNames[asset]}
+                      </span>
                     )}
                   </button>
                 );
@@ -905,6 +1068,27 @@ export default function WorkflowStudio({
                 </p>
               </div>
             )}
+            <div
+              className={s.moduleToggles}
+              role="group"
+              aria-label="Deck modules"
+            >
+              {(Object.keys(MODULES) as DeckModule[])
+                .filter((m) => instrument in MODULES[m].slots)
+                .map((m) => (
+                  <button
+                    key={m}
+                    aria-pressed={modules.includes(m)}
+                    disabled={!editable}
+                    onClick={() => toggleModule(m)}
+                  >
+                    {MODULES[m].name}
+                    {MODULES[m].slots[instrument]
+                      ? ` · ${MODULES[m].slots[instrument]}`
+                      : ""}
+                  </button>
+                ))}
+            </div>
             <div className={s.placement}>
               <label>
                 Move labware
@@ -1119,11 +1303,12 @@ export default function WorkflowStudio({
         onError={onError}
       />
       <p className={s.boundary}>
-        A simplified 300 µL pipette, ideal mixing and fresh-tip rules on both
-        instrument layouts. Deck placement is schematic. Results are synthetic;
-        the teaching model does not validate a protocol or simulate collision
-        physics. Native execution, when a qualified worker supports your saved
-        design, is a separate operation below.
+        One {instrument === "flex" ? "1,000" : "300"} µL pipette, ideal mixing
+        and fresh-tip rules. Modules hold a 360 µL flat plate; their latches and
+        lids are worked for you. Deck placement is schematic. Results are
+        synthetic; the teaching model does not validate a protocol or simulate
+        collision physics. Native execution, when a qualified worker supports
+        your saved design, is a separate operation below.
       </p>
       <div
         ref={nativeControls}
