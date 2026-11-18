@@ -142,8 +142,8 @@ def apply(changes, twins, bench, placements, constraints):
             constraints.append(
                 {"kind": kind, "twin_id": one, "other_id": two, "metres": change["metres"]}
             )
-            within = "within" if kind == "near" else "at least"
-            done.append(f"{name} {within} {change['metres']:g} m of {names[two]}")
+            how = "within {} m of" if kind == "near" else "at least {} m from"
+            done.append(f"{name} {how.format(format(change['metres'], 'g'))} {names[two]}")
             search = True
         elif kind in ("keep", "release") and one in places:
             places[one]["kept"] = kind == "keep"
