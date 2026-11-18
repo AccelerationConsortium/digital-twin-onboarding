@@ -299,20 +299,24 @@ def record(owner, training, settings):
         )
     valid_at = [training["tasks"][key]["passed_at"] for key in WORKFLOW_TASKS]
     first_valid = min((t for t in valid_at if t), default=None)
+    complete = all(t["status"] == "passed" for t in tasks)
+    # Fetching the record again never extends it: it lapses a fixed time after the
+    # training was completed (or, until then, after it was started).
+    anchor = max(t["passed_at"] for t in tasks) if complete else training["started_at"]
     return sign(
         {
             "type": RECORD_TYPE,
             "issuer": "Digital Twin Academy",
             "subject": subject(owner),
             "issued_at": stamp(issued),
-            "expires_at": stamp(issued + timedelta(days=VALID_DAYS)),
+            "expires_at": stamp(datetime.fromisoformat(anchor) + timedelta(days=VALID_DAYS)),
             "module": {
                 "id": training["module_id"],
                 "rules_version": training["rules_version"],
                 "instrument": "Opentrons Flex",
                 "simulator_rules": capabilities()["instrument"]["simulator_rules"],
             },
-            "complete": all(t["status"] == "passed" for t in tasks),
+            "complete": complete,
             "tasks": tasks,
             "time_to_first_valid_workflow_s": first_valid
             and seconds_between(training["started_at"], first_valid),
@@ -328,16 +332,22 @@ def verify(record, settings):
 
     Reads nothing about the learner: a portal learns only what the record itself says.
     """
-    signature = record.get("signature") or {}
+    signature = record.get("signature")
     expected = hmac.new(signing_key(settings), canonical(record), "sha256").hexdigest()
-    authentic = isinstance(signature.get("value"), str) and hmac.compare_digest(
-        signature["value"], expected
+    authentic = (
+        isinstance(signature, dict)
+        and isinstance(signature.get("value"), str)
+        and hmac.compare_digest(signature["value"], expected)
     )
+    module = record.get("module")
     known = record.get("type") == RECORD_TYPE
-    same_rules = (record.get("module") or {}).get("rules_version") == RULES
+    same_rules = isinstance(module, dict) and module.get("rules_version") == RULES
+    expires = record.get("expires_at")
     try:
-        expired = datetime.fromisoformat(record.get("expires_at", "")) < now()
-    except (TypeError, ValueError):
+        lapse = datetime.fromisoformat(expires) if isinstance(expires, str) else None
+        # A timestamp without a zone cannot be compared, so it does not count as current.
+        expired = lapse is None or lapse.tzinfo is None or lapse < now()
+    except ValueError:
         expired = True
     complete = record.get("complete") is True
     problems = [
@@ -410,12 +420,13 @@ def install(app, *, store):
     def answer_questions(data: Answers, owner: str = Depends(identify)):
         training = current(owner, data.expected_version)
         wrong = [q for q in QUESTIONS if data.answers.get(q["id"]) != q["answer"]]
-        attempt(training["tasks"]["orient"], not wrong, [q["prompt"] for q in wrong])
-        training["last_check"] = {
-            "task": "orient",
-            "valid": not wrong,
-            "wrong": [q["id"] for q in wrong],
-        }
+        # Only how many are wrong, so the quiz cannot be solved by elimination.
+        attempt(
+            training["tasks"]["orient"],
+            not wrong,
+            [f"{len(wrong)} of {len(QUESTIONS)} answers wrong"] if wrong else [],
+        )
+        training["last_check"] = {"task": "orient", "valid": not wrong, "wrong": len(wrong)}
         return save(owner, training, data.expected_version)
 
     @app.post("/api/cloudlab/workflow-validations")

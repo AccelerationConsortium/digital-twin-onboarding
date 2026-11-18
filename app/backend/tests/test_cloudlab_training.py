@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from academy.cloudlab_training import QUESTIONS, TASKS
 from fastapi.testclient import TestClient
 
@@ -107,7 +109,8 @@ def test_wrong_answers_are_recorded_and_stale_commands_rejected(client):
         "/api/cloudlab/training-sessions/answers",
         json={"expected_version": training["version"], "answers": wrong},
     ).json()
-    assert answered["last_check"] == {"task": "orient", "valid": False, "wrong": ["pipette"]}
+    assert answered["last_check"] == {"task": "orient", "valid": False, "wrong": 1}
+    assert answered["tasks"]["orient"]["errors"] == ["1 of 4 answers wrong"]
     assert answered["tasks"]["orient"]["status"] == "open"
     stale = client.post(
         "/api/cloudlab/training-sessions/answers",
@@ -140,12 +143,29 @@ def test_a_signed_record_verifies_and_an_edit_does_not(client):
         "problems": [],
         "rules_version": "cloudlab-flex-transfer/1",
     }
-    edited = {**record, "tasks": [{**t, "retries": 0, "errors": []} for t in record["tasks"]]}
+    edited = {**record, "tasks": [{**t, "retries": 0, "errors": ["x"]} for t in record["tasks"]]}
     edited["complete"] = True
     edited["expires_at"] = "2099-01-01T00:00:00+00:00"
     assert verify(edited)["authentic"] is False
     old = {**record, "module": {**record["module"], "rules_version": "cloudlab-flex-transfer/0"}}
     assert verify(old)["authentic"] is False and verify(old)["current"] is False
+    for broken in [
+        {**record, "signature": "x", "module": "x"},
+        {**record, "expires_at": 0},
+        {**record, "expires_at": "2099-01-01T00:00:00"},
+    ]:
+        result = verify(broken)
+        assert result["authentic"] is False and result["current"] is False
+
+
+def test_fetching_the_record_again_does_not_extend_it(client):
+    finish(client)
+    first = client.get("/api/cloudlab/qualifications/me").json()
+    again = client.get("/api/cloudlab/qualifications/me").json()
+    assert first["expires_at"] == again["expires_at"]
+    passed = max(t["passed_at"] for t in first["tasks"])
+    lapse = datetime.fromisoformat(first["expires_at"]) - datetime.fromisoformat(passed)
+    assert lapse == timedelta(days=90)
 
 
 def test_an_incomplete_record_is_authentic_but_not_complete(client):

@@ -5,7 +5,7 @@ import {
   Upload,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, json } from "./api";
 import { RECORD_HANDOFF } from "./CloudLabTraining";
 import s from "./CloudLabTraining.module.css";
@@ -42,7 +42,8 @@ function minutes(seconds: number | null | undefined) {
 /**
  * A stand-in for a cloud lab's run-request page. It sees only the record the learner
  * attaches, asks the Academy whether that record is authentic and current, then applies
- * its own policy. Passing sends the request to operator review; it never approves a run.
+ * its own policy. Passing would send a real request to operator review; this mock sends
+ * nothing, and no portal here ever approves a run.
  */
 export default function CloudLabPortal({
   onTraining,
@@ -55,20 +56,30 @@ export default function CloudLabPortal({
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // Only the latest attachment's check may set the verdict.
+  const attempt = useRef(0);
 
   const check = async (next: TrainingRecord) => {
+    const mine = ++attempt.current;
     setRecord(next);
     setVerdict(null);
     setSubmitted(false);
+    setFailed(false);
     setBusy(true);
     try {
-      setVerdict(
-        await api<Verdict>("/cloudlab/records/verify", json({ record: next })),
+      const found = await api<Verdict>(
+        "/cloudlab/records/verify",
+        json({ record: next }),
       );
+      if (mine === attempt.current) setVerdict(found);
     } catch (e) {
-      onError((e as Error).message);
+      if (mine === attempt.current) {
+        setFailed(true);
+        onError((e as Error).message);
+      }
     } finally {
-      setBusy(false);
+      if (mine === attempt.current) setBusy(false);
     }
   };
 
@@ -146,10 +157,14 @@ export default function CloudLabPortal({
               <dt>First valid workflow</dt>
               <dd>{minutes(record.time_to_first_valid_workflow_s)}</dd>
               <dt>Expires</dt>
-              <dd>{record.expires_at?.slice(0, 10) ?? "—"}</dd>
+              <dd>
+                {typeof record.expires_at === "string"
+                  ? record.expires_at.slice(0, 10)
+                  : "—"}
+              </dd>
             </dl>
           )}
-          {record?.tasks && (
+          {Array.isArray(record?.tasks) && (
             <table className={s.table}>
               <thead>
                 <tr>
@@ -159,7 +174,7 @@ export default function CloudLabPortal({
                 </tr>
               </thead>
               <tbody>
-                {record.tasks.map((t) => (
+                {record!.tasks!.map((t) => (
                   <tr key={t.id}>
                     <td>{t.title}</td>
                     <td className={t.status === "passed" ? s.passed : s.bad}>
@@ -183,9 +198,25 @@ export default function CloudLabPortal({
               </button>
             </p>
           ) : !verdict ? (
-            <p className={s.note} aria-busy={busy}>
-              Checking…
-            </p>
+            busy ? (
+              <p className={s.note} aria-busy="true">
+                Checking…
+              </p>
+            ) : (
+              failed && (
+                <div className={s.problems} role="status">
+                  <p>
+                    <CircleSlash size={16} /> The record could not be checked
+                  </p>
+                  <button
+                    className={s.secondary}
+                    onClick={() => void check(record)}
+                  >
+                    Check again
+                  </button>
+                </div>
+              )
+            )
           ) : (
             <>
               <ul className={s.checklist}>
@@ -204,12 +235,13 @@ export default function CloudLabPortal({
                 submitted ? (
                   <div className={s.ok} role="status">
                     <p>
-                      <Clock size={16} /> Request sent to operator safety review
+                      <Clock size={16} /> Ready for operator safety review
                     </p>
                     <small>
-                      The record is one input. Operators still check access
-                      policy, the protocol itself and the instrument's state
-                      before anything runs.
+                      In a real portal the request would now go to the lab's
+                      operators, who still check access policy, the protocol and
+                      the instrument before anything runs. This mock sends
+                      nothing.
                     </small>
                   </div>
                 ) : (
