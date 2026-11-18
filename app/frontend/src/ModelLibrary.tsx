@@ -17,6 +17,7 @@ import s from "./ModelLibrary.module.css";
 const sources = {
   workcell: "Workcell model",
   chemlab: "ChemLab · NC",
+  cloudlab: "Cloud lab",
   simready: "SimReady",
 } as const;
 const can: Record<Operation, string> = {
