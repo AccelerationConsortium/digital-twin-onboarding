@@ -7,6 +7,7 @@ from mangum import Mangum
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import (
+    agent_sandbox,
     arm_simulation,
     cloudlab_training,
     examples,
@@ -718,6 +719,7 @@ def create_app(settings: Settings | None = None, store=None):
     groups.install(app, store=app.state.store)
     cloudlab_training.install(app, store=app.state.store)
     node_api.install(app)
+    agent_sandbox.install(app, store=app.state.store)
     return app
 
 
