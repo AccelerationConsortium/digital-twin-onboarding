@@ -43,6 +43,7 @@ import s from "./InstrumentStudio.module.css";
 import ChainEditor, { type ChainResult } from "./ChainEditor";
 import LayoutData from "./LayoutData";
 import LayoutPanel from "./LayoutPanel";
+import MonitoredRun from "./MonitoredRun";
 import { armAt, duration } from "./layoutTimeline";
 import { LIBRARY_QUERY_KEY } from "./LessonSearch";
 import { conflicts, defaultLayout } from "./layoutGeometry";
@@ -1437,6 +1438,10 @@ export default function InstrumentStudio({
                       </small>
                     </div>
                   )}
+                  <MonitoredRun
+                    catalog={catalog}
+                    disabled={busy || dirty.current}
+                  />
                 </>
               )}
             </>
