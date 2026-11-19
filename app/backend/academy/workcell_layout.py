@@ -266,11 +266,7 @@ def drawer(spec, placement):
 
 def validate_layout(twins, layout):
     """Every placed footprint lies on the bench, no two footprints overlap and every
-    drawer has room to come out.
-
-    Two drawers may sweep the same bench: one arm serves one instrument at a time, so
-    only one is out at once.
-    """
+    drawer has room to come out, clear of the other drawers too."""
     half_w, half_d = layout["bench"]["width"] / 2, layout["bench"]["depth"] / 2
     shapes, drawers = [], []
     for placement in layout["placements"]:
@@ -286,7 +282,13 @@ def validate_layout(twins, layout):
         shapes.append((twin, shape))
         if swept := drawer(twin["spec"], placement):
             drawers.append((twin, swept))
-    for twin, swept in drawers:
+    for i, (twin, swept) in enumerate(drawers):
+        for other, other_swept in drawers[i + 1 :]:
+            if _overlap(swept, other_swept):
+                raise PlanError(
+                    "geometry",
+                    f"{twin['spec']['name']}'s drawer runs into {other['spec']['name']}'s drawer",
+                )
         if any(abs(x) > half_w + 1e-9 or abs(z) > half_d + 1e-9 for x, z in swept):
             raise PlanError("geometry", f"{twin['spec']['name']}'s drawer runs past the bench edge")
         for other, other_shape in shapes:

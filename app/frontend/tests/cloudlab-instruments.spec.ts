@@ -27,6 +27,7 @@ test("meet the instruments shows what a cloud lab offers", async ({ page }) => {
     });
 
   await section.getByRole("button", { name: "Spectroscopy" }).click();
+  await expect(section.getByRole("listitem")).toHaveCount(3);
   await expect(
     section.getByRole("button", { name: /Analytical HPLC/ }),
   ).toHaveCount(0);
@@ -38,9 +39,13 @@ test("meet the instruments shows what a cloud lab offers", async ({ page }) => {
     ),
   ).toBeVisible();
   await expect(
-    reader.getByText(
-      /At the front, left, 0\.07 m above the bench; its drawer comes out 0\.18 m/,
-    ),
+    reader.getByText(/^At the front, left · ChemLab-Assets estimate/),
+  ).toBeVisible();
+  await expect(
+    reader.getByText(/^0\.07 m above the bench · ChemLab-Assets estimate/),
+  ).toBeVisible();
+  await expect(
+    reader.getByText(/^Comes out 0\.18 m · ChemLab-Assets estimate/),
   ).toBeVisible();
   await reader.getByText("Sources").click();
   await expect(reader.getByText(/manufacturer_dimensions_m/)).toBeVisible();
@@ -48,6 +53,18 @@ test("meet the instruments shows what a cloud lab offers", async ({ page }) => {
   await expect(
     reader.getByText(/not this instrument's specification/),
   ).toBeVisible();
+  // Each value carries its own source: the washer's height is a manufacturer figure,
+  // the face it loads from only an estimate.
+  await section.getByRole("button", { name: "Transfers" }).click();
+  await section.getByRole("button", { name: /Plate washer/ }).click();
+  const washer = page.getByRole("article", { name: "Plate washer" });
+  await expect(
+    washer.getByText(/^From above · ChemLab-Assets estimate/),
+  ).toBeVisible();
+  await expect(
+    washer.getByText(/^0\.08 m above the bench · manufacturer figure/),
+  ).toBeVisible();
+  await section.getByRole("button", { name: "Spectroscopy" }).click();
   await section.getByRole("button", { name: /500 MHz NMR/ }).click();
   await expect(
     page.getByText("No 3D model; the twin is one estimated box."),
