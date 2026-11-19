@@ -37,6 +37,7 @@ from .models import COURSES, Experiment, Guest, Profile, Revision, UpdateExperim
 from .onboarding import DeviceUpdate, OnboardingService, TwinCreate
 from .pairing import PairRunService
 from .recipes import MIXING, CreateMixing, MixingPlan, mixing_session
+from .run_monitor import router as run_monitor_router
 from .runs import GpuRequest, RunControl, RunService, SubmitRun
 from .settings import Settings
 from .simple_twins import (
@@ -99,6 +100,7 @@ def create_app(settings: Settings | None = None, store=None):
         app.state.store, enabled=settings.connector_real_enabled, approved_release=approved_release
     )
     app.include_router(mock_connector_router)
+    app.include_router(run_monitor_router)
     app.include_router(connector_router)
     app.include_router(catalog_router)
     app.include_router(workcell_router)

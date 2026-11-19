@@ -44,6 +44,7 @@ import ChainEditor, { type ChainResult } from "./ChainEditor";
 import LayoutData from "./LayoutData";
 import type { ReplayMotion } from "./EndurancePanel";
 import LayoutPanel from "./LayoutPanel";
+import MonitoredRun from "./MonitoredRun";
 import { armAt, duration } from "./layoutTimeline";
 import { LIBRARY_QUERY_KEY } from "./LessonSearch";
 import { clashes, conflicts, defaultLayout } from "./layoutGeometry";
@@ -1468,6 +1469,10 @@ export default function InstrumentStudio({
                       </small>
                     </div>
                   )}
+                  <MonitoredRun
+                    catalog={catalog}
+                    disabled={busy || dirty.current}
+                  />
                 </>
               )}
             </>
