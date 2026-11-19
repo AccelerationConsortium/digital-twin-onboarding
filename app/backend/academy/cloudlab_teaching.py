@@ -10,8 +10,22 @@ This is teaching copy about a comparable instrument, not the cloud lab's instrum
 its specification.
 """
 
+import re
+from typing import Literal
+
+from pydantic import Field, model_validator
+
 from .cloudlab import CLOUDLAB, CONTRACTS, overview
 from .cloudlab_workflow import INSTRUMENTS as WORKFLOW
+from .mock_contract import PlanError, execute_mock, site_keys
+from .models import StrictModel
+
+MAX_STEPS = 24
+STATEMENT = (
+    "Synthetic teaching run on one Academy twin. It checks the steps against the twin's "
+    "rules only; it is not the cloud lab's instrument specification or a chemical result."
+)
+STEP_AT = re.compile(r"^Step (\d+):")
 
 # id: one line on what the instrument is for.
 DOES = {
@@ -489,4 +503,82 @@ def instruments():
         ]
         # The instruments the cloud lab workflow page can chain.
         item["in_workflow"] = key in WORKFLOW
+        spec = CLOUDLAB[key]["spec"]
+        item["sites"] = site_keys(spec)
+        item["starter"] = starter(spec)
     return found
+
+
+class Step(StrictModel):
+    """One action on the instrument a learner is practising with."""
+
+    operation: Literal["load", "mix", "heat", "read", "wait"]
+    sample: str = Field(default="plate", pattern=r"^[a-z][a-z0-9-]{0,23}$")
+    value: float = Field(default=1, ge=0.001, le=1_000_000, allow_inf_nan=False)
+    slot: str = Field(default="", pattern=r"^[A-Za-z0-9-]{0,8}$")
+
+    @model_validator(mode="after")
+    def bounded(self):
+        if self.slot and self.operation != "load":
+            raise ValueError("Only a load chooses a slot")
+        if self.operation == "heat" and not 4 <= self.value <= 120:
+            raise ValueError("Teaching temperature must be 4–120 °C")
+        return self
+
+
+class Practice(StrictModel):
+    steps: list[Step] = Field(max_length=MAX_STEPS)
+
+
+def default(spec, operation):
+    """A value the twin accepts for an action, to start a step from."""
+    if operation == "load":
+        return min(100, spec["container"]["max_volume_ul"])
+    if operation == "heat":
+        return round((spec["limits"]["min_temp_c"] + spec["limits"]["max_temp_c"]) / 2)
+    if operation in {"mix", "wait"}:
+        return min(60, spec["limits"]["max_duration_s"])
+    return 1
+
+
+def starter(spec):
+    """Every action the instrument has, once, in its own order: the way to meet it."""
+    return [
+        {"operation": op, "sample": "plate", "value": default(spec, op), "slot": ""}
+        for op in spec["operations"]
+        if op != "transfer"
+    ]
+
+
+def practise(asset_id, steps):
+    """The synthetic trace of steps on one twin, or the first step that breaks its rules."""
+    twin = {"id": asset_id, "confirmed": True, "mode": "mock", "spec": CLOUDLAB[asset_id]["spec"]}
+    try:
+        trace = execute_mock(
+            {asset_id: twin},
+            [
+                {
+                    "device_id": asset_id,
+                    "operation": step["operation"],
+                    "sample": step["sample"],
+                    "value": step["value"],
+                    "site": step["slot"],
+                }
+                for step in steps
+            ],
+        )
+    except PlanError as exc:
+        found = STEP_AT.match(str(exc))
+        # With one instrument there is nowhere to move a sample from: it is loaded here.
+        message = re.sub(r"transfer (\S+) to .+ first$", r"load \1 first", str(exc))
+        return {
+            "ok": False,
+            "trace": [],
+            "error": {
+                "step": int(found[1]) if found else None,
+                "message": message,
+                "layer": exc.layer,
+            },
+            "statement": STATEMENT,
+        }
+    return {"ok": True, "trace": trace, "error": None, "statement": STATEMENT}

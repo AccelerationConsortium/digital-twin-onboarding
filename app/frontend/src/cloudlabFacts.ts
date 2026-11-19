@@ -38,6 +38,14 @@ export type Instrument = {
   }[];
   motion: Motion | null;
   in_workflow: boolean;
+  /** Slot names, and a first workflow that uses every action once. */
+  sites: string[];
+  starter: {
+    operation: Operation;
+    sample: string;
+    value: number;
+    slot: string;
+  }[];
 };
 export type Overview = {
   provider: string;

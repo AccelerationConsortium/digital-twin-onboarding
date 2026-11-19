@@ -18,7 +18,10 @@ from . import (
 )
 from ._version import __version__
 from .auth import identify, local_signer, may_plan_layouts, require_layout_planner
+from .cloudlab import CLOUDLAB
+from .cloudlab_teaching import Practice
 from .cloudlab_teaching import instruments as cloudlab_instruments_overview
+from .cloudlab_teaching import practise as practise_cloudlab_instrument
 from .cloudlab_workflow import CloudLabWorkflows, Draft, RunWorkflow, SaveWorkflow
 from .cloudlab_workflow import check as check_cloudlab_workflow
 from .connections import ConnectionService
@@ -297,6 +300,12 @@ def create_app(settings: Settings | None = None, store=None):
     @app.get("/api/cloudlab/instruments")
     def cloudlab_instruments(_owner: str = Depends(identify)):
         return cloudlab_instruments_overview()
+
+    @app.post("/api/cloudlab/instruments/{asset_id}/check")
+    def check_cloudlab_practice(asset_id: str, data: Practice, _owner: str = Depends(identify)):
+        if asset_id not in CLOUDLAB:
+            raise HTTPException(404, "No such cloud lab instrument")
+        return practise_cloudlab_instrument(asset_id, [s.model_dump() for s in data.steps])
 
     @app.get("/api/cloudlab/workflow")
     def cloudlab_workflow(owner: str = Depends(identify)):

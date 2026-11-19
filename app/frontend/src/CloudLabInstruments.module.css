@@ -123,17 +123,17 @@
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
-  border: var(--hairline) solid var(--brand);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: var(--brand-soft);
-  color: var(--ink);
+  background: var(--brand);
+  color: var(--on-brand);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
 .teach:hover {
-  background: var(--surface-1);
+  filter: brightness(1.08);
 }
 .close {
   display: inline-flex;

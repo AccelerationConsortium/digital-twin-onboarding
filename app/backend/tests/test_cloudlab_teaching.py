@@ -117,3 +117,28 @@ def test_meet_the_instruments_serves_what_each_twin_teaches(client):
         "shows": "load",
     }
     assert reader["motion"]["joints"]["plate_carrier"]["limits"] == [0.0, 0.185]
+
+
+def test_every_instruments_starter_runs_on_its_own_twin():
+    from academy.cloudlab_teaching import practise, starter
+
+    for asset_id, asset in CLOUDLAB.items():
+        steps = starter(asset["spec"])
+        assert [s["operation"] for s in steps] == asset["spec"]["operations"]
+        assert practise(asset_id, steps)["ok"], asset_id
+
+
+def test_practice_checks_steps_against_one_twin(client):
+    url = "/api/cloudlab/instruments/cell-incubator/check"
+    found = client.post(url, json={"steps": [{"operation": "heat", "value": 37}]}).json()
+    # With one instrument a sample is loaded, never moved in.
+    assert found["error"] == {"step": 1, "message": "Step 1: load plate first", "layer": "state"}
+    steps = [{"operation": "load", "value": 200, "slot": "3"}, {"operation": "heat", "value": 37}]
+    found = client.post(url, json={"steps": steps}).json()
+    assert found["ok"] and found["trace"][-1]["samples"]["plate"]["site"] == "3"
+    assert "not the cloud lab's instrument specification" in found["statement"]
+    hot = client.post(url, json={"steps": [steps[0], {"operation": "heat", "value": 60}]})
+    assert hot.json()["error"]["step"] == 2  # above the incubator's 50 °C
+    assert client.post(url, json={"steps": [{"operation": "transfer"}]}).status_code == 422
+    missing = client.post("/api/cloudlab/instruments/nowhere/check", json={"steps": []})
+    assert missing.status_code == 404

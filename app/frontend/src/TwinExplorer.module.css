@@ -31,13 +31,13 @@
   font-size: 12px;
   opacity: 0.75;
 }
-.labels {
+.explorer .labels {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
 }
-.label {
+.explorer .label {
   position: absolute;
   top: 0;
   left: 0;
@@ -57,13 +57,13 @@
     opacity var(--dur-2),
     background var(--dur-2);
 }
-.label:hover,
-.label[aria-pressed="true"] {
+.explorer .label:hover,
+.explorer .label[aria-pressed="true"] {
   border-color: #8fd0a6;
   background: #e2f3e6;
 }
 /* A part another part covers keeps its label out of the way until it comes into view. */
-.label[data-behind="true"]:not([aria-pressed="true"]) {
+.explorer .label[data-behind="true"]:not([aria-pressed="true"]) {
   opacity: 0;
   pointer-events: none;
 }
@@ -78,7 +78,7 @@
   flex-wrap: wrap;
   gap: 6px;
 }
-.states button {
+.explorer .states button {
   padding: 5px 12px;
   border: 1px solid rgba(227, 235, 226, 0.28);
   border-radius: var(--radius-pill);
@@ -87,16 +87,16 @@
   font-size: 12px;
   cursor: pointer;
 }
-.states button:hover {
+.explorer .states button:hover {
   border-color: rgba(227, 235, 226, 0.6);
 }
-.states button[aria-pressed="true"] {
+.explorer .states button[aria-pressed="true"] {
   border-color: #e3ebe2;
   background: #e3ebe2;
   color: #172820;
   font-weight: 600;
 }
-.caption {
+.explorer .caption {
   min-height: 2.8em;
   margin: 0;
   color: rgba(227, 235, 226, 0.82);

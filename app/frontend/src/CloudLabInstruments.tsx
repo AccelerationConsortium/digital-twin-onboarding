@@ -131,7 +131,7 @@ export default function CloudLabInstruments({
             </div>
             <div className={s.actions}>
               <button className={s.teach} onClick={() => onTeach(open.id)}>
-                Learn to use it <ArrowRight size={14} aria-hidden="true" />
+                Use it <ArrowRight size={14} aria-hidden="true" />
               </button>
               <button
                 className={s.close}
