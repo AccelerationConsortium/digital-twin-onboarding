@@ -500,6 +500,16 @@ def run_transfer(cell, transfer, drift, move, labware, gripper, speed, keep=Fals
         "speed": round(run_speed, 1),
         "labware_kg": round(grasp.mass, 4),
         "grasp_offset_mm": round(across * 1000, 2),
+        # How close the corrected path comes to a joint limit.
+        "joint_headroom_rad": round(
+            min(
+                lim - abs(v)
+                for _, part, _ in segments
+                for q in part
+                for v, lim in zip(q, planner.arm.limits, strict=True)
+            ),
+            4,
+        ),
         "grasp": held,
     }
     detail = None
@@ -526,6 +536,12 @@ def run_transfer(cell, transfer, drift, move, labware, gripper, speed, keep=Fals
 
 def run_cycle(cell, transfers, params, cycle, seed, noise, speed, keep=False):
     drift, moves = perturbation(seed, cycle, cell.layout, transfers, cell.arms, noise)
+    record, summaries, details = run_perturbed(cell, transfers, params, drift, moves, speed, keep)
+    return {**record, "cycle": cycle}, summaries, details, (drift, moves)
+
+
+def run_perturbed(cell, transfers, params, drift, moves, speed, keep=False, cycle=None):
+    """One cycle with these explicit perturbations, as `perturbation` returns them."""
     cell.drift(drift)
     summaries, failures, details = [], [], []
     for transfer, move, labware in zip(transfers, moves, params["labware"], strict=True):
@@ -547,7 +563,7 @@ def run_cycle(cell, transfers, params, cycle, seed, noise, speed, keep=False):
         "margin": min(margins, default=None),
         "failures": failures,
     }
-    return record, summaries, details, (drift, moves)
+    return record, summaries, details
 
 
 def _settings(noise, grip):
@@ -629,10 +645,17 @@ def replay(twins, layout, steps, cycle, seed=0, noise=None, grip=None, speed=NOM
     record, summaries, details, (drift, moves) = run_cycle(
         cell, transfers, params, cycle, seed, noise, speed, keep=True
     )
-    names = {t: twins[t]["spec"]["name"] for t in drift}
     return {
         "engine": arm_simulation.describe(speed),
         "seed": seed,
+        **replay_view(twins, transfers, record, summaries, details, drift, moves),
+    }
+
+
+def replay_view(twins, transfers, record, summaries, details, drift, moves):
+    """A cycle's record, transfers, paths and perturbations in physical units."""
+    names = {t: twins[t]["spec"]["name"] for t in drift}
+    return {
         "record": record,
         "transfers": summaries,
         "motions": details,
