@@ -50,7 +50,7 @@ from .workcell_layout import (
     NOMINAL_SPEED,
     TOOL,
     frames,
-    plan_transfer,
+    plan_checked,
     points,
     validate_layout,
 )
@@ -121,7 +121,7 @@ def nominal(twins, layout, steps):
     for index, step in enumerate(steps):
         if step["operation"] != "transfer":
             continue
-        planned = plan_transfer(twins, layout, index + 1, step, sites[index + 1])
+        planned = plan_checked(twins, layout, index + 1, step, sites[index + 1])
         chain = planned["_chain"]
         transfers.append(
             {

@@ -133,3 +133,29 @@ def test_a_preview_returns_where_each_arm_waits(client):
     result = preview(client, placements(reader, heater, arm))
     assert result["error"] is None
     assert len(result["rest"][arm]) == 6
+
+
+# Twin ids a workspace once got for the sealer example: seeding the sampled path with them
+# gave a path the MuJoCo replay refused, so one learner's workflow failed and another's not.
+UNLUCKY_IDS = [
+    "3794ba82-0bc7-410a-85fb-5343e551747e",
+    "a075ef22-e200-4a79-a775-664088de693d",
+    "84607536-4b0c-4e22-84ba-0054413fbebc",
+    "0f7560c1-7f63-407f-ac6e-86270ce74c2f",
+]
+
+
+def _sealer_workflow(ids):
+    twins, steps, layout = build(EXAMPLES["flex-sealer-reader"], iter(ids).__next__)
+    load, mix, *rest = steps
+    return {t["id"]: t for t in twins}, layout, [load, mix, *rest]
+
+
+def test_a_workflow_plans_the_same_whatever_ids_its_twins_got():
+    names = [f"twin-{n}" for n in range(4)]
+    plans = [
+        wl.plan_workflow(*_sealer_workflow(ids))
+        for ids in (UNLUCKY_IDS, names, list(reversed(UNLUCKY_IDS)))
+    ]
+    paths = [[(m["planner"], m["length_m"], m["seconds"]) for m in plan] for plan in plans]
+    assert paths[0] == paths[1] == paths[2]

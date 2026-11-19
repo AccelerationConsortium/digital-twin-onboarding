@@ -6,7 +6,7 @@ Three layers guard every step:
    twin, which simulates the next steps from there and blocks the run before the first
    step it predicts will fail (out of tips, a sample missing, a door open, ...).
 2. Motion pre-validation: before an arm transfer the planner checks the path against
-   the layout as last observed (`workcell_layout.plan_transfer`; no geometry here).
+   the layout as last observed (`workcell_layout.plan_checked`; no geometry here).
 3. Divergence: each observation is compared with what the twin expected; a difference
    beyond tolerance pauses the run and names the fields.
 
@@ -33,7 +33,7 @@ from .auth import identify
 from .mock_contract import PlanError
 from .models import StrictModel
 from .store import Write
-from .workcell_layout import MotionError, plan_transfer, validate_layout
+from .workcell_layout import MotionError, plan_checked, validate_layout
 
 PREFIX = "twin-run#"
 WORKSPACE = "simple-lab"
@@ -334,7 +334,7 @@ def _motion(twins, run, number, step, sites):
         return cached["motion"], None
     try:
         validate_layout(twins, layout)
-        planned = plan_transfer(twins, layout, number, step, sites)
+        planned = plan_checked(twins, layout, number, step, sites)
     except (MotionError, PlanError) as exc:
         attempt = getattr(exc, "attempt", None) or {}
         return None, {"message": str(exc), "blocked_by": attempt.get("blocked_by")}

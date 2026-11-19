@@ -768,7 +768,7 @@ def _thin(seq):
     return seq[::keep] + ([seq[-1]] if (len(seq) - 1) % keep else [])
 
 
-def plan_transfer(twins, layout, step_no, step, sites=(None, None)):
+def plan_transfer(twins, layout, step_no, step, sites=(None, None), attempt=0):
     actor, source, target = (twins[step[k]] for k in ("device_id", "source_id", "target_id"))
     src_site, tgt_site = sites
     places = {p["twin_id"] for p in layout["placements"]}
@@ -859,7 +859,10 @@ def plan_transfer(twins, layout, step_no, step, sites=(None, None)):
                     clear = min(leg[1] for leg in legs)
                     kind = "upright"
             if dense is None:
-                dense = planner.rrt_connect(qa, qb, f"{step_no}:{source['id']}:{target['id']}")
+                # Seeded by what the step is, never by twin ids: those are random per
+                # workspace, and the same workflow must always get the same path.
+                seed = f"{step_no}:{source['spec']['name']}:{target['spec']['name']}:{attempt}"
+                dense = planner.rrt_connect(qa, qb, seed)
                 kind = "rrt_connect"
                 clear = None if dense is None else min(planner.measure(q)[0] for q in dense)
             if dense is not None:
@@ -953,6 +956,29 @@ def _profile(chain):
     }
 
 
+RRT_TRIES = 4  # sampled paths tried for one transfer before the simulation's refusal stands
+
+
+def plan_checked(twins, layout, step_no, step, sites=(None, None), benches=None):
+    """A transfer planned and, where MuJoCo is installed, run in its bench.
+
+    A sampled (RRT) path that the simulation refuses is a property of that sample, not of
+    the layout, so a few other seeds are tried before the refusal is reported.
+    """
+    benches = {} if benches is None else benches
+    for attempt in range(RRT_TRIES):
+        planned = plan_transfer(twins, layout, step_no, step, sites, attempt)
+        if not arm_simulation.available():
+            return planned
+        try:
+            _simulated(benches, twins, layout, planned, planned["_chain"])
+        except MotionError:
+            if planned["planner"] != "rrt_connect" or attempt == RRT_TRIES - 1:
+                raise
+            continue
+        return planned
+
+
 def plan_workflow(twins, layout, steps, keep_frames=False):
     """Motions for every transfer step; raises PlanError('geometry') on the first failure.
 
@@ -966,12 +992,10 @@ def plan_workflow(twins, layout, steps, keep_frames=False):
         if step["operation"] != "transfer":
             continue
         try:
-            planned = plan_transfer(twins, layout, index + 1, step, sites[index + 1])
+            planned = plan_checked(twins, layout, index + 1, step, sites[index + 1], benches)
             chain = planned.pop("_chain")
             if keep_frames:
                 planned["profile"] = _profile(chain)
-            if arm_simulation.available():
-                _simulated(benches, twins, layout, planned, chain)
         except MotionError as exc:
             exc.motions = motions
             raise
@@ -1048,7 +1072,7 @@ def action_chain(twins, layout, steps, step_no, speed):
     if arm_for(twins[steps[step_no - 1]["device_id"]]["spec"]).key != "ur5e":
         raise PlanError("state", "Arm paths export to the UR5e connector only")
     sites = transfer_sites(twins, steps)[step_no]
-    planned = plan_transfer(twins, layout, step_no, steps[step_no - 1], sites)
+    planned = plan_checked(twins, layout, step_no, steps[step_no - 1], sites)
     planner = planned["_chain"]["planner"]
     segments = planned["_chain"]["segments"]
     reference = segments[0][1][0]
