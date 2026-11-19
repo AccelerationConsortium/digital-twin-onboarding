@@ -1,6 +1,7 @@
 // Library model thumbnails and previews. Thumbnails are drawn one at a time on a single
 // shared WebGL context, so a page of cards never opens one context per card.
 import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { looseModel } from "./instrumentModels";
 import type { Mesh } from "./instrumentTypes";
 
@@ -51,6 +52,100 @@ export function aim(
   camera.lookAt(centre);
   camera.updateProjectionMatrix();
   return centre;
+}
+
+export type Stage = {
+  renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  /** The loaded model, in its own frame; `holder` stands it upright on the floor. */
+  model: THREE.Object3D;
+  holder: THREE.Object3D;
+};
+
+/**
+ * A model drawn into `el` on a floor grid, turned with the mouse. `ready` runs once the
+ * model is in the scene and `frame` before every render. Returns the teardown.
+ */
+export function stage(
+  el: HTMLElement,
+  mesh: Mesh,
+  on: {
+    state: (state: "loading" | "ready" | "failed") => void;
+    ready?: (stage: Stage) => void;
+    frame?: (stage: Stage) => void;
+  },
+) {
+  let renderer: THREE.WebGLRenderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  } catch {
+    on.state("failed");
+    return () => {};
+  }
+  let alive = true;
+  on.state("loading");
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  el.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  lit(scene);
+  const floor = new THREE.GridHelper(2, 20, 0x6f8a78, 0x3a4c42);
+  scene.add(floor);
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  let model: Awaited<ReturnType<typeof looseModel>> | null = null;
+  let shown: Stage | null = null;
+  const resize = () => {
+    const { width, height } = el.getBoundingClientRect();
+    renderer.setSize(width, height, false);
+    if (shown)
+      controls.target.copy(
+        aim(camera, shown.holder, Math.max(1, width) / Math.max(1, height)),
+      );
+    controls.update();
+  };
+  looseModel(mesh)
+    .then((loaded) => {
+      if (!alive) return loaded.release();
+      model = loaded;
+      const holder = upright(loaded.object, mesh.up);
+      scene.add(holder);
+      const size = new THREE.Box3()
+        .setFromObject(holder)
+        .getSize(new THREE.Vector3());
+      floor.scale.setScalar(Math.max(size.x, size.z) * 0.9);
+      shown = { renderer, scene, camera, model: loaded.object, holder };
+      resize();
+      on.ready?.(shown);
+      on.state("ready");
+    })
+    .catch((e) => {
+      console.warn((e as Error).message);
+      if (alive) on.state("failed");
+    });
+  const observer = new ResizeObserver(resize);
+  observer.observe(el);
+  let frame = 0;
+  const tick = () => {
+    controls.update();
+    if (shown) on.frame?.(shown);
+    renderer.render(scene, camera);
+    frame = requestAnimationFrame(tick);
+  };
+  tick();
+  return () => {
+    alive = false;
+    cancelAnimationFrame(frame);
+    observer.disconnect();
+    controls.dispose();
+    model?.release();
+    floor.geometry.dispose();
+    (floor.material as THREE.Material).dispose();
+    renderer.dispose();
+    renderer.domElement.remove();
+  };
 }
 
 let renderer: THREE.WebGLRenderer | null | undefined;

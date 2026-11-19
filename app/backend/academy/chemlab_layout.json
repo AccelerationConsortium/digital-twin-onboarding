@@ -14,6 +14,65 @@
     "evidence": "engineering_assumption",
     "value": 0.3
    },
+   "joints": {
+    "drawer_1": {
+     "axis": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.3
+     ],
+     "pivot": [
+      -0.25265,
+      -0.234,
+      0.3897
+     ],
+     "type": "prismatic"
+    },
+    "mct_door": {
+     "axis": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.5
+     ],
+     "pivot": [
+      -0.13,
+      -0.225,
+      0.5165
+     ],
+     "type": "revolute"
+    },
+    "sampler_door": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.75
+     ],
+     "pivot": [
+      0.064,
+      -0.23,
+      0.1968
+     ],
+     "type": "revolute"
+    }
+   },
    "level_m": {
     "detail": "engineering_assumption",
     "evidence": "engineering_assumption",
@@ -28,6 +87,11 @@
      "start": 0.038
     }
    },
+   "parts": [
+    "drawer_1",
+    "sampler_door",
+    "mct_door"
+   ],
    "port": "vial_tray_1",
    "site": {
     "detail": "engineering_assumption",
@@ -65,11 +129,36 @@
     "evidence": "engineering_assumption",
     "value": "top"
    },
+   "joints": {
+    "lid": {
+     "axis": [
+      0,
+      1,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.232
+     ],
+     "pivot": [
+      0.0,
+      -0.156,
+      0.27
+     ],
+     "type": "prismatic"
+    }
+   },
    "level_m": {
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
     "value": 0.2065
    },
+   "parts": [
+    "lid",
+    "sample_block"
+   ],
    "port": "sample_block",
    "site": {
     "detail": "photo_estimate",
@@ -100,6 +189,65 @@
     "evidence": "engineering_assumption",
     "value": 0.12
    },
+   "joints": {
+    "collector_x": {
+     "axis": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.126
+     ],
+     "pivot": [
+      -0.126,
+      -0.153,
+      0.225
+     ],
+     "type": "prismatic"
+    },
+    "collector_y": {
+     "axis": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.33
+     ],
+     "pivot": [
+      0.0,
+      -0.153,
+      0.225
+     ],
+     "type": "prismatic"
+    },
+    "tray": {
+     "axis": [
+      0.0,
+      -1.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.12
+     ],
+     "pivot": [
+      -0.063,
+      0.0,
+      0.046
+     ],
+     "type": "prismatic"
+    }
+   },
    "level_m": {
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
@@ -114,6 +262,11 @@
      "start": 0.019
     }
    },
+   "parts": [
+    "tray",
+    "collector_y",
+    "collector_x"
+   ],
    "port": "tray",
    "site": {
     "detail": "photo_estimate",
@@ -139,11 +292,55 @@
     "evidence": "engineering_assumption",
     "value": "top"
    },
+   "joints": {
+    "manifold": {
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      -0.034,
+      0.0
+     ],
+     "pivot": [
+      -0.082,
+      -0.14,
+      0.116
+     ],
+     "type": "prismatic"
+    },
+    "plate_carrier": {
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      -0.16,
+      0.0
+     ],
+     "pivot": [
+      0.078,
+      -0.14,
+      0.082
+     ],
+     "type": "prismatic"
+    }
+   },
    "level_m": {
     "detail": "manufacturer_datasheet",
     "evidence": "manufacturer",
     "value": 0.082
    },
+   "parts": [
+    "plate_carrier",
+    "manifold"
+   ],
    "port": "plate_carrier",
    "site": {
     "detail": "manufacturer_datasheet",
@@ -174,6 +371,46 @@
     "evidence": "engineering_assumption",
     "value": 0.185
    },
+   "joints": {
+    "plate_carrier": {
+     "axis": [
+      0,
+      -1,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.185
+     ],
+     "pivot": [
+      -0.105,
+      -0.18226,
+      0.066
+     ],
+     "type": "prismatic"
+    },
+    "top_lid": {
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.25
+     ],
+     "pivot": [
+      0.0,
+      0.23,
+      0.382
+     ],
+     "type": "revolute"
+    }
+   },
    "level_m": {
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
@@ -188,6 +425,11 @@
      "start": 0.106
     }
    },
+   "parts": [
+    "plate_carrier",
+    "top_lid",
+    "injector_a"
+   ],
    "port": "plate_carrier",
    "site": {
     "detail": "photo_estimate",
@@ -213,11 +455,57 @@
     "evidence": "engineering_assumption",
     "value": "top"
    },
+   "joints": {
+    "reactor_clamp": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.04
+     ],
+     "pivot": [
+      0.015,
+      -0.14,
+      0.315
+     ],
+     "type": "prismatic"
+    },
+    "reactor_cover": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.08
+     ],
+     "pivot": [
+      0.015,
+      -0.14,
+      0.359
+     ],
+     "type": "prismatic"
+    }
+   },
    "level_m": {
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
     "value": 0.3
    },
+   "parts": [
+    "reactor_cover",
+    "reactor_clamp",
+    "reactor",
+    "aa_rack"
+   ],
    "port": "reactor",
    "site": {
     "detail": "photo_estimate",
@@ -238,6 +526,51 @@
    }
   },
   "cytiva_ktaoligosynt": {
+   "joints": {
+    "column_clamp": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.04
+     ],
+     "pivot": [
+      0.21231,
+      -0.216,
+      0.25367
+     ],
+     "type": "prismatic"
+    },
+    "column_valve": {
+     "axis": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      2.5
+     ],
+     "pivot": [
+      -0.05207,
+      -0.183,
+      0.30554
+     ],
+     "type": "revolute"
+    }
+   },
+   "parts": [
+    "column_clamp",
+    "column_valve",
+    "column"
+   ],
    "size": {
     "detail": "manufacturer_dimensions_m",
     "evidence": "manufacturer",
@@ -254,11 +587,56 @@
     "evidence": "engineering_assumption",
     "value": "front"
    },
+   "joints": {
+    "inner_door": {
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.745
+     ],
+     "pivot": [
+      -0.2845,
+      -0.2305,
+      0.461
+     ],
+     "type": "revolute"
+    },
+    "outer_door": {
+     "axis": [
+      0,
+      0,
+      -1
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.745
+     ],
+     "pivot": [
+      -0.357,
+      -0.2895,
+      0.4875
+     ],
+     "type": "revolute"
+    }
+   },
    "level_m": {
     "detail": "manufacturer_datasheet",
     "evidence": "manufacturer",
     "value": 0.265
    },
+   "parts": [
+    "outer_door",
+    "inner_door",
+    "shelf_rack"
+   ],
    "port": "shelf_1",
    "site": {
     "detail": "manufacturer_datasheet",
@@ -284,11 +662,56 @@
     "evidence": "engineering_assumption",
     "value": "front"
    },
+   "joints": {
+    "cartridge_cover": {
+     "axis": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.4
+     ],
+     "pivot": [
+      0.0125,
+      -0.215,
+      0.7
+     ],
+     "type": "revolute"
+    },
+    "sample_cover": {
+     "axis": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "manufacturer_datasheet",
+     "evidence": "manufacturer",
+     "limits": [
+      0.0,
+      1.570796
+     ],
+     "pivot": [
+      0.069,
+      -0.106,
+      0.7327
+     ],
+     "type": "revolute"
+    }
+   },
    "level_m": {
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
     "value": 0.329
    },
+   "parts": [
+    "sample_cover",
+    "cartridge_cover",
+    "sample_tray_inlet"
+   ],
    "port": "sample_tray_inlet",
    "site": {
     "detail": "photo_estimate",
@@ -309,6 +732,32 @@
    }
   },
   "shimadzu_icpms2030": {
+   "joints": {
+    "plasma_cover": {
+     "axis": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.7
+     ],
+     "pivot": [
+      0.33,
+      -0.07,
+      0.552
+     ],
+     "type": "revolute"
+    }
+   },
+   "parts": [
+    "plasma_cover",
+    "torch",
+    "spray_chamber"
+   ],
    "size": {
     "detail": "manufacturer_dimensions_m",
     "evidence": "manufacturer",
@@ -320,6 +769,31 @@
    }
   },
   "thermo_dionexintegrion": {
+   "joints": {
+    "main_door": {
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "detail": "photo_estimate",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0,
+      1.919862
+     ],
+     "pivot": [
+      0.147,
+      -0.27,
+      0.043
+     ],
+     "type": "revolute"
+    }
+   },
+   "parts": [
+    "main_door",
+    "column_compartment"
+   ],
    "size": {
     "detail": "model_bounding_box",
     "evidence": "engineering_assumption",
@@ -331,6 +805,30 @@
    }
   },
   "thermo_orbitrapexploris": {
+   "joints": {
+    "source_housing": {
+     "axis": [
+      0,
+      -1,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.18
+     ],
+     "pivot": [
+      -0.075,
+      -0.4365,
+      0.485
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "source_housing"
+   ],
    "size": {
     "detail": "manufacturer_dimensions_m",
     "evidence": "manufacturer",

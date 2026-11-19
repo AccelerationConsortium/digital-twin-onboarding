@@ -71,3 +71,43 @@ test("meet the instruments shows what a cloud lab offers", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText(/models 96 of the 480 tubes/)).toBeVisible();
 });
+
+test("a cloud lab twin shows its parts move", async ({ page }) => {
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page.getByRole("button", { name: "Enter the learning lab" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.goto("/#/instruments");
+
+  const section = page.getByRole("region", { name: "In a cloud lab" });
+  await section
+    .getByRole("button", { name: /Workcell cell incubator/ })
+    .click();
+  const detail = page.getByRole("article", { name: "Workcell cell incubator" });
+  const states = detail.getByRole("group", { name: "State" });
+  await expect(states.getByRole("button", { name: "Closed" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(detail.getByText(/Both doors are shut/)).toBeVisible();
+  // A state moves the stand-in's own doors and says what is happening.
+  await states.getByRole("button", { name: "Glass door open" }).click();
+  await expect(
+    states.getByRole("button", { name: "Glass door open" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    detail.getByText(
+      "Both doors open, so a plate can go onto the lowest shelf.",
+    ),
+  ).toBeVisible();
+  if (process.env.SHOTS)
+    await detail.screenshot({ path: `${process.env.SHOTS}/meet-twin.png` });
+
+  // An instrument with no jointed model keeps the plain view.
+  await section.getByRole("button", { name: /Analytical HPLC/ }).click();
+  const hplc = page.getByRole("article", { name: "Analytical HPLC" });
+  await expect(hplc.locator("canvas")).toBeVisible();
+  await expect(hplc.getByRole("group", { name: "State" })).toHaveCount(0);
+});
