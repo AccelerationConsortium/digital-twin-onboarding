@@ -14,6 +14,7 @@ from . import (
     groups,
     node_api,
     opentrons_check,
+    reviews,
     sim2real_api,
 )
 from ._version import __version__
@@ -747,6 +748,7 @@ def create_app(settings: Settings | None = None, store=None):
     cloudlab_training.install(app, store=app.state.store)
     node_api.install(app)
     agent_sandbox.install(app, store=app.state.store)
+    reviews.install(app, store=app.state.store)
     return app
 
 
