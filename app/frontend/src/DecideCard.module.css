@@ -1,0 +1,93 @@
+.card {
+  border: var(--hairline) solid var(--line);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin: 20px 0;
+}
+.card h3 {
+  font-size: 13px;
+  margin: 0 0 12px;
+}
+.levers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.levers button {
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.levers button:hover:not(:disabled) {
+  border-color: var(--brand);
+}
+.levers button:disabled {
+  cursor: default;
+  color: var(--muted);
+}
+.levers button[aria-pressed="true"] {
+  opacity: 1;
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.compare > div {
+  background: var(--surface-3);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.compare span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.compare strong {
+  display: block;
+  font-size: 13px;
+  margin-top: 6px;
+  color: var(--brand-text);
+}
+.compare p {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 6px 0 0;
+}
+.verdict {
+  font-size: 11px;
+  margin: 12px 0 0;
+}
+.details {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.details summary {
+  cursor: pointer;
+  color: var(--ink-2);
+}
+.details ol {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+.details p {
+  margin: 0;
+}
+@media (max-width: 560px) {
+  .compare {
+    grid-template-columns: 1fr;
+  }
+}
