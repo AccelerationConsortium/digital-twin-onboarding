@@ -8,9 +8,11 @@ import {
   ExternalLink,
   FlaskConical,
   Search,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import { api, json } from "./api";
+import type { WorkflowTemplate } from "./CloudLabWorkflow";
 import {
   workflows,
   methods,
@@ -131,10 +133,149 @@ function WorkflowArt({ item }: { item: Workflow }) {
   );
 }
 
+type Candidate = { id: string; name: string; source: string; notes: string[] };
+type TemplateRow = {
+  index: number;
+  text: string;
+  chosen: string;
+  candidates: Candidate[];
+  rejected: { id: string; name: string; reason: string }[];
+  gap: string | null;
+};
+type PaperTemplate = {
+  rows: TemplateRow[];
+  steps: WorkflowTemplate["steps"];
+  check: {
+    ok: boolean;
+    error: { step: number | null; message: string } | null;
+  } | null;
+  instruments: WorkflowTemplate["instruments"];
+};
+
+/** The paper read into steps, each with the twins that could take it. */
+function Reproduce({
+  item,
+  onOpen,
+}: {
+  item: Workflow;
+  onOpen: (template: WorkflowTemplate) => void;
+}) {
+  const [picks, setPicks] = useState<Record<number, string>>({});
+  const [template, setTemplate] = useState<PaperTemplate | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let current = true;
+    api<PaperTemplate>(`/marketplace/${item.id}/template`, json({ picks }))
+      .then((next) => {
+        if (!current) return;
+        setTemplate(next);
+        setFailed(false);
+      })
+      .catch(() => current && setFailed(true));
+    return () => {
+      current = false;
+    };
+  }, [item.id, picks]);
+
+  if (failed && !template)
+    return (
+      <p className={s.note} role="alert">
+        Instrument suggestions could not be loaded. Reload to try again.
+      </p>
+    );
+  if (!template) return null;
+  const used = template.rows.filter((row) => row.chosen).length;
+  const error = template.check?.error;
+  return (
+    <section className={s.section} aria-label="Reproduce on the twins">
+      <div className={s.sectionHeading}>
+        <h2>Reproduce on the twins</h2>
+        <span>
+          {used} of {template.rows.length} steps on a twin
+        </span>
+      </div>
+      <ol className={s.reproduce}>
+        {template.rows.map((row) => {
+          const chosen = row.candidates.find((c) => c.id === row.chosen);
+          return (
+            <li key={row.index} data-testid={`paper-step-${row.index + 1}`}>
+              <span>{String(row.index + 1).padStart(2, "0")}</span>
+              <h3>{row.text}</h3>
+              <div>
+                {row.gap ? (
+                  <p>{row.gap}</p>
+                ) : (
+                  <select
+                    aria-label={`Instrument for step ${row.index + 1}`}
+                    value={row.chosen}
+                    onChange={(event) =>
+                      setPicks({ ...picks, [row.index]: event.target.value })
+                    }
+                  >
+                    {row.candidates.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} · {c.source}
+                      </option>
+                    ))}
+                    <option value="">Leave this step out</option>
+                  </select>
+                )}
+                {chosen?.notes.map((note) => (
+                  <small key={note} className={s.fitNote}>
+                    {note}
+                  </small>
+                ))}
+                {!!row.rejected.length && (
+                  <details>
+                    <summary>Not suggested</summary>
+                    <ul>
+                      {row.rejected.map((r) => (
+                        <li key={r.id}>
+                          {r.name}: {r.reason.toLowerCase()}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <div className={s.reproduceActions}>
+        {error && (
+          <p role="alert">
+            <TriangleAlert size={14} /> {error.message}
+          </p>
+        )}
+        <button
+          className={s.primary}
+          disabled={!template.steps.length}
+          onClick={() =>
+            onOpen({
+              title: item.title,
+              steps: template.steps,
+              instruments: template.instruments,
+            })
+          }
+        >
+          Open as a cloud lab workflow <ArrowRight size={16} />
+        </button>
+        <small>
+          Values stay within each twin's teaching limits, not the paper's
+          conditions. Runs are synthetic.
+        </small>
+      </div>
+    </section>
+  );
+}
+
 export function WorkflowMarketplace({
   onAdapt,
+  onTemplate,
 }: {
   onAdapt: (item: Workflow) => void;
+  onTemplate: (template: WorkflowTemplate) => void;
 }) {
   const [query, setQuery] = useState("");
   const [domain, setDomain] = useState("All domains");
@@ -207,6 +348,7 @@ export function WorkflowMarketplace({
             ))}
           </div>
         </section>
+        <Reproduce key={selected.id} item={selected} onOpen={onTemplate} />
         <section className={s.adaptation}>
           <div>
             <span className={s.eyebrow}>

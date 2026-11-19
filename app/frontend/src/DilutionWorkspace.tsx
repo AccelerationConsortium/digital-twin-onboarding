@@ -23,6 +23,7 @@ import { api, ApiError, json } from "./api";
 import type { Action, Experiment, Session } from "./types";
 import s from "./App.module.css";
 import { useDialog } from "./useDialog";
+import DecideCard from "./DecideCard";
 import { LABWARE, LABELS, format, LabwareDrawing, Deck } from "./deck";
 
 export default function DilutionWorkspace({
@@ -510,7 +511,7 @@ export default function DilutionWorkspace({
                     {session.status === "completed"
                       ? session.assessment?.passed
                         ? "You reached the learning goal."
-                        : "The sequence finished. What would you change?"
+                        : "The sequence finished short of the goal."
                       : lastError
                         ? "A useful place to pause."
                         : "Watch your experiment take shape."}
@@ -549,6 +550,10 @@ export default function DilutionWorkspace({
                   ))}
                 </div>
               )}
+              {session.experiment.course_id === "flex-foundations" &&
+                ["completed", "faulted"].includes(session.status) && (
+                  <DecideCard session={session} />
+                )}
               <div className={s.observationTable}>
                 <div>
                   <span>CONTAINER</span>

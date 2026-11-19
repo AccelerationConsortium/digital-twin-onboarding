@@ -974,3 +974,77 @@
   margin: 0;
   min-width: 0;
 }
+.reproduce {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: var(--hairline) solid var(--line);
+}
+.reproduce > li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+  padding: 16px 0;
+  border-bottom: var(--hairline) solid var(--line);
+}
+.reproduce > li > span {
+  color: var(--faint);
+  font-size: 22px;
+  font-weight: 300;
+}
+.reproduce h3 {
+  margin: 0 0 4px;
+}
+.reproduce small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.reproduce select {
+  width: 100%;
+}
+.reproduce p {
+  margin: 0;
+  font-size: 14px;
+}
+.reproduce .fitNote {
+  display: block;
+  margin-top: 6px;
+  color: var(--warn);
+}
+.reproduce details {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.reproduce details ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.reproduceActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 20px;
+}
+.reproduceActions p {
+  flex-basis: 100%;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger);
+  font-size: 14px;
+}
+.reproduceActions small {
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  .reproduce > li {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .reproduce > li > div:last-child {
+    grid-column: 2;
+  }
+}

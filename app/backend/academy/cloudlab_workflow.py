@@ -7,6 +7,10 @@ as every other twin (`mock_contract.execute_mock`), so vessel, volume, slot, lim
 consumable rules are the twins' own. Moves between instruments go through one synthetic
 sample-handling station; the page is about functions, so there is no bench layout.
 
+A step may also name a ChemLab-Assets twin as `chemlab:<slug>`, as a marketplace paper
+template does when the cloud lab has no instrument for a step. Those twins keep their
+Academy teaching defaults.
+
 The limits are the teaching twins' (published figures narrowed to what a twin holds,
 plus Academy defaults), never the cloud lab's instrument specification, and every run
 is synthetic: no robot, Isaac/GPU or chemistry.
@@ -20,6 +24,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from pydantic import Field, model_validator
 
+from .chemlab import CHEMLAB
 from .cloudlab import CLOUDLAB, overview
 from .mock_contract import PlanError, execute_mock, site_keys
 from .models import StrictModel
@@ -55,13 +60,7 @@ HANDLING = {
         "sites": [],
     },
 }
-TWINS = {
-    HANDLER: HANDLING,
-    **{
-        key: {"id": key, "confirmed": True, "mode": "mock", "spec": CLOUDLAB[key]["spec"]}
-        for key in INSTRUMENTS
-    },
-}
+CHEMLAB_PREFIX = "chemlab:"
 STATEMENT = (
     "Synthetic teaching run on Academy twins. It checks the workflow against the twins' "
     "rules only; it is not the cloud lab's instrument specification or a chemical result."
@@ -69,8 +68,27 @@ STATEMENT = (
 STEP_AT = re.compile(r"^Step (\d+):")
 
 
+def known(key):
+    return key in INSTRUMENTS or (
+        key.startswith(CHEMLAB_PREFIX) and key.removeprefix(CHEMLAB_PREFIX) in CHEMLAB
+    )
+
+
+def spec_of(key):
+    if key in CLOUDLAB:
+        return CLOUDLAB[key]["spec"]
+    return CHEMLAB[key.removeprefix(CHEMLAB_PREFIX)]["spec"]
+
+
+def twins(keys):
+    return {
+        HANDLER: HANDLING,
+        **{k: {"id": k, "confirmed": True, "mode": "mock", "spec": spec_of(k)} for k in keys},
+    }
+
+
 class Step(StrictModel):
-    instrument: Literal[tuple(INSTRUMENTS)]
+    instrument: str = Field(max_length=96)
     # "transfer" moves the sample to this instrument from wherever it is.
     operation: Literal["load", "transfer", "mix", "heat", "read", "wait"]
     sample: str = Field(default="plate", pattern=r"^[a-z][a-z0-9-]{0,23}$")
@@ -80,6 +98,8 @@ class Step(StrictModel):
 
     @model_validator(mode="after")
     def bounded(self):
+        if not known(self.instrument):
+            raise ValueError("Choose a cloud lab instrument or a ChemLab-Assets twin")
         if self.slot and self.operation not in {"load", "transfer"}:
             raise ValueError("Only a load or a move chooses a slot")
         if self.operation == "heat" and not 4 <= self.value <= 120:
@@ -108,7 +128,7 @@ def contract_steps(steps):
         key, at = step["sample"], step["instrument"]
         if step["operation"] == "transfer":
             source = where.get(key)
-            name = CLOUDLAB[at]["spec"]["name"]
+            name = spec_of(at)["name"]
             if source is None:
                 raise PlanError("state", f"Step {index + 1}: load {key} before moving it")
             if source == at:
@@ -143,7 +163,7 @@ def contract_steps(steps):
 def check(steps):
     """The synthetic trace of a workflow, or the first step that breaks a twin's rules."""
     try:
-        trace = execute_mock(TWINS, contract_steps(steps))
+        trace = execute_mock(twins({s["instrument"] for s in steps}), contract_steps(steps))
     except PlanError as exc:
         found = STEP_AT.match(str(exc))
         return {
@@ -162,8 +182,31 @@ def check(steps):
     return {"ok": True, "trace": trace, "error": None}
 
 
-def catalog():
+def chemlab_entry(key):
+    """A ChemLab-Assets twin in the shape of the cloud lab instruments."""
+    asset = CHEMLAB[key.removeprefix(CHEMLAB_PREFIX)]
+    spec = asset["spec"]
+    return {
+        "id": key,
+        "name": spec["name"],
+        "section": "ChemLab-Assets",
+        "experiment": asset["domain"],
+        "published": asset["attribution"],
+        "narrowed": "Operations, vessel, volume and limits are Academy teaching defaults, "
+        "not the manufacturer's specification.",
+        "operations": spec["operations"],
+        "holds": spec["container"],
+        "limits": spec["limits"],
+        "consumables": spec["consumables"],
+        "stand_in": None,
+        "slots": site_keys(spec),
+    }
+
+
+def catalog(extra=()):
+    """The designer's instruments, then any ChemLab-Assets twins in `extra`."""
     shown = {i["id"]: i for i in overview()["instruments"]}
+    chemlab = [chemlab_entry(k) for k in dict.fromkeys(extra) if k not in INSTRUMENTS]
     return [
         {
             **{
@@ -185,7 +228,7 @@ def catalog():
             "slots": site_keys(CLOUDLAB[key]["spec"]),
         }
         for key in INSTRUMENTS
-    ]
+    ] + chemlab
 
 
 def step(instrument, operation, value=1, sample="plate", slot=""):
@@ -243,7 +286,7 @@ class CloudLabWorkflows:
         return {
             **record,
             "check": check(record["steps"]),
-            "instruments": catalog(),
+            "instruments": catalog(s["instrument"] for s in record["steps"]),
             "starters": STARTERS,
             "statement": STATEMENT,
             "evidence": "synthetic",

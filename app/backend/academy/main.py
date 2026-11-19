@@ -45,6 +45,8 @@ from .mock_connector import router as mock_connector_router
 from .models import COURSES, Experiment, Guest, Profile, Revision, UpdateExperiment, UpdateLearning
 from .onboarding import DeviceUpdate, OnboardingService, TwinCreate
 from .pairing import PairRunService
+from .paper_workflows import PaperId, Picks
+from .paper_workflows import template as paper_template
 from .recipes import MIXING, CreateMixing, MixingPlan, mixing_session
 from .run_monitor import router as run_monitor_router
 from .runs import GpuRequest, RunControl, RunService, SubmitRun
@@ -332,6 +334,10 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/cloudlab/workflow/run")
     def run_cloudlab_workflow(data: RunWorkflow, owner: str = Depends(identify)):
         return app.state.cloudlab_workflows.run(owner, data)
+
+    @app.post("/api/marketplace/{paper}/template")
+    def marketplace_template(paper: PaperId, data: Picks, _owner: str = Depends(identify)):
+        return paper_template(paper, data.picks)
 
     @app.get("/api/twins/library")
     def instrument_library(

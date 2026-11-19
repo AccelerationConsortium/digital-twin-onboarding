@@ -71,6 +71,12 @@ type Check = {
   error: { step: number | null; message: string; layer: string } | null;
 };
 type Run = { id: string; at: string; title: string; trace: TraceEntry[] };
+/** A marketplace paper's steps on the twins, opened here as a starter. */
+export type WorkflowTemplate = {
+  title: string;
+  steps: Step[];
+  instruments: Instrument[];
+};
 type Workspace = {
   version: number;
   title: string;
@@ -105,7 +111,9 @@ const TONES: Record<string, string> = {
   Bioassays: s.aspirate,
   "Organic Synthesis": s.drop,
   Separations: s.read,
+  "ChemLab-Assets": s.drop,
 };
+const PAPER = "paper";
 const format = (value: number) => Number(value.toFixed(1)).toLocaleString();
 
 /** Where each sample is before every step and after the last, as the twins' contract moves it. */
@@ -143,11 +151,18 @@ export default function CloudLabWorkflow({
   onBack,
   onError,
   registerLeaveGuard,
+  template,
+  onTemplateTaken,
 }: {
   onBack: () => void;
   onError: (message: string) => void;
   registerLeaveGuard: (guard: (() => boolean) | null) => void;
+  template?: WorkflowTemplate;
+  onTemplateTaken?: () => void;
 }) {
+  // The paper template stays a starter for this visit.
+  const [paper] = useState(template);
+  const offered = useRef(false);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [title, setTitle] = useState("");
   const [steps, setSteps] = useState<Step[]>([]);
@@ -167,9 +182,24 @@ export default function CloudLabWorkflow({
     api<Workspace>("/cloudlab/workflow")
       .then((next) => {
         adopt(next);
-        setStarter(Object.keys(next.starters)[0] ?? "");
+        setStarter(paper ? PAPER : (Object.keys(next.starters)[0] ?? ""));
+        if (!paper || offered.current) return;
+        offered.current = true;
+        onTemplateTaken?.();
+        // The template is a draft: the saved workflow stays until the learner saves.
+        if (
+          !next.steps.length ||
+          window.confirm(
+            `Replace your workflow steps with the "${paper.title}" template? Your saved workflow stays until you save.`,
+          )
+        ) {
+          setSteps(paper.steps);
+          setTitle(paper.title);
+        }
       })
       .catch(() => setFailed(true));
+    // Opened once; a template is taken on arrival only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const dirty =
@@ -200,12 +230,29 @@ export default function CloudLabWorkflow({
     if (workspace && !dirty) setCheck(workspace.check);
   }, [dirty, workspace]);
 
+  // The designer's instruments, then ChemLab-Assets twins the paper template uses.
+  const instruments = useMemo(() => {
+    const shown = workspace?.instruments ?? [];
+    const known = new Set(shown.map((i) => i.id));
+    return [
+      ...shown,
+      ...(paper?.instruments ?? []).filter((i) => !known.has(i.id)),
+    ];
+  }, [workspace, paper]);
   const byId = useMemo(
     () =>
-      Object.fromEntries(
-        (workspace?.instruments ?? []).map((i) => [i.id, i]),
-      ) as Record<string, Instrument>,
-    [workspace],
+      Object.fromEntries(instruments.map((i) => [i.id, i])) as Record<
+        string,
+        Instrument
+      >,
+    [instruments],
+  );
+  const starters = useMemo<Workspace["starters"]>(
+    () => ({
+      ...(paper ? { [PAPER]: { title: paper.title, steps: paper.steps } } : {}),
+      ...workspace?.starters,
+    }),
+    [paper, workspace],
   );
   const before = useMemo(() => locations(steps), [steps]);
 
@@ -376,7 +423,7 @@ export default function CloudLabWorkflow({
                 value={starter}
                 onChange={(event) => setStarter(event.target.value)}
               >
-                {Object.entries(workspace.starters).map(([key, value]) => (
+                {Object.entries(starters).map(([key, value]) => (
                   <option key={key} value={key}>
                     {value.title}
                   </option>
@@ -387,7 +434,7 @@ export default function CloudLabWorkflow({
               className={s.textButton}
               disabled={!starter}
               onClick={() => {
-                const chosen = workspace.starters[starter];
+                const chosen = starters[starter];
                 if (
                   steps.length &&
                   !window.confirm("Replace your steps with this starter?")
@@ -405,7 +452,7 @@ export default function CloudLabWorkflow({
             role="group"
             aria-label="Add a step"
           >
-            {workspace.instruments.map((instrument) => (
+            {instruments.map((instrument) => (
               <button
                 key={instrument.id}
                 className={TONES[instrument.section]}
@@ -440,7 +487,7 @@ export default function CloudLabWorkflow({
                         edit(index, { instrument: event.target.value })
                       }
                     >
-                      {workspace.instruments.map((option) => (
+                      {instruments.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.name}
                         </option>
