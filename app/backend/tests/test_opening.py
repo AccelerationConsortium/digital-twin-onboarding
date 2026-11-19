@@ -7,7 +7,7 @@ from academy import layout_search
 from academy.collision import shapes
 from academy.examples import EXAMPLES, build
 from academy.simple_twins import TwinSpec
-from academy.workcell_layout import _yaw, access
+from academy.workcell_layout import TRAY, _yaw, access, footprint
 from pydantic import ValidationError
 
 BENCH = {"width": 2.4, "depth": 1.6}
@@ -157,6 +157,9 @@ def test_an_opening_without_slots_moves_the_tray_and_counts_as_geometry():
     tray = TwinSpec(**{**spec, "sites": [], "resource": {"slots": 1}, "opening": LEFT_FRONT})
     place = {"x": 0, "z": 0, "yaw": 0, "access": "front"}
     point, *_ = access(tray.model_dump(), place)
-    assert point[0] < -0.435 and point[2] > 0
+    x0, _, z0, z1 = footprint(tray.model_dump())
+    # In front of the left face, at the middle of its open front half.
+    assert point[0] == pytest.approx(x0 - TRAY)
+    assert point[2] == pytest.approx(z0 + (z1 - z0) * 0.75)
     opened = {**spec, "opening": LEFT_FRONT}
     assert "geometry" in detail_layers(spec, opened)[1]
