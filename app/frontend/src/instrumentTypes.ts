@@ -303,6 +303,8 @@ export type LayoutPreview = {
   blocked: BlockedMotion | null;
   /** The saved workflow in time; empty when it could not be planned. */
   timeline?: TimelineStep[];
+  /** Joint angles each arm waits in, clear of every instrument; null when none is. */
+  rest?: Record<string, number[] | null>;
   /** What arm paths are simulated with; null when only the geometry is checked. */
   simulation: {
     engine: "mujoco";

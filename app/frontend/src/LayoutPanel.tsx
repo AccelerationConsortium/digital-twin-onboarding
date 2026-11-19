@@ -15,6 +15,7 @@ import {
   SLOT,
   armReach,
   centre,
+  clashes,
   conflicts,
   corners,
   frontFace,
@@ -472,11 +473,14 @@ export default function LayoutPanel({
         </strong>
         {bad.size > 0 && (
           <p className={s.problem}>
-            {[...bad].map(name).join(", ")}{" "}
-            {bad.size === 1
-              ? "overlaps another instrument or leaves"
-              : "overlap or leave"}{" "}
-            the bench.
+            {clashes(layout, specs)
+              .map((c) =>
+                c.with
+                  ? `${name(c.id)} overlaps ${name(c.with)}`
+                  : `${name(c.id)} leaves the bench`,
+              )
+              .join("; ")}
+            .
           </p>
         )}
         {!bad.size && preview?.error && (

@@ -3,7 +3,14 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { ArmFrame, Layout, Twin, Vec } from "./instrumentTypes";
 import { armModel, fitted, instrumentModel } from "./instrumentModels";
-import { ARM_RADII, armReach, isArm, mountMatrix } from "./layoutGeometry";
+import {
+  ARM_RADII,
+  armReach,
+  isArm,
+  meeting,
+  mountMatrix,
+  type Clash,
+} from "./layoutGeometry";
 import { HOME } from "./workcellCase/cell";
 import s from "./InstrumentStudio.module.css";
 
@@ -18,7 +25,9 @@ type Robot = Awaited<ReturnType<typeof armModel>>;
  * fitted to its planning box; otherwise only validated box primitives are drawn. Every
  * transfer arm is drawn as the UR5e the planner uses, posed from server-computed joint
  * angles (capsules from joint points until the model has loaded). Without a layout the
- * twins sit side by side; with one they sit where they are placed.
+ * twins sit side by side; with one they sit where they are placed. An idle arm waits in
+ * `rests` (checked clear by the server); instruments in `clashes` are drawn red, with
+ * the space two of them share marked.
  */
 export default function TwinScene({
   twins,
@@ -30,6 +39,8 @@ export default function TwinScene({
   armActor,
   path,
   blocked,
+  rests,
+  clashes,
 }: {
   twins: (Pick<Twin, "id" | "spec" | "confirmed"> &
     Partial<Pick<Twin, "asset">>)[];
@@ -41,6 +52,8 @@ export default function TwinScene({
   armActor?: string | null;
   path?: Vec[] | null;
   blocked?: string | null;
+  rests?: Record<string, number[] | null> | null;
+  clashes?: Clash[] | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const overlay = useRef<THREE.Group | null>(null);
@@ -50,6 +63,8 @@ export default function TwinScene({
     JSON.stringify([
       twins.map((t) => [t.id, t.spec, t.asset?.mesh ?? null]),
       layout,
+      rests,
+      clashes,
     ]) +
     active +
     sample +
@@ -88,6 +103,9 @@ export default function TwinScene({
     robots.current.clear();
 
     const placed = new Map(layout?.placements.map((p) => [p.twin_id, p]));
+    const clashing = new Set(
+      (clashes ?? []).flatMap((c) => (c.with ? [c.id, c.with] : [c.id])),
+    );
     const shown = twins.filter((t) => t.spec && (!layout || placed.has(t.id)));
     const widths = shown.map((t) =>
       Math.max(
@@ -108,8 +126,8 @@ export default function TwinScene({
       group.position.set(placement.x, 0, placement.z);
       group.rotation.y = (placement.yaw * Math.PI) / 180;
       x += widths[i] + GAP;
-      const glow =
-        twin.id === blocked ? "#d0402a" : twin.id === active ? "#b94825" : null;
+      const refused = twin.id === blocked || clashing.has(twin.id);
+      const glow = refused ? "#d0402a" : twin.id === active ? "#b94825" : null;
       const boxes: THREE.Mesh[] = [];
       for (const part of spec.parts) {
         const geometry = new THREE.BoxGeometry(...part.size);
@@ -117,7 +135,7 @@ export default function TwinScene({
           color: part.color,
           roughness: 0.7,
           emissive: glow ? new THREE.Color(glow) : new THREE.Color(0),
-          emissiveIntensity: glow ? (twin.id === blocked ? 0.6 : 0.35) : 0,
+          emissiveIntensity: glow ? (refused ? 0.6 : 0.35) : 0,
           transparent: !twin.confirmed,
           opacity: twin.confirmed ? 1 : 0.55,
         });
@@ -156,7 +174,7 @@ export default function TwinScene({
                 THREE.Matrix4["set"]
               >),
             );
-            robot.pose(REST, OPEN);
+            robot.pose(rests?.[twin.id] ?? REST, OPEN);
             scene.add(robot.group);
             owned.push(robot.group);
             robots.current.set(twin.id, robot);
@@ -180,6 +198,41 @@ export default function TwinScene({
       }
       scene.add(group);
     });
+    // Where two instruments would stand in each other.
+    const specs = new Map(shown.map((t) => [t.id, t.spec!]));
+    for (const clash of clashes ?? []) {
+      const a = specs.get(clash.id);
+      const b = clash.with ? specs.get(clash.with) : undefined;
+      const pa = placed.get(clash.id);
+      const pb = clash.with ? placed.get(clash.with) : undefined;
+      if (!a || !b || !pa || !pb) continue;
+      const shared = meeting(
+        { spec: a, placement: pa },
+        { spec: b, placement: pb },
+      );
+      if (!shared) continue;
+      const geometry = new THREE.BoxGeometry(
+        shared.x1 - shared.x0,
+        shared.height,
+        shared.z1 - shared.z0,
+      );
+      const material = new THREE.MeshBasicMaterial({
+        color: "#ff3b1f",
+        transparent: true,
+        opacity: 0.35,
+        depthTest: false,
+      });
+      const overlap = new THREE.Mesh(geometry, material);
+      overlap.name = "clash";
+      overlap.renderOrder = 2;
+      overlap.position.set(
+        (shared.x0 + shared.x1) / 2,
+        shared.height / 2,
+        (shared.z0 + shared.z1) / 2,
+      );
+      scene.add(overlap);
+      disposables.push(geometry, material);
+    }
     if (layout) {
       const geometry = new THREE.BoxGeometry(
         layout.bench.width,
@@ -277,7 +330,10 @@ export default function TwinScene({
     if (!group) return;
     clear(group);
     for (const [id, robot] of robots.current)
-      robot.pose(id === armActor && armJoints ? armJoints : REST, OPEN);
+      robot.pose(
+        id === armActor && armJoints ? armJoints : (rests?.[id] ?? REST),
+        OPEN,
+      );
     const metal = new THREE.MeshStandardMaterial({
       color: blocked ? "#e6a08a" : "#d8dde3",
       roughness: 0.35,
