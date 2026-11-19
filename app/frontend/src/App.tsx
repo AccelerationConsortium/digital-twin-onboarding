@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { api, ApiError, configureAuth, json, signIn, signOut } from "./api";
 import type { Config, Course, Experiment, Profile, Session } from "./types";
+import type { WorkflowTemplate } from "./CloudLabWorkflow";
 import s from "./App.module.css";
 import { useDialog } from "./useDialog";
 import { firstTransfer } from "./learningContent";
@@ -437,6 +438,7 @@ export default function App() {
   );
   const [workspaceRouteRevision, setWorkspaceRouteRevision] = useState(0);
   const [discoverySeed, setDiscoverySeed] = useState<Workflow | undefined>();
+  const [paperTemplate, setPaperTemplate] = useState<WorkflowTemplate>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -1070,6 +1072,8 @@ export default function App() {
                 />
               ) : view === "cloudlab-workflow" ? (
                 <CloudLabWorkflow
+                  template={paperTemplate}
+                  onTemplateTaken={() => setPaperTemplate(undefined)}
                   onBack={() => nav("instruments")}
                   onError={showError}
                   registerLeaveGuard={registerLeaveGuard}
@@ -1102,6 +1106,10 @@ export default function App() {
                     setView("discovery");
                     window.history.pushState({}, "", `/#/discovery/${item.id}`);
                     window.scrollTo(0, 0);
+                  }}
+                  onTemplate={(template) => {
+                    setPaperTemplate(template);
+                    nav("cloudlab-workflow");
                   }}
                 />
               ) : view === "discovery" ? (
