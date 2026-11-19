@@ -22,7 +22,7 @@ test("a stress run repeats the transfers and replays the worst cycle", async ({
   const paths = page.getByRole("button", { name: /^Step \d+ · / });
   await expect(paths).toHaveCount(1, { timeout: 60_000 });
 
-  const run = page.getByRole("button", { name: "Run stress test" });
+  const run = page.getByRole("button", { name: "Run endurance test" });
   await expect(run).toBeEnabled();
   await page.getByLabel("Cycles").selectOption("50");
   await run.click();
@@ -45,7 +45,7 @@ test("a stress run repeats the transfers and replays the worst cycle", async ({
     page.getByText(/Tightest cycle · cycle \d+, seed 1/),
   ).toBeVisible();
   await page.getByRole("button", { name: "Replay" }).click();
-  await expect(page.getByText(/Stress cycle · Step 3/)).toBeVisible();
+  await expect(page.getByText(/Endurance cycle · Step 3/)).toBeVisible();
   await expect(
     page.getByText(/Picked .* mm off, placed .* mm off/),
   ).toBeVisible();

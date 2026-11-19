@@ -307,10 +307,10 @@ export default function EndurancePanel({
   if (!simulated)
     return (
       <div className={s.panel}>
-        <strong>Stress test</strong>
+        <strong>Endurance</strong>
         <div className={s.bar}>
           <button className={studio.secondary} disabled>
-            <Repeat size={14} /> Run stress test
+            <Repeat size={14} /> Run endurance test
           </button>
           <small className={panel.hint}>
             Needs the MuJoCo simulation, which this server does not have.
@@ -321,7 +321,7 @@ export default function EndurancePanel({
 
   return (
     <div className={s.panel} aria-live="polite">
-      <strong>Stress test</strong>
+      <strong>Endurance</strong>
       <div className={s.bar}>
         <label>
           Cycles
@@ -374,7 +374,7 @@ export default function EndurancePanel({
           </button>
         ) : (
           <button className={studio.secondary} disabled={!ready} onClick={run}>
-            <Repeat size={14} /> Run stress test
+            <Repeat size={14} /> Run endurance test
           </button>
         )}
         {!ready && !running && (

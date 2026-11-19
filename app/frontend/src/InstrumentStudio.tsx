@@ -668,7 +668,7 @@ export default function InstrumentStudio({
             <span>
               {tab === "layout"
                 ? motionFrames
-                  ? `${replaying ? "Stress cycle" : showingBlocked ? "Blocked attempt" : "Planned path"} · Step ${shown!.step} · drag to orbit`
+                  ? `${replaying ? "Endurance cycle" : showingBlocked ? "Blocked attempt" : "Planned path"} · Step ${shown!.step} · drag to orbit`
                   : `${draft.placements.length} on the bench · drag to orbit`
                 : trace
                   ? `Last run · Step ${trace.step} · ${operationLabels[trace.operation]} · ${name(trace.device_id)}`
