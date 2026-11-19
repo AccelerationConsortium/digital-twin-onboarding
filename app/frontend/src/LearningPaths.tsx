@@ -215,13 +215,20 @@ export default function LearningPaths({
             />
             <Resource
               number="03"
+              title="Fault drills"
+              description="An instrument fault fires mid-run on the twin. Respond against the clock, then take a checkride."
+              action="Open fault drills"
+              onOpen={() => onNavigate("drills")}
+            />
+            <Resource
+              number="04"
               title="Discovery studio"
               description="Define what changes, what stays fixed and how measurements inform the next experiment."
               action="Open discovery studio"
               onOpen={() => onNavigate("discovery")}
             />
             <Resource
-              number="04"
+              number="05"
               title="Plan a multi-device workcell"
               description="Assign operations to selected instruments, arrange a bench layout and inspect its arm path checks."
               action="Open workcell planner"
