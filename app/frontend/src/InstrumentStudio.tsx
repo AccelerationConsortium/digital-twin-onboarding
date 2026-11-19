@@ -29,6 +29,7 @@ import {
   type LibraryResults,
   type LayoutPreview,
   type LayoutSearchChunk,
+  type ToleranceBands,
   type BriefRole,
   type ExampleCell,
   type Operation,
@@ -138,6 +139,8 @@ export default function InstrumentStudio({
   const layoutDirty = useRef(false);
   const layoutRevision = useRef(0);
   const [preview, setPreview] = useState<LayoutPreview | null>(null);
+  // Measured placement bands of the layout draft, drawn around each instrument.
+  const [bands, setBands] = useState<ToleranceBands | null>(null);
   const [checking, setChecking] = useState(false);
   const [selectedMotion, setSelectedMotion] = useState(0);
   const [armFrame, setArmFrame] = useState(0);
@@ -685,6 +688,7 @@ export default function InstrumentStudio({
               armActor={editMotion?.actor_id ?? shown?.actor_id ?? null}
               path={motionFrames?.map((f) => f[f.length - 1]) ?? null}
               blocked={showingBlocked ? blockedTwin : null}
+              bands={tab === "layout" ? bands : null}
             />
           </Suspense>
           {tab === "workflow" && trace && (
@@ -1087,12 +1091,26 @@ export default function InstrumentStudio({
                         }
                       : undefined
                   }
-                  onSearch={(fixed, start, avoid) =>
+                  onSearch={(fixed, start, avoid, shared) =>
                     api<LayoutSearchChunk>(
                       "/twins/layout/search",
-                      json({ bench: draft.bench, fixed, start, avoid }),
+                      json({ bench: draft.bench, fixed, start, avoid, shared }),
                     )
                   }
+                  kept={catalog.bench_workflows ?? []}
+                  canKeep={
+                    catalog.steps.some((st) => st.operation === "transfer") &&
+                    !(catalog.bench_workflows ?? []).some(
+                      (w) =>
+                        JSON.stringify(w.steps) ===
+                        JSON.stringify(catalog.steps),
+                    )
+                  }
+                  onKeep={(name) => mutate("/twins/layout/workflows", { name })}
+                  onDrop={(id) =>
+                    mutate(`/twins/layout/workflows/${id}`, {}, "DELETE")
+                  }
+                  onBands={setBands}
                   onEdit={(step) => {
                     setPlaying(false);
                     setEditRun(null);
