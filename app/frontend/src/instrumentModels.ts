@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { api } from "./api";
 import type { Mesh, TwinSpec } from "./instrumentTypes";
-import { footprint } from "./layoutGeometry";
+import { footprint, top } from "./layoutGeometry";
 import { HOME, type Deck } from "./workcellCase/cell";
 import { buildBalance } from "./workcellCase/balanceModel";
 import { buildOT2 } from "./workcellCase/ot2Model";
@@ -61,7 +61,11 @@ export function instrumentModel(mesh: Mesh): Promise<THREE.Object3D> {
           const decks = JSON.parse(
             new TextDecoder().decode(await registered("opentrons-decks")),
           ) as { ot2: Deck };
-          return buildOT2(decks.ot2).group;
+          const ot2 = buildOT2(decks.ot2);
+          // Parked a little further forward than the case's start, the gantry beam
+          // stays inside the frame and so inside the twin's planning envelope.
+          ot2.setNozzle([ot2.park[0], ot2.park[1] - 0.06, ot2.park[2]]);
+          return ot2.group;
         }
         if (mesh.kind === "balance") return buildBalance().group;
         throw new Error(`No instrument model for ${mesh.kind}`);
@@ -119,8 +123,50 @@ export async function armModel() {
 }
 
 /**
- * The model turned Y up and moved so its envelope stands on the twin's footprint
- * centre, front toward the twin's +Z like the planning box.
+ * The box around what a model draws: visible meshes only, from their vertices, so an
+ * invisible helper (a pipette tip waiting to be shown) or a turned node's loose bounds
+ * cannot move or stretch the model.
+ */
+export function drawnBox(root: THREE.Object3D) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  const point = new THREE.Vector3();
+  root.traverseVisible((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const position = mesh.geometry?.getAttribute("position");
+    if (!position || (mesh as THREE.InstancedMesh).isInstancedMesh) {
+      box.union(new THREE.Box3().setFromObject(mesh, true));
+      return;
+    }
+    for (let i = 0; i < position.count; i++)
+      box.expandByPoint(
+        point.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld),
+      );
+  });
+  return box;
+}
+
+const standing = new WeakMap<THREE.Object3D, Map<string, THREE.Box3>>();
+/** The drawn box of a template stood Y up; kept, since a template never changes. */
+function standingBox(template: THREE.Object3D, up: Mesh["up"]) {
+  const key = up === "y" ? "y" : "z";
+  const known = standing.get(template) ?? new Map<string, THREE.Box3>();
+  standing.set(template, known);
+  if (!known.has(key)) {
+    const turned = new THREE.Group();
+    if (key === "z") turned.rotation.x = -Math.PI / 2;
+    turned.add(template.clone(true));
+    known.set(key, drawnBox(turned));
+  }
+  return known.get(key)!;
+}
+
+/**
+ * The model turned Y up and fitted to the twin's planning envelope, its footprint and
+ * height, front toward the twin's +Z like the planning box. The planner's solid shapes
+ * are measured as fractions of that same envelope, so what is drawn is what is checked.
+ * `userData.scale` is how far the model was stretched on each axis to fit.
  */
 export function fitted(
   template: THREE.Object3D,
@@ -128,19 +174,26 @@ export function fitted(
   up: Mesh["up"] = "z",
 ) {
   const holder = new THREE.Group();
+  const scaled = new THREE.Group();
   const upright = new THREE.Group();
   // A Z-up model's front, -Y, becomes +Z; a Y-up model already stands that way.
   if (up !== "y") upright.rotation.x = -Math.PI / 2;
   upright.add(template.clone(true));
-  holder.add(upright);
-  holder.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(upright);
-  const { x0, x1, z0, z1 } = footprint(spec);
+  scaled.add(upright);
+  holder.add(scaled);
+  const box = standingBox(template, up);
+  const size = box.getSize(new THREE.Vector3());
   const centre = box.getCenter(new THREE.Vector3());
-  upright.position.set(
-    (x0 + x1) / 2 - centre.x,
-    -box.min.y,
-    (z0 + z1) / 2 - centre.z,
+  const { x0, x1, z0, z1 } = footprint(spec);
+  const stretch = (want: number, have: number) =>
+    want > 0 && have > 1e-6 ? want / have : 1;
+  scaled.scale.set(
+    stretch(x1 - x0, size.x),
+    stretch(top(spec), size.y),
+    stretch(z1 - z0, size.z),
   );
+  upright.position.set(-centre.x, -box.min.y, -centre.z);
+  scaled.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2);
+  holder.userData.scale = scaled.scale.toArray();
   return holder;
 }

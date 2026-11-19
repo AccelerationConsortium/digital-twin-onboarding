@@ -20,7 +20,8 @@ DEVICES = {
         "ot2-teaching-model",
         "Opentrons OT-2 liquid-handling robot",
         "Opentrons",
-        (0.633, 0.57, 0.66),
+        # Frame, feet and the deck plate, which reaches past the frame at the back.
+        (0.633, 0.619, 0.67),
         "#3c4046",
         {
             "name": "Opentrons OT-2",
@@ -45,7 +46,8 @@ DEVICES = {
         "precision-balance-teaching-model",
         "Top-loading precision balance",
         "Academy",
-        (0.21, 0.3, 0.098),
+        # Pan, rounded housing and feet included, as the web app draws it.
+        (0.218, 0.308, 0.106),
         "#e9ecee",
         {
             "name": "Precision balance",
