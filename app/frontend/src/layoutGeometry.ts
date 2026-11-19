@@ -153,13 +153,16 @@ export function overlaps(a: Point[], b: Point[]) {
   return true;
 }
 
-/** Twin ids whose footprints overlap another or leave the bench. */
-export function conflicts(layout: Layout, specs: Map<string, TwinSpec>) {
+/** One instrument overlapping another (`with`), or leaving the bench (`with` null). */
+export type Clash = { id: string; with: string | null };
+
+/** Every footprint that overlaps another or leaves the bench, as the server refuses them. */
+export function clashes(layout: Layout, specs: Map<string, TwinSpec>) {
   const shapes = layout.placements.flatMap((p) => {
     const spec = specs.get(p.twin_id);
     return spec ? [{ id: p.twin_id, shape: corners(spec, p) }] : [];
   });
-  const bad = new Set<string>();
+  const found: Clash[] = [];
   const { width, depth } = layout.bench;
   for (const [i, a] of shapes.entries()) {
     if (
@@ -168,14 +171,42 @@ export function conflicts(layout: Layout, specs: Map<string, TwinSpec>) {
           Math.abs(x) > width / 2 + 1e-9 || Math.abs(z) > depth / 2 + 1e-9,
       )
     )
-      bad.add(a.id);
+      found.push({ id: a.id, with: null });
     for (const b of shapes.slice(i + 1))
-      if (overlaps(a.shape, b.shape)) {
-        bad.add(a.id);
-        bad.add(b.id);
-      }
+      if (overlaps(a.shape, b.shape)) found.push({ id: a.id, with: b.id });
   }
-  return bad;
+  return found;
+}
+
+/** Twin ids whose footprints overlap another or leave the bench. */
+export function conflicts(layout: Layout, specs: Map<string, TwinSpec>) {
+  return new Set(
+    clashes(layout, specs).flatMap((c) => (c.with ? [c.id, c.with] : [c.id])),
+  );
+}
+
+/**
+ * Where two footprints meet, as a world box: the overlap of their bench-plane bounds,
+ * up to the lower of the two tops. Exact for instruments standing square to the bench.
+ */
+export function meeting(
+  a: { spec: TwinSpec; placement: Placement },
+  b: { spec: TwinSpec; placement: Placement },
+) {
+  const bounds = (t: typeof a) => {
+    const c = corners(t.spec, t.placement);
+    const xs = c.map((p) => p[0]);
+    const zs = c.map((p) => p[1]);
+    return [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
+  };
+  const [ax0, ax1, az0, az1] = bounds(a);
+  const [bx0, bx1, bz0, bz1] = bounds(b);
+  const x0 = Math.max(ax0, bx0);
+  const x1 = Math.min(ax1, bx1);
+  const z0 = Math.max(az0, bz0);
+  const z1 = Math.min(az1, bz1);
+  if (x1 <= x0 || z1 <= z0) return null;
+  return { x0, x1, z0, z1, height: Math.min(top(a.spec), top(b.spec)) };
 }
 
 export const isArm = (twin: Pick<Twin, "spec">) =>

@@ -45,7 +45,7 @@ import LayoutData from "./LayoutData";
 import LayoutPanel from "./LayoutPanel";
 import { armAt, duration } from "./layoutTimeline";
 import { LIBRARY_QUERY_KEY } from "./LessonSearch";
-import { conflicts, defaultLayout } from "./layoutGeometry";
+import { clashes, conflicts, defaultLayout } from "./layoutGeometry";
 import TwinCard from "./TwinCard";
 
 const TwinScene = lazy(() => import("./TwinScene"));
@@ -100,6 +100,13 @@ async function encodePhoto(file: File) {
   return btoa(binary);
 }
 
+/** Where everything stands on the bench, ignoring how the layout was stored. */
+function arrangement(layout: Layout) {
+  return JSON.stringify(
+    layout.placements.map((p) => [p.twin_id, p.x, p.z, p.yaw]),
+  );
+}
+
 function save(name: string, text: string) {
   saveBlob(name, new Blob([text], { type: "text/plain" }));
 }
@@ -138,6 +145,8 @@ export default function InstrumentStudio({
   const layoutDirty = useRef(false);
   const layoutRevision = useRef(0);
   const [preview, setPreview] = useState<LayoutPreview | null>(null);
+  // Where each arm waits, as the server checked it, by the arrangement it was checked on.
+  const rests = useRef(new Map<string, LayoutPreview["rest"]>());
   const [checking, setChecking] = useState(false);
   const [selectedMotion, setSelectedMotion] = useState(0);
   const [armFrame, setArmFrame] = useState(0);
@@ -333,6 +342,7 @@ export default function InstrumentStudio({
   const draftKey =
     tab === "layout" && draft.placements.length ? JSON.stringify(draft) : "";
   const localConflict = draftKey ? conflicts(draft, specs).size > 0 : false;
+  const clashing = localConflict ? clashes(draft, specs) : null;
   useEffect(() => {
     if (!draftKey || localConflict) {
       setPreview(null);
@@ -348,6 +358,7 @@ export default function InstrumentStudio({
           json(JSON.parse(draftKey)),
         );
         if (live) {
+          rests.current.set(arrangement(JSON.parse(draftKey)), result.rest);
           setPreview(result);
           setSelectedMotion(result.blocked ? result.motions.length : 0);
         }
@@ -656,6 +667,14 @@ export default function InstrumentStudio({
           </div>
           <Suspense fallback={<div className={s.scene} />}>
             <TwinScene
+              rests={
+                tab === "layout"
+                  ? preview?.rest
+                  : catalog.layout
+                    ? rests.current.get(arrangement(catalog.layout))
+                    : null
+              }
+              clashes={tab === "layout" ? clashing : null}
               twins={
                 tab === "instruments" || tab === "describe"
                   ? catalog.twins
