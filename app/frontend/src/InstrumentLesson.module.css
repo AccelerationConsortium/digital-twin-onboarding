@@ -1,0 +1,118 @@
+.does {
+  max-width: 58ch;
+  margin: 10px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.noModel {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 180px;
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 14px;
+}
+.slots i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface-1);
+}
+.slots i.held {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+.caption {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 14px;
+  margin: 0 0 10px;
+}
+.facts dt {
+  color: var(--muted);
+}
+.facts dd {
+  margin: 0;
+}
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 36px;
+  padding-top: 18px;
+  border-top: var(--hairline) solid var(--line);
+}
+.fine {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.fine a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: inherit;
+}
+.onward {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.next {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.next:hover {
+  border-color: var(--line-strong);
+}
+.next small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+.next strong {
+  font-size: 13px;
+}
+.failed {
+  color: var(--muted);
+  font-size: 13px;
+}
+.failed button {
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

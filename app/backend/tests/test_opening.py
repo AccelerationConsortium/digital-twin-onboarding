@@ -163,3 +163,6 @@ def test_an_opening_without_slots_moves_the_tray_and_counts_as_geometry():
     assert point[2] == pytest.approx(z0 + (z1 - z0) * 0.75)
     opened = {**spec, "opening": LEFT_FRONT}
     assert "geometry" in detail_layers(spec, opened)[1]
+    # So do the loading height and the drawn slots, which confirm marks as geometry edits.
+    assert "geometry" in detail_layers(spec, {**spec, "level_m": 0.3})[1]
+    assert "geometry" in detail_layers(spec, {**spec, "sites": []})[1]

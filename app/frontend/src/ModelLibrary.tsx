@@ -1,9 +1,6 @@
 import { ArrowLeft, Box, Plus, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { api, json } from "./api";
-import { looseModel } from "./instrumentModels";
 import type {
   InstrumentCatalog,
   Mesh,
@@ -11,7 +8,7 @@ import type {
   ModelResults,
   Operation,
 } from "./instrumentTypes";
-import { aim, lit, thumbnail, upright } from "./modelViews";
+import { stage, thumbnail } from "./modelViews";
 import s from "./ModelLibrary.module.css";
 
 const sources = {
@@ -289,73 +286,7 @@ export function Preview({ mesh }: { mesh: Mesh }) {
   useEffect(() => {
     const el = host.current;
     if (!el) return;
-    let alive = true;
-    let renderer: THREE.WebGLRenderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    } catch {
-      setState("failed");
-      return;
-    }
-    setState("loading");
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    el.appendChild(renderer.domElement);
-    const scene = new THREE.Scene();
-    lit(scene);
-    const floor = new THREE.GridHelper(2, 20, 0x6f8a78, 0x3a4c42);
-    scene.add(floor);
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50);
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    let model: Awaited<ReturnType<typeof looseModel>> | null = null;
-    let holder: THREE.Object3D | null = null;
-    const resize = () => {
-      const { width, height } = el.getBoundingClientRect();
-      renderer.setSize(width, height, false);
-      if (holder)
-        controls.target.copy(
-          aim(camera, holder, Math.max(1, width) / Math.max(1, height)),
-        );
-      controls.update();
-    };
-    looseModel(mesh)
-      .then((loaded) => {
-        if (!alive) return loaded.release();
-        model = loaded;
-        holder = upright(loaded.object, mesh.up);
-        scene.add(holder);
-        const size = new THREE.Box3()
-          .setFromObject(holder)
-          .getSize(new THREE.Vector3());
-        floor.scale.setScalar(Math.max(size.x, size.z) * 0.9);
-        resize();
-        setState("ready");
-      })
-      .catch((e) => {
-        console.warn((e as Error).message);
-        if (alive) setState("failed");
-      });
-    const observer = new ResizeObserver(resize);
-    observer.observe(el);
-    let frame = 0;
-    const tick = () => {
-      controls.update();
-      renderer.render(scene, camera);
-      frame = requestAnimationFrame(tick);
-    };
-    tick();
-    return () => {
-      alive = false;
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      controls.dispose();
-      model?.release();
-      floor.geometry.dispose();
-      (floor.material as THREE.Material).dispose();
-      renderer.dispose();
-      renderer.domElement.remove();
-    };
+    return stage(el, mesh, { state: setState });
     // `key` identifies the model; the mesh object changes identity on every page fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

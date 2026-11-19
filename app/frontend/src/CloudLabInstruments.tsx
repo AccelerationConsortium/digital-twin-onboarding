@@ -1,95 +1,27 @@
-import { Box, ExternalLink, X } from "lucide-react";
+import { ArrowRight, Box, ExternalLink, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
-import type { Mesh, Operation } from "./instrumentTypes";
-import { Preview, Thumbnail } from "./ModelLibrary";
+import {
+  BASIS_NAMES,
+  basisLabel,
+  CAN,
+  metres,
+  part,
+  sourceUrl,
+  volume,
+  type Instrument,
+  type Overview,
+} from "./cloudlabFacts";
+import { Thumbnail } from "./ModelLibrary";
+import TwinExplorer, { useTwin } from "./TwinExplorer";
 import s from "./CloudLabInstruments.module.css";
 
-type Instrument = {
-  id: string;
-  name: string;
-  section: string;
-  experiment: string;
-  published: string;
-  narrowed: string | null;
-  operations: Operation[];
-  holds: { vessel: string; max_volume_ul: number };
-  slots: number;
-  limits: { min_temp_c: number; max_temp_c: number; max_duration_s: number };
-  consumables: { name: string; stock: number }[];
-  size_m: [number, number, number];
-  access: "top" | "front";
-  level_m: number | null;
-  opening: {
-    face: "front" | "left" | "right";
-    start: number;
-    end: number;
-  } | null;
-  drawer_m: number | null;
-  model_size_m: [number, number, number] | null;
-  layout_model: string | null;
-  geometry_basis: Record<string, string>;
-  stand_in: string | null;
-  mesh: Mesh | null;
-  attribution: string;
-};
-type Overview = {
-  provider: string;
-  source: string;
-  retrieved: string;
-  sections: string[];
-  instruments: Instrument[];
-};
-
-const BASIS_NAMES: Record<string, string> = {
-  size: "Size",
-  access: "Loading face",
-  level_m: "Loading height",
-  opening: "Opening",
-  drawer_m: "Drawer",
-  sites: "Slot",
-};
-const CAN: Record<Operation, string> = {
-  load: "Load",
-  transfer: "Transfer",
-  mix: "Mix",
-  heat: "Heat",
-  read: "Read",
-  wait: "Wait",
-};
-const volume = (ul: number) =>
-  ul >= 1000 ? `${(ul / 1000).toLocaleString()} mL` : `${ul} µL`;
-
-/** Where a geometry value comes from, in a few words; the full basis sits under Sources. */
-const basisLabel = (basis: string | undefined, item: Instrument) => {
-  const kind = basis?.split(":")[0];
-  if (kind === "datasheet") return `${item.layout_model} datasheet`;
-  if (kind === "manufacturer")
-    return `manufacturer figure for a comparable ${item.stand_in}`;
-  if (kind === "engineering_assumption")
-    return `ChemLab-Assets estimate for a comparable ${item.stand_in}`;
-  if (kind === "footprint") return `footprint of a comparable ${item.stand_in}`;
-  if (basis === "unset") return "not published";
-  return "Academy estimate";
-};
-/** A figure's own source, where it differs from the one the row ends with. */
-const own = (key: string, item: Instrument) => {
-  const label = basisLabel(item.geometry_basis[key], item);
-  return label === basisLabel(item.geometry_basis.access, item)
-    ? ""
-    : ` (${label})`;
-};
-const metres = (v: number[]) => `${v.map((x) => x.toFixed(2)).join(" × ")} m`;
-/** Where along the front a plate goes in, from the open part of that face. */
-const part = (opening: Instrument["opening"]) => {
-  if (!opening || opening.face !== "front") return "";
-  const middle = (opening.start + opening.end) / 2;
-  return middle < 0.4 ? ", left" : middle > 0.6 ? ", right" : "";
-};
-const sourceUrl = (basis: string) => basis.match(/https?:\/\/[^\s,]+/)?.[0];
-
 /** The instruments a cloud lab lists, as teaching twins a learner can look at. */
-export default function CloudLabInstruments() {
+export default function CloudLabInstruments({
+  onTeach,
+}: {
+  onTeach: (id: string) => void;
+}) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hidden, setHidden] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -197,19 +129,22 @@ export default function CloudLabInstruments() {
                 {open.section} · <code>{open.experiment}</code>
               </small>
             </div>
-            <button
-              className={s.close}
-              aria-label="Close"
-              onClick={() => setOpen(null)}
-            >
-              <X size={18} />
-            </button>
+            <div className={s.actions}>
+              <button className={s.teach} onClick={() => onTeach(open.id)}>
+                Use it <ArrowRight size={14} aria-hidden="true" />
+              </button>
+              <button
+                className={s.close}
+                aria-label="Close"
+                onClick={() => setOpen(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
           </header>
           <div className={s.detailBody}>
             {open.mesh ? (
-              <div className={s.view}>
-                <Preview mesh={open.mesh} />
-              </div>
+              <DetailTwin key={open.id} item={open} />
             ) : (
               <div className={s.noModel}>
                 <Box size={28} aria-hidden="true" />
@@ -262,13 +197,27 @@ export default function CloudLabInstruments() {
                 <dt>Plate goes in</dt>
                 <dd>
                   {open.access === "front" ? "At the front" : "From above"}
-                  {part(open.opening)}
-                  {open.level_m !== null &&
-                    `, ${open.level_m.toFixed(2)} m above the bench${own("level_m", open)}`}
-                  {open.drawer_m !== null &&
-                    `; its drawer comes out ${open.drawer_m.toFixed(2)} m${own("drawer_m", open)}`}{" "}
-                  · {basisLabel(open.geometry_basis.access, open)}
+                  {part(open.opening)} ·{" "}
+                  {basisLabel(open.geometry_basis.access, open)}
                 </dd>
+                {open.level_m !== null && (
+                  <>
+                    <dt>Loading height</dt>
+                    <dd>
+                      {open.level_m.toFixed(2)} m above the bench ·{" "}
+                      {basisLabel(open.geometry_basis.level_m, open)}
+                    </dd>
+                  </>
+                )}
+                {open.drawer_m !== null && (
+                  <>
+                    <dt>Drawer</dt>
+                    <dd>
+                      Comes out {open.drawer_m.toFixed(2)} m ·{" "}
+                      {basisLabel(open.geometry_basis.drawer_m, open)}
+                    </dd>
+                  </>
+                )}
               </dl>
               <details className={s.sources}>
                 <summary>Sources</summary>
@@ -306,4 +255,10 @@ export default function CloudLabInstruments() {
       )}
     </section>
   );
+}
+
+/** The stand-in model, moving where its contract has joints. */
+function DetailTwin({ item }: { item: Instrument }) {
+  const twin = useTwin(item.motion);
+  return <TwinExplorer mesh={item.mesh!} twin={twin} />;
 }

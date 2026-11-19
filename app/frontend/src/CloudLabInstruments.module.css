@@ -113,6 +113,28 @@
   color: var(--muted);
   font-size: 12px;
 }
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.teach {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.teach:hover {
+  filter: brightness(1.08);
+}
 .close {
   display: inline-flex;
   padding: 6px;
@@ -130,16 +152,6 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   gap: 24px;
   padding: 20px;
-}
-.view {
-  min-height: 300px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface-sunken);
-}
-.view > * {
-  height: 100%;
-  min-height: 300px;
 }
 .noModel {
   display: grid;
