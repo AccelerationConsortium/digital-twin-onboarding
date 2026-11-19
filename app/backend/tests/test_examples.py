@@ -8,7 +8,7 @@ from test_instruments import add
 def test_examples_are_listed_with_their_instruments(client):
     listed = client.get("/api/twins/examples").json()["examples"]
     assert [e["id"] for e in listed] == list(EXAMPLES)
-    assert len(listed) == 7
+    assert len(listed) == 8
     first = listed[0]
     assert first["instruments"] == [
         "Liquid handler (Opentrons Flex)",
@@ -17,6 +17,17 @@ def test_examples_are_listed_with_their_instruments(client):
     ]
     # One example is kept to show an instrument the arm cannot serve.
     assert [e["id"] for e in listed if not e["placed"]] == ["flex-shaker-reader"]
+    # The next one is the same workcell with the arm that reaches it.
+    stuck, fixed = (EXAMPLES[k] for k in ("flex-shaker-reader", "flex-shaker-reader-ur10e"))
+    assert (
+        list(EXAMPLES).index("flex-shaker-reader-ur10e")
+        == list(EXAMPLES).index("flex-shaker-reader") + 1
+    )
+    assert (stuck["instruments"], stuck["steps"]) == (fixed["instruments"], fixed["steps"])
+    assert (
+        next(e for e in listed if e["id"] == "flex-shaker-reader-ur10e")["instruments"][-1]
+        == "UR10e arm"
+    )
 
 
 @pytest.mark.parametrize("key", list(EXAMPLES))
@@ -27,6 +38,7 @@ def test_an_example_opens_ready_to_run(client, key):
     case = EXAMPLES[key]
     assert len(catalog["twins"]) == len(case["instruments"]) + 1
     assert all(t["confirmed"] for t in catalog["twins"])
+    assert catalog["twins"][-1]["spec"].get("arm") == case.get("arm")
     assert len(catalog["steps"]) == len(case["steps"])
     if case["placements"] is None:
         assert catalog["layout"] is None

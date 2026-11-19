@@ -13,10 +13,10 @@ test("a Flex entered through half of a side window gets layouts through that hal
   await page.getByRole("button", { name: "Open my workspace" }).click();
   await page.goto("/#/plan");
   await page.getByRole("tab", { name: "1 · Describe" }).click();
-  // An example without a saved layout, so the Flex can be changed freely.
+  // The example without a saved layout, so the Flex can be changed freely.
   await page
     .getByRole("region", { name: "Example workcells" })
-    .getByRole("button", { name: /Flex, incubated shaker, plate reader/ })
+    .getByRole("button", { name: /No layout yet/ })
     .click();
   await page.getByRole("tab", { name: "2 · Instruments" }).click();
 

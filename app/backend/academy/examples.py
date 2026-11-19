@@ -2,7 +2,8 @@
 
 Each layout is one the layout search found for that workflow on this bench; the tests
 plan every one again, so an example never opens on a layout the arm cannot run. An
-example without a layout is one the search finds none for, kept to show why.
+example without a layout is one the search finds none for, kept to show why; the one
+after it is the same workcell with the change that gives it a layout.
 """
 
 C, S, W = "chemlab", "simready", "workcell"
@@ -17,8 +18,21 @@ def _move(source, target):
     return ("transfer", source, target)
 
 
+SHAKEN = {
+    "instruments": [FLEX, (C, "ika_ks4000"), (S, "forgecad-microplate-reader")],
+    "steps": [
+        ("load", 0, 150),
+        _move(0, 1),
+        ("heat", 1, 37),
+        ("mix", 1, 60),
+        _move(1, 2),
+        ("read", 2, 1),
+    ],
+}
+
 # Instruments are numbered in order, the arm last; a step is (operation, instrument, value)
-# or a transfer between two instruments; a placement is (instrument, x, z, yaw).
+# or a transfer between two instruments; a placement is (instrument, x, z, yaw). An example
+# names its arm when it is not the UR5e.
 EXAMPLES = {
     "flex-reader": {
         "name": "Flex to plate reader",
@@ -57,16 +71,20 @@ EXAMPLES = {
         "name": "Flex, incubated shaker, plate reader",
         "summary": "No layout yet: the shaker is loaded from above at 0.52 m, out of this "
         "arm's reach from the bench.",
-        "instruments": [FLEX, (C, "ika_ks4000"), (S, "forgecad-microplate-reader")],
-        "steps": [
-            ("load", 0, 150),
-            _move(0, 1),
-            ("heat", 1, 37),
-            ("mix", 1, 60),
-            _move(1, 2),
-            ("read", 2, 1),
-        ],
+        **SHAKEN,
         "placements": None,
+    },
+    "flex-shaker-reader-ur10e": {
+        "name": "Flex, incubated shaker, plate reader, UR10e",
+        "summary": "The same workcell with a longer arm, which reaches over the shaker.",
+        **SHAKEN,
+        "arm": "ur10e",
+        "placements": [
+            (3, 0.2, 0.0, 0),
+            (1, 0.76, -0.32, -90),
+            (0, -0.78, -0.32, 90),
+            (2, -0.97, 0.52, 90),
+        ],
     },
     "ot2-incubator-fridge": {
         "name": "OT-2, incubator, refrigerator",
@@ -120,6 +138,15 @@ EXAMPLES = {
 }
 
 
+def _arm(case, spec):
+    """The arm twin of an example: the library's UR5e, or the profile the example names."""
+    from .arms import ARMS
+
+    if case.get("arm"):
+        spec = {**spec, "arm": case["arm"], "name": f"{ARMS[case['arm']].name} arm"}
+    return spec
+
+
 def listing():
     from .library import COLLECTIONS
 
@@ -129,7 +156,8 @@ def listing():
             "name": case["name"],
             "summary": case["summary"],
             "instruments": [
-                COLLECTIONS[c][i]["spec"]["name"] for c, i in [*case["instruments"], ARM]
+                *(COLLECTIONS[c][i]["spec"]["name"] for c, i in case["instruments"]),
+                _arm(case, COLLECTIONS[ARM[0]][ARM[1]]["spec"])["name"],
             ],
             "placed": case["placements"] is not None,
         }
@@ -149,6 +177,8 @@ def build(case, new_id):
     twins = []
     for collection, key in [*case["instruments"], ARM]:
         spec = deepcopy(COLLECTIONS[collection][key]["spec"])
+        if (collection, key) == ARM:
+            spec = _arm(case, spec)
         twin = new_twin(new_id(), f"{collection}_asset", spec, provenance[collection](key))
         twins.append({**twin, "confirmed": True, "status": "ready", "revision": 1})
     ids = [t["id"] for t in twins]

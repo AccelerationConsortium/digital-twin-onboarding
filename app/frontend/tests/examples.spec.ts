@@ -17,7 +17,7 @@ test("an example workcell opens with a layout the arm can run", async ({
   await page.getByRole("tab", { name: "1 · Describe" }).click();
 
   const examples = page.getByRole("region", { name: "Example workcells" });
-  await expect(examples.getByRole("listitem")).toHaveCount(8);
+  await expect(examples.getByRole("listitem")).toHaveCount(9);
   // The hand-set synthesis workcell is listed with the planned examples.
   await expect(
     examples.getByRole("link", { name: /Synthesis workcell/ }),
