@@ -200,3 +200,20 @@ def test_issued_passes_outlive_the_sandbox_history(client):
         episode(client, "last-tip", [], agent="planner-2")
     holders = {h["agent"]: h for h in progress(client)["holders"]}
     assert holders["planner-2"]["instruments"]["incubator"]["complete"]
+
+
+def test_every_criterion_says_where_it_is_earned(client):
+    for holder in progress(client)["holders"]:
+        for kind, spec in holder["instruments"].items():
+            for criterion in spec["criteria"]:
+                assert criterion["earn"], (kind, criterion["id"])
+    you = progress(client)["holders"][0]["instruments"]
+    recover = {p["label"]: p["route"] for p in you["liquid-handler"]["criteria"][1]["earn"]}
+    assert recover == {
+        "Cloud lab training": "cloudlab",
+        "Find the fault": "practice",
+        "Fault drills checkride": "drills",
+    }
+    # Sandbox places have no page: an agent earns them through the node API.
+    operate = you["incubator"]["criteria"][0]["earn"]
+    assert [p["route"] for p in operate] == [None]

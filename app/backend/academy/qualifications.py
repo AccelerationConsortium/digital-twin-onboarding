@@ -212,6 +212,36 @@ def progress(store, owner):
     return ledger, holders
 
 
+def _earn():
+    """Where each (kind, criterion) is trained: the same tables `derived` reads passes from.
+
+    A place with a route is a page the signed-in person opens; the sandbox is where an
+    agent earns it.
+    """
+    places = {}
+
+    def at(kind, criterion, place):
+        if place not in places.setdefault((kind, criterion), []):
+            places[(kind, criterion)].append(place)
+
+    for targets in CLOUDLAB.values():
+        for kind, criterion in targets:
+            at(kind, criterion, {"label": "Cloud lab training", "route": "cloudlab"})
+    at("liquid-handler", "recover", {"label": "Find the fault", "route": "practice"})
+    for kind in DRILL_KINDS.values():
+        for criterion in ("recover", "escalate"):
+            if criterion in KINDS[kind]["criteria"]:
+                at(kind, criterion, {"label": "Fault drills checkride", "route": "drills"})
+    for scenario, targets in SANDBOX.items():
+        title = agent_sandbox.SCENARIOS[scenario]["title"]
+        for kind, criterion in targets:
+            at(kind, criterion, {"label": f"Agent sandbox · {title}", "route": None})
+    return places
+
+
+EARN = _earn()
+
+
 def status(holder):
     return {
         kind: {
@@ -222,6 +252,7 @@ def status(holder):
                     "title": CRITERIA[c],
                     "passed": c in holder["passes"].get(kind, {}),
                     "source": holder["passes"].get(kind, {}).get(c, {}).get("source"),
+                    "earn": EARN.get((kind, c), []),
                 }
                 for c in spec["criteria"]
             ],

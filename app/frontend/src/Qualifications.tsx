@@ -5,11 +5,14 @@ import { unwrap } from "./CloudLabTraining";
 import s from "./Qualifications.module.css";
 
 type Kind = "liquid-handler" | "incubator" | "plate-reader";
+// Where a criterion is trained: a page the person opens, or the agent sandbox.
+type Place = { label: string; route: string | null };
 type Criterion = {
   id: string;
   title: string;
   passed: boolean;
   source: string | null;
+  earn: Place[];
 };
 type Holder = {
   kind: "person" | "agent";
@@ -45,30 +48,6 @@ type Verdict = {
   record: { expires_at?: string } | null;
 };
 
-// Where each criterion is trained, mirroring CLOUDLAB, SANDBOX and DRILL_KINDS in
-// qualifications.py. Routes count for the signed-in person; the sandbox also for agents.
-type Place = { label: string; route?: string };
-const CLOUDLAB = { label: "Cloud lab training", route: "cloudlab" };
-const PRACTICE = { label: "Find the fault", route: "practice" };
-const DRILLS = { label: "Fault drills checkride", route: "drills" };
-const sandbox = (scenario: string) => ({
-  label: `Agent sandbox · ${scenario}`,
-});
-const EARN: Record<Kind, Record<string, Place[]>> = {
-  "liquid-handler": {
-    operate: [CLOUDLAB],
-    recover: [CLOUDLAB, PRACTICE, DRILLS],
-    escalate: [CLOUDLAB, DRILLS, sandbox("Mix twice with one tip left")],
-  },
-  incubator: {
-    operate: [sandbox("Warm a plate and read it")],
-    escalate: [DRILLS, sandbox("Incubate above the incubator's limit")],
-  },
-  "plate-reader": {
-    operate: [sandbox("Warm a plate and read it")],
-    recover: [DRILLS, sandbox("The reader is already holding a plate")],
-  },
-};
 const SOURCES: Record<string, string> = {
   cloudlab: "Cloud lab training",
   "fault-practice": "Find the fault",
@@ -193,7 +172,7 @@ export default function Qualifications({
                             <small>{sourceLabel(c.source)}</small>
                           ) : (
                             <small className={s.earn}>
-                              {(EARN[kind][c.id] ?? [])
+                              {c.earn
                                 .filter((p) => !holder.agent || !p.route)
                                 .map((p, i) => (
                                   <span key={p.label}>
