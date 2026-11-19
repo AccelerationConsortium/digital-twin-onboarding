@@ -185,3 +185,14 @@ def test_the_api_runs_the_owners_saved_workflow_only(client, app):
         assert other.post("/api/twins/layout/endurance", json=body).status_code == 404
         empty = {"bench": layout["bench"], "placements": [], "cycles": 2}
         assert other.post("/api/twins/layout/endurance", json=empty).status_code == 409
+
+
+def test_a_workflow_without_a_layout_is_refused_clearly():
+    counter = itertools.count()
+    # This example has no layout yet: its shaker is out of the arm's reach.
+    twins, steps, layout = examples.build(
+        examples.EXAMPLES["flex-shaker-reader"], lambda: f"twin-{next(counter)}"
+    )
+    assert layout is None
+    with pytest.raises(PlanError, match="Place the workflow's instruments"):
+        endurance.stress({t["id"]: t for t in twins}, layout, steps, cycles=1)

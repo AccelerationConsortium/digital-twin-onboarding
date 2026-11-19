@@ -108,6 +108,8 @@ def _travel(joints):
 
 def nominal(twins, layout, steps):
     """Every transfer's planned path at full resolution, cached per workflow and layout."""
+    if not layout or not layout.get("placements"):
+        raise PlanError("geometry", "Place the workflow's instruments on the bench first")
     key = _key(twins, layout, steps)
     if key in _plans:
         _plans.move_to_end(key)
