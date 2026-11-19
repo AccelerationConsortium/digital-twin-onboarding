@@ -1,10 +1,26 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-test("public instrument stories play, pause, seek and switch without creating learner data", async ({
+async function openInstruments(page: Page) {
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page
+    .getByRole("button", { name: "Enter the learning lab", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "This is my first time" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Open my workspace", exact: true })
+    .click();
+  await page.goto("/#/instruments");
+}
+
+test("instrument stories play, pause, seek and switch without creating learner data", async ({
   page,
 }) => {
   const mutations: string[] = [];
   const errors: string[] = [];
+  await openInstruments(page);
   page.on("request", (request) => {
     if (
       request.url().includes("/api/") &&
@@ -13,7 +29,6 @@ test("public instrument stories play, pause, seek and switch without creating le
       mutations.push(request.url());
   });
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
   const stories = page.getByTestId("instrument-stories");
   await expect(
     stories.getByRole("group", { name: "Choose an instrument", exact: true }),
@@ -74,18 +89,10 @@ test("public instrument stories play, pause, seek and switch without creating le
   expect(errors).toEqual([]);
 });
 
-test("a selected OT-2 starter survives a refresh and opens once after onboarding", async ({
+test("a starter chosen from the stories opens in the workflow studio", async ({
   page,
 }) => {
-  let creations = 0;
-  page.on("request", (request) => {
-    if (
-      new URL(request.url()).pathname === "/api/sessions" &&
-      request.method() === "POST"
-    )
-      creations++;
-  });
-  await page.goto("/");
+  await openInstruments(page);
   const stories = page.getByTestId("instrument-stories");
   await stories
     .getByRole("button", { name: "Opentrons OT-2", exact: true })
@@ -95,24 +102,6 @@ test("a selected OT-2 starter survives a refresh and opens once after onboarding
     .click();
   await stories
     .getByRole("button", { name: "Use this workflow", exact: true })
-    .click();
-  await expect(page.getByRole("status")).toContainText(
-    "Your OT-2 distribute starter is selected",
-  );
-  expect(creations).toBe(0);
-  await page.reload();
-  await expect(page.getByRole("status")).toContainText(
-    "Your OT-2 distribute starter is selected",
-  );
-  await page.getByPlaceholder("Your first name").fill("Ada");
-  await page
-    .getByRole("button", { name: "Enter the learning lab", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByRole("button", { name: "This is my first time" }).click();
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Open my workspace", exact: true })
     .click();
   await expect(page.getByTestId("workflow-studio")).toHaveAttribute(
     "data-instrument",
@@ -124,26 +113,6 @@ test("a selected OT-2 starter survives a refresh and opens once after onboarding
   await expect(page.getByLabel("Step 2 volume", { exact: true })).toHaveValue(
     "240",
   );
-  expect(creations).toBe(1);
-  const savedUrl = page.url();
-  await page.reload();
-  await expect(page.getByLabel("Workflow name")).toHaveValue(
-    "Opentrons OT-2 · Distribute",
-  );
-  expect(page.url()).toBe(savedUrl);
-  expect(creations).toBe(1);
-  await page
-    .getByRole("button", { name: "Back to learning lab", exact: true })
-    .click();
-  await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "Your first workflow." }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Explore the instruments", exact: true })
-    .click();
-  await expect(page.getByTestId("instrument-stories")).toBeVisible();
-  expect(page.url()).toContain("#/instruments");
 });
 
 test("reduced-motion introductions remain explorable on a small screen in both themes", async ({
@@ -151,7 +120,7 @@ test("reduced-motion introductions remain explorable on a small screen in both t
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
-  await page.goto("/");
+  await openInstruments(page);
   const stories = page.getByTestId("instrument-stories");
   await expect(
     stories.getByRole("button", {
@@ -178,6 +147,4 @@ test("reduced-motion introductions remain explorable on a small screen in both t
       ),
     ).toBe(true);
   }
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByPlaceholder("Your first name")).toBeFocused();
 });

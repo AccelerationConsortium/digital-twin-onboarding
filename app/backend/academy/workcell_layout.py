@@ -245,10 +245,33 @@ def _overlap(a, b):
     return True
 
 
+def drawer(spec, placement):
+    """The bench a drawer sweeps when it is out, as corners; None without a drawer."""
+    if not spec.get("drawer_m"):
+        return None
+    x0, x1, z0, z1 = footprint(spec)
+    opening = spec.get("opening") or {"face": "front", "start": 0.0, "end": 1.0}
+    (nx, nz), (px, pz), _ = entry(spec)
+    span = x1 - x0 if opening["face"] == "front" else z1 - z0
+    half = span * (opening["end"] - opening["start"]) / 2
+    tx, tz = -nz, nx  # along the face
+    out = spec["drawer_m"]
+    local = [
+        (px + tx * a + nx * b, pz + tz * a + nz * b)
+        for a, b in ((-half, 0), (half, 0), (half, out), (-half, out))
+    ]
+    shape = []
+    for x, z in local:
+        rx, rz = _yaw(placement["yaw"], x, z)
+        shape.append((placement["x"] + rx, placement["z"] + rz))
+    return shape
+
+
 def validate_layout(twins, layout):
-    """Every placed footprint lies on the bench and no two footprints overlap."""
+    """Every placed footprint lies on the bench, no two footprints overlap and every
+    drawer has room to come out."""
     half_w, half_d = layout["bench"]["width"] / 2, layout["bench"]["depth"] / 2
-    shapes = []
+    shapes, drawers = [], []
     for placement in layout["placements"]:
         twin = twins[placement["twin_id"]]
         shape = corners(twin["spec"], placement)
@@ -260,6 +283,17 @@ def validate_layout(twins, layout):
                     "geometry", f"{twin['spec']['name']} overlaps {other['spec']['name']}"
                 )
         shapes.append((twin, shape))
+        if swept := drawer(twin["spec"], placement):
+            drawers.append((twin, swept))
+    for twin, swept in drawers:
+        if any(abs(x) > half_w + 1e-9 or abs(z) > half_d + 1e-9 for x, z in swept):
+            raise PlanError("geometry", f"{twin['spec']['name']}'s drawer runs past the bench edge")
+        for other, other_shape in shapes:
+            if other is not twin and _overlap(swept, other_shape):
+                raise PlanError(
+                    "geometry",
+                    f"{twin['spec']['name']}'s drawer runs into {other['spec']['name']}",
+                )
 
 
 def _scene(twins, layout):
@@ -303,6 +337,13 @@ def side(spec, placement):
 
 
 TRAY = 0.08  # how far in front of its face an instrument presents its tray
+
+
+def tray(spec):
+    """How far in front of its face an instrument presents labware: its drawer, or a tray."""
+    return spec.get("drawer_m") or TRAY
+
+
 NORMALS = {"front": (0.0, 1.0), "left": (-1.0, 0.0), "right": (1.0, 0.0)}
 
 
@@ -373,7 +414,8 @@ def access(spec, placement, site=None):
     else:
         y = max(0.08, height / 3) if level is None else level
         (nx, nz), (px, pz), _ = entry(spec)
-        local = (px + nx * TRAY, y + 0.02, pz + nz * TRAY)
+        out = tray(spec)
+        local = (px + nx * out, y + 0.02, pz + nz * out)
     rx, rz = _yaw(yaw, local[0], local[2])
     point = (placement["x"] + rx, local[1], placement["z"] + rz)
     ax, az = _yaw(yaw, 1, 0)

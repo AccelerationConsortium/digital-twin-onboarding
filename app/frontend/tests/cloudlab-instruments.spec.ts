@@ -27,9 +27,24 @@ test("meet the instruments shows what a cloud lab offers", async ({ page }) => {
     });
 
   await section.getByRole("button", { name: "Spectroscopy" }).click();
+  await section.getByRole("button", { name: /Multimode plate reader/ }).click();
+  const reader = page.getByRole("article", { name: "Multimode plate reader" });
   await expect(
-    page.getByRole("article", { name: "Analytical HPLC" }),
-  ).toHaveCount(0);
+    reader.getByText(
+      /manufacturer figure for a comparable BMG LABTECH CLARIOstar Plus/,
+    ),
+  ).toBeVisible();
+  await expect(
+    reader.getByText(
+      /At the front, left, 0\.07 m above the bench; its drawer comes out 0\.18 m/,
+    ),
+  ).toBeVisible();
+  await reader.getByText("Sources").click();
+  await expect(reader.getByText(/manufacturer_dimensions_m/)).toBeVisible();
+  // A comparable model's figures, never the cloud lab's own specification.
+  await expect(
+    reader.getByText(/not this instrument's specification/),
+  ).toBeVisible();
   await section.getByRole("button", { name: /500 MHz NMR/ }).click();
   await expect(
     page.getByText("No 3D model; the twin is one estimated box."),

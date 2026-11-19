@@ -1,12 +1,15 @@
 import base64
+import importlib.util
 import json
+import re
 import xml.etree.ElementTree as ET
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
 from academy.chemlab import CHEMLAB
-from academy.cloudlab import CLOUDLAB
-from academy.simple_twins import TEMPLATES, TwinSpec, usda
+from academy.cloudlab import CLOUDLAB, CONTRACTS, INSTRUMENTS, LAYOUT
+from academy.simple_twins import SIZE_BASES, TEMPLATES, TwinSpec, usda
 from academy.simready import SIMREADY
 from academy.workcell_models import catalog as workcell_catalog
 from fastapi import HTTPException
@@ -416,6 +419,8 @@ def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geomet
         if asset["stand_in"]:
             assert asset["license"] == "CC-BY-NC-4.0" and asset["stand_in"] in assumptions
             assert "not this instrument's size" in assumptions
+        elif asset["layout_model"]:
+            assert asset["mesh"] is None and "not this instrument's size" in assumptions
         else:
             assert asset["mesh"] is None and "Academy estimate" in assumptions
     thermocycler = CLOUDLAB["thermocycler"]["spec"]
@@ -426,6 +431,164 @@ def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geomet
     assert nmr["resource"]["slots"] == 96 and "96 of the 480" in nmr["assumptions"]
     gcms = CLOUDLAB["gcms"]["spec"]
     assert gcms["limits"]["max_temp_c"] == 120 and "above 120 °C" in gcms["assumptions"]
+
+
+def load_script(name):
+    path = Path(__file__).parents[3] / f"scripts/library-models/{name}.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+BASES = ("datasheet: ", "manufacturer: ", "engineering_assumption: ", "estimate", "footprint: ")
+# Contract fields and the twin fields they set.
+TWIN_FIELDS = {
+    "access": "access",
+    "level_m": "level_m",
+    "opening": "opening",
+    "extends_m": "drawer_m",
+}
+
+
+def test_every_cloudlab_twin_carries_layout_geometry_with_its_basis():
+    for asset_id, asset in CLOUDLAB.items():
+        spec, basis = asset["spec"], asset["geometry_basis"]
+        assert TwinSpec.model_validate(spec).model_dump(mode="json") == spec
+        assert {"size", "access"} <= basis.keys(), asset_id
+        for value in basis.values():
+            assert value.startswith(BASES) or value == "unset", (asset_id, value)
+            if value.startswith("datasheet: "):
+                assert "https://" in value and value.endswith("read 2026-11-18")
+        if spec["access"] == "front" and spec["level_m"] is None:
+            assert basis["level_m"] == "unset"
+        # Sourced figures are a comparable model's, never the cloud lab's own.
+        if asset["layout_model"]:
+            assert "not this instrument's size" in spec["assumptions"]
+    for asset_id, (model, sourced) in LAYOUT.items():
+        spec = CLOUDLAB[asset_id]["spec"]
+        assert CLOUDLAB[asset_id]["layout_model"] == model and model in spec["assumptions"]
+        width, depth, height = sourced["size"][0]
+        assert spec["parts"][0]["size"] == [width, height, depth]  # Y-up twin box
+        if "access" in sourced:
+            assert spec["access"] == sourced["access"][0]
+
+
+def test_stand_in_twins_take_their_contract_values_and_evidence():
+    stand_ins = {k: a for k, a in CLOUDLAB.items() if a["stand_in"]}
+    assert len(stand_ins) == 15
+    for asset_id, asset in stand_ins.items():
+        slug = INSTRUMENTS[asset_id][-1]
+        found, spec = CONTRACTS["stand_ins"][slug], asset["spec"]
+        assert asset["layout_model"] == asset["stand_in"]
+        if "size" in found:
+            width, depth, height = found["size"]["value"]
+            assert spec["parts"][0]["size"] == [width, height, depth]
+            assert asset["geometry_basis"]["size"].startswith(found["size"]["evidence"])
+        for key, twin_key in TWIN_FIELDS.items():
+            if key in found and twin_key in asset["geometry_basis"]:
+                assert spec[twin_key] == found[key]["value"], (asset_id, key)
+                assert found[key]["detail"] in asset["geometry_basis"][twin_key]
+    # The reader's plate carrier comes out of the lower left of its front.
+    reader = CLOUDLAB["plate-reader"]["spec"]
+    assert reader["access"] == "front" and reader["opening"]["end"] < 0.5
+    assert reader["level_m"] < 0.1 and reader["drawer_m"] == 0.185
+    # A PCR plate goes into the block from above, where the contract places it.
+    pcr = CLOUDLAB["thermocycler"]["spec"]
+    assert pcr["access"] == "top" and [s["key"] for s in pcr["sites"]] == ["1"]
+    assert 0 < pcr["level_m"] < pcr["parts"][0]["size"][1]
+    # Samples that arrive by tubing give no loading face; it stays an Academy estimate.
+    assert CLOUDLAB["lcms"]["geometry_basis"]["access"].startswith("estimate")
+
+
+def test_pinned_contract_values_carry_no_dataset_text():
+    allowed = {"size", "access", "level_m", "opening", "site", "extends_m", "port"}
+    for slug, found in CONTRACTS["stand_ins"].items():
+        assert found.keys() <= allowed, slug
+        for key, item in found.items():
+            if key == "port":
+                assert re.fullmatch(r"[a-z0-9_]+", item)
+                continue
+            assert item["evidence"] in {"manufacturer", "engineering_assumption"}
+            assert re.fullmatch(r"[a-z0-9_ ()]+", item["detail"]), (slug, item["detail"])
+    assert CONTRACTS["license"] == "CC-BY-NC-4.0" and CONTRACTS["repo"] == "MBZUAI/ChemLab-Assets"
+
+
+def test_contract_derivation_turns_the_asset_frame_into_the_twin_frame():
+    """A drawer at the front left of a 0.4 m wide box, its nest 0.1 m up and 0.1 m from the front."""
+    layout = load_script("chemlab_layout")
+    manifest = {
+        "manufacturer_dimensions_m": {"W_D_H": [0.4, 0.5, 0.3]},
+        "world_origins_m": {"carrier": [-0.1, -0.15, 0.09]},
+        "components": [
+            {
+                "id": "carrier",
+                "parent": "root",
+                "origin_m": [0, 0, 0],
+                "geometry_evidence": "photo_estimate",
+                "collisions": [{"shape": "box", "size_m": [0.1, 0.1, 0.02], "origin_m": [0, 0, 0]}],
+            }
+        ],
+        "joint_definitions": {
+            "carrier": {
+                "type": "prismatic",
+                "axis": [0, -1, 0],
+                "limits_m": [0, 0.2],
+                "range_evidence": "engineering_assumption",
+            }
+        },
+    }
+    layout.STAND_INS["test"] = (("W_D_H", (0, 1, 2)), "carrier", ("carrier", "front"))
+    found = layout.derive(manifest, "test")
+    assert found["size"] == {
+        "value": [0.4, 0.5, 0.3],
+        "evidence": "manufacturer",
+        "detail": "manufacturer_dimensions_m",
+    }
+    assert found["access"]["value"] == "front"
+    assert found["site"]["value"] == [-0.1, 0.15]  # +Y back becomes -z: toward the front
+    assert found["level_m"] == {
+        "value": 0.1,
+        "evidence": "engineering_assumption",
+        "detail": "photo_estimate",
+    }
+    assert found["extends_m"]["value"] == 0.2
+    # The 0.1 m drawer spans 0.05 to 0.15 m from the left edge, rounded outward.
+    opening = found["opening"]["value"]
+    assert opening["face"] == "front"
+    assert 0.123 <= opening["start"] <= 0.125 and 0.375 <= opening["end"] <= 0.377
+
+
+def test_cloudlab_geometry_basis_reaches_the_twin_and_its_layout(client):
+    pcr, catalog = add(client, 0, cloudlab_id="thermocycler")
+    reader, catalog = add(client, catalog["version"], cloudlab_id="plate-reader")
+    twins = {t["id"]: t for t in catalog["twins"]}
+    for twin_id, asset_id in ((pcr, "thermocycler"), (reader, "plate-reader")):
+        asset = twins[twin_id]["asset"]
+        assert asset["geometry_basis"] == CLOUDLAB[asset_id]["geometry_basis"]
+        assert asset["layout_model"] == CLOUDLAB[asset_id]["layout_model"]
+        # The contract's positions are its author's estimates, so the twin is estimated.
+        assert twins[twin_id]["size_basis"] == "estimated"
+    for twin_id in (pcr, reader):
+        catalog = confirm(client, twin_id, catalog["version"], twins[twin_id]["spec"])
+    rows = [
+        {"twin_id": pcr, "x": -0.4, "z": 0, "yaw": 0, "access": "top"},
+        {"twin_id": reader, "x": 0.4, "z": 0, "yaw": 0, "access": "front"},
+    ]
+    body = {"bench": {"width": 2.0, "depth": 1.2}, "placements": rows}
+    assert client.post("/api/twins/layout/preview", json=body).json()["size_basis"] == "estimated"
+    catalog = client.put(
+        f"/api/twins/{pcr}/size-check",
+        json={"expected_version": catalog["version"], "checked": True},
+    ).json()
+    body["placements"] = rows[:1]
+    assert client.post("/api/twins/layout/preview", json=body).json()["size_basis"] == "checked"
+    # A layout reports its weakest twin, and a datasheet ranks between checked and catalogued.
+    assert SIZE_BASES == ("checked", "datasheet", "catalogued", "estimated")
+    # Moving where a plate goes in makes the geometry the learner's own.
+    spec = {**twins[reader]["spec"], "level_m": 0.2}
+    catalog = confirm(client, reader, catalog["version"], spec)
+    assert next(t for t in catalog["twins"] if t["id"] == reader).get("size_edited") is True
 
 
 def test_cloudlab_twin_sizes_stay_estimated_and_record_their_source(client):

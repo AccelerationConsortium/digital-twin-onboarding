@@ -7,12 +7,22 @@ page states (temperatures, positions, volumes) come from it, and everything else
 Academy teaching default.
 
 Geometry is never this instrument's own. Where ChemLab-Assets has a comparable
-instrument, its footprint stands in and the 3D view draws its model (CC-BY-NC-4.0,
-attribution travels with the twin). Otherwise the box is an Academy estimate. Either way
-the size counts as estimated until the learner checks it against the real instrument.
+instrument, the 3D view draws its model (CC-BY-NC-4.0, attribution travels with the twin)
+and the twin takes what that model's pinned contract gives for layout (chemlab_layout.json):
+outside size, the face a sample goes in through and the part of it, the loading height, a
+drawn slot and how far a drawer comes out. Otherwise LAYOUT gives a named comparable model's
+datasheet figures, or an Academy estimate with the reason.
+
+Every value carries its basis, and a value no source gives stays unset. These are a
+comparable model's figures, never the cloud lab's own, so a twin is only as good as its
+weakest value until the learner checks it against the real instrument.
 """
 
+import json
+from pathlib import Path
+
 from . import chemlab
+from .simple_twins import TwinSpec
 from .simready import footprint_spec
 
 SOURCE = "https://www.emeraldcloudlab.com/instrumentation/"
@@ -329,6 +339,202 @@ INSTRUMENTS = {
         "eppendorf_cellxpertc170i",
     ),
 }
+
+
+def datasheet(document, url):
+    return f"datasheet: {document}, {url}, read {RETRIEVED}"
+
+
+ESTIMATE = "estimate"
+UNSET = "unset"
+
+STAR_SITE = "https://robotics.hamiltoncompany.com/microlab-star-site-requirements"
+STAR_FRONT = (
+    "front",
+    "estimate: carriers go onto the deck through the hinged front window "
+    "(Hamilton Operator's Manual 610766/08, read from a third-party copy)",
+)
+
+# Instruments without a ChemLab stand-in. id: (the comparable model the figures are for,
+# {value: (figure, basis)}); size is the outside (width, depth, height) in metres, access
+# the face a sample goes in through. None of these documents states a loading height.
+LAYOUT = {
+    "dls-plate-reader": (
+        "Wyatt DynaPro Plate Reader III",
+        {
+            "size": (
+                (0.36, 0.60, 0.25),
+                datasheet(
+                    "Wyatt DynaPro Plate Reader III brochure W3400C, 60 (l) × 36 (w) × 25 (h) "
+                    "cm with length taken as depth, distributor-hosted",
+                    "https://somatco.com/wp-content/uploads/2025/02/"
+                    "dynapro-microplate-reader-iii-somatco-saudi.pdf",
+                ),
+            ),
+            "access": ("front", "estimate: the brochure does not say how a plate goes in"),
+        },
+    ),
+    "elisa": (
+        "Dynex DSX",
+        {
+            "size": (
+                (0.991, 0.787, 0.819),
+                datasheet(
+                    "Dynex System Comparison Brochure POR-E10-V2-2025, DSX 39 × 31 × 32.25 in",
+                    "https://www.dynextechnologies.com/pdf/"
+                    "DYN.Dynex_System_Comparison_Brochure_updated_2026_.pdf",
+                ),
+            ),
+            "access": (
+                "top",
+                "estimate: plates are set on a deck under a hinged cover; no loading face "
+                "for an outside arm is stated",
+            ),
+        },
+    ),
+    "positive-pressure-filter": (
+        "Hamilton MPE²",
+        {
+            "size": (
+                (0.159, 0.445, 0.181),
+                datasheet(
+                    "Hamilton [MPE]² brochure BR0028 v1.0, logistics module 44.5 (l) × 15.9 "
+                    "(w) × 18.1 (h) cm with length taken as depth, one 7-track carrier wide",
+                    "https://cdn2.hubspot.net/hubfs/523047/MPE2%20brochure%20(BR0028%202017-06).pdf",
+                ),
+            ),
+            "access": ("top", "estimate: the brochure does not say how a plate goes in"),
+        },
+    ),
+    "robotic-sample-preparation": (
+        "Hamilton Microlab STAR",
+        {
+            "size": (
+                (1.664, 0.7925, 0.902),
+                datasheet(
+                    "Hamilton Microlab STAR site requirements, 166.37 × 79.25 × 90.2 cm "
+                    "without the multiprobe head or autoload",
+                    STAR_SITE,
+                ),
+            ),
+            "access": STAR_FRONT,
+        },
+    ),
+    "robotic-cell-preparation": (
+        "Hamilton Microlab STARplus",
+        {
+            "size": (
+                (2.16, 0.795, 0.903),
+                datasheet(
+                    "Hamilton Microlab STAR brochure BR0010 v3.1, STARplus 2160 × 903 × 795 mm "
+                    "(W × H × D), distributor-hosted",
+                    "https://www.analitykgenetyka.pl/sites/default/files/"
+                    "2_microlab_star_brochure_0.pdf",
+                ),
+            ),
+            "access": STAR_FRONT,
+        },
+    ),
+    "acoustic-liquid-handler": (
+        "Beckman Coulter Echo 525",
+        {
+            "size": (
+                (0.539, 0.683, 0.925),
+                datasheet(
+                    "Beckman Coulter Echo 525 specifications, 53.9 × 68.3 × 92.5 cm",
+                    "https://www.beckman.com/liquid-handlers/echo-525",
+                ),
+            ),
+            "access": (
+                "front",
+                "estimate: plates go onto gripper stages behind a door, from the user guide's "
+                "contents only; no manufacturer text says through which face",
+            ),
+        },
+    ),
+    "preparative-hplc": (
+        "Agilent 1290 Infinity II Preparative Open-Bed Sampler/Collector",
+        {
+            "size": (
+                (0.9, 0.6, 0.9),
+                "estimate: the G7158B manual gives only the sampler/collector module "
+                "(39.3 × 62.2 × 78.1 cm), not the whole system",
+            ),
+            "access": (
+                "front",
+                "estimate: the G7158B manual has tubes in drawers that protrude when open, "
+                "without naming the face",
+            ),
+        },
+    ),
+    "nmr": (
+        "Bruker Ascend 500 with SampleXpress",
+        {
+            "size": (
+                (1.5, 1.5, 2.5),
+                "estimate: Bruker's AVANCE site planning tables could only be read without "
+                "their column alignment, so their figures are not used",
+            ),
+            "access": (
+                "top",
+                "estimate: SampleXpress sits on top of the magnet and takes cassettes loaded "
+                "on the bench (Bruker press release, 2010)",
+            ),
+        },
+    ),
+    "plate-centrifuge": (
+        "Agilent VSpin",
+        {
+            "size": (
+                (0.35, 0.55, 0.3),
+                "estimate: Agilent's VSpin documents refuse automated reading, so its "
+                "figures are not used",
+            ),
+        },
+    ),
+}
+
+# Stand-ins: what the pinned ChemLab-Assets contract of each gives, from
+# scripts/library-models/chemlab_layout.py. Numbers and evidence labels only.
+CONTRACTS = json.loads((Path(__file__).parent / "chemlab_layout.json").read_text())
+assert CONTRACTS["revision"] == chemlab.REVISION, "chemlab_layout.json is pinned elsewhere"
+EVIDENCE = {
+    "manufacturer": "manufacturer figure",
+    "engineering_assumption": "asset author's estimate",
+}
+
+
+def contract(slug, stand_in, slots):
+    """The stand-in's layout values as (twin fields, {field: basis}) for an entry."""
+    found = CONTRACTS["stand_ins"][slug]
+    fields, basis = {}, {}
+
+    def take(key, value=None):
+        item = found[key]
+        fields[key] = item["value"] if value is None else value
+        basis[key] = (
+            f"{item['evidence']}: {EVIDENCE[item['evidence']]} in the ChemLab-Assets "
+            f"{stand_in} contract ({item['detail']})"
+        )
+
+    if "size" in found:
+        take("size")
+    if "access" in found:
+        take("access")
+        if found["access"]["value"] == "front":
+            take("level_m")
+            if "opening" in found:
+                take("opening")
+            if "extends_m" in found:
+                take("extends_m")
+        elif slots == 1:
+            # One sample set into the block from above, where the contract places it.
+            take("level_m")
+            x, z = found["site"]["value"]
+            take("site", [{"key": "1", "x": x, "z": z}])
+    return fields, basis
+
+
 FEATURED = {"robotic-sample-preparation", "acoustic-liquid-handler", "thermocycler"}
 COLORS = ["#d9dcde", "#c9ced1", "#466e7d", "#365445", "#5a6470"]
 
@@ -356,6 +562,7 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
             "path": row["path"],
             "mesh": chemlab.mesh(geometry),
             "stand_in": stand_in,
+            "slug": geometry,
         }
     else:
         size = geometry
@@ -368,7 +575,53 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
             "path": "",
             "mesh": None,
             "stand_in": None,
+            "slug": None,
         }
+    stand_in, extra = source["stand_in"], {}
+    basis = {"size": f"footprint: ChemLab-Assets {stand_in}" if stand_in else ESTIMATE}
+    if stand_in:
+        model = stand_in
+        fields, found = contract(geometry, stand_in, spec.get("slots", 0))
+        size = fields.pop("size", size)
+        for key, twin_key in (("access", "access"), ("level_m", "level_m")):
+            if key in fields:
+                spec[twin_key] = fields[key]
+        for key, twin_key in (("opening", "opening"), ("extends_m", "drawer_m"), ("site", "sites")):
+            if key in fields:
+                extra[twin_key] = fields[key]
+        basis.update(
+            {{"extends_m": "drawer_m", "site": "sites"}.get(k, k): v for k, v in found.items()}
+        )
+        if found:
+            shape = (
+                f"Geometry is one box with what the ChemLab-Assets contract of a comparable "
+                f"instrument, the {stand_in} ({chemlab.LICENSE}), gives for outside size and "
+                "loading, not this instrument's size."
+            )
+    else:
+        model, sourced = LAYOUT.get(asset_id, (None, {}))
+        if "size" in sourced:
+            size, basis["size"] = sourced["size"]
+        if "access" in sourced:
+            spec["access"], basis["access"] = sourced["access"]
+        if model and any(b.startswith("datasheet:") for b in basis.values()):
+            shape = (
+                f"Geometry is one box with what the {model} datasheet gives for outside size "
+                "and loading where it gives them, a comparable instrument's figures, not this "
+                "instrument's size."
+            )
+        elif model:
+            shape = (
+                "Geometry is one box with an Academy estimate, not this instrument's size; "
+                f"the {model} documents read gave no figures it could use."
+            )
+    if "access" not in basis:
+        basis["access"] = (
+            "estimate: an Academy default from what the instrument is; no source read gives "
+            "its loading face"
+        )
+    if spec.get("access") == "front" and "level_m" not in basis:
+        basis["level_m"] = UNSET  # the planner then presents the plate a third of the way up
     twin = footprint_spec(
         size,
         color,
@@ -376,6 +629,7 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
         f"{capabilities} {shape} Other values are Academy teaching defaults. Correct them "
         "for your instrument before confirming.",
     )
+    twin = TwinSpec.model_validate({**twin, **extra}).model_dump(mode="json")
     return {
         "label": f"{PROVIDER} {name}",
         "provider": PROVIDER,
@@ -388,6 +642,8 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
         "url": SOURCE,
         "retrieved": RETRIEVED,
         **source,
+        "layout_model": model,
+        "geometry_basis": basis,
         "spec": twin,
     }
 
@@ -415,6 +671,14 @@ def overview():
                 "limits": spec["limits"],
                 "consumables": spec["consumables"],
                 "size_m": [width, depth, height],
+                "access": spec["access"],
+                "level_m": spec["level_m"],
+                "opening": spec.get("opening"),
+                "drawer_m": spec.get("drawer_m"),
+                # The drawn stand-in model's own bounding box, when it differs from the twin.
+                "model_size_m": ROWS[asset["slug"]]["size_m"] if asset["slug"] else None,
+                "layout_model": asset["layout_model"],
+                "geometry_basis": asset["geometry_basis"],
                 "stand_in": asset["stand_in"],
                 "mesh": asset["mesh"],
                 "attribution": asset["attribution"],
