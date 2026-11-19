@@ -69,6 +69,8 @@ export type TwinSpec = {
   level_m?: number | null;
   /** The part of one face an enclosure is entered through; left out, its whole front. */
   opening?: Opening | null;
+  /** How far a drawer comes out of that face to take labware (metres). */
+  drawer_m?: number | null;
 };
 export type Site = { key: string; x: number; z: number };
 export type ArmProfile = "ur3e" | "ur5e" | "ur10e";

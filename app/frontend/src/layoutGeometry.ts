@@ -96,9 +96,10 @@ export function entry(spec: TwinSpec): [Point, number] {
     end: 1,
   };
   const middle = (start + end) / 2;
-  if (face === "front") return [[x0 + (x1 - x0) * middle, z1 + TRAY], 0];
+  const out = spec.drawer_m || TRAY; // mirrors workcell_layout.tray
+  if (face === "front") return [[x0 + (x1 - x0) * middle, z1 + out], 0];
   const z = z0 + (z1 - z0) * middle;
-  return face === "left" ? [[x0 - TRAY, z], -90] : [[x1 + TRAY, z], 90];
+  return face === "left" ? [[x0 - out, z], -90] : [[x1 + out, z], 90];
 }
 
 export function loads(spec: TwinSpec, p?: Placement): Access {

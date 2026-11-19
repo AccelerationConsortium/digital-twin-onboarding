@@ -27,6 +27,9 @@ test("meet the instruments shows what a cloud lab offers", async ({ page }) => {
     });
 
   await section.getByRole("button", { name: "Spectroscopy" }).click();
+  await expect(
+    section.getByRole("button", { name: /Analytical HPLC/ }),
+  ).toHaveCount(0);
   await section.getByRole("button", { name: /Multimode plate reader/ }).click();
   const reader = page.getByRole("article", { name: "Multimode plate reader" });
   await expect(

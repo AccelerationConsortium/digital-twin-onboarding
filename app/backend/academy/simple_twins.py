@@ -207,7 +207,7 @@ def detail_layers(old, new):
     changed = {
         layer
         for layer, keys in {
-            "geometry": ["parts", "opening", "access", "drawer_m"],
+            "geometry": ["parts", "opening", "access", "drawer_m", "level_m", "sites"],
             "volume": [],
             "container": [],
             "resource": ["resource"],
