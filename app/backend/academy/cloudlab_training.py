@@ -26,7 +26,7 @@ from nacl.exceptions import BadSignatureError
 from nacl.signing import SigningKey
 from pydantic import Field
 
-from . import competencies, opentrons_check
+from . import competencies, fault_drills, opentrons_check
 from .auth import identify
 from .models import Action, StrictModel
 from .store import Conflict
@@ -507,7 +507,7 @@ def seconds_between(start, end):
     return round((datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds())
 
 
-def record(owner, training, settings):
+def record(owner, training, settings, drills=None):
     issued = now()
     tasks = []
     for key, task in training["tasks"].items():
@@ -559,6 +559,8 @@ def record(owner, training, settings):
                     )
                 ],
             },
+            # A passed fault-drill checkride, when there is one; it is signed with the rest.
+            **({"fault_drills": drills} if drills else {}),
             "evidence": "synthetic",
             "statement": STATEMENT,
         },
@@ -735,7 +737,8 @@ def install(app, *, store):
         training = store.get(owner, KEY)
         if training is None:
             raise HTTPException(404, "Start the training first")
-        return record(owner, training, settings)
+        drills = fault_drills.record_entry(store.get(owner, fault_drills.KEY))
+        return record(owner, training, settings, drills)
 
     @app.post("/api/cloudlab/records/verify")
     def verify_record(data: RecordCheck, _owner: str = Depends(identify)):

@@ -11,6 +11,7 @@ from . import (
     arm_simulation,
     cloudlab_training,
     examples,
+    fault_drills,
     groups,
     node_api,
     opentrons_check,
@@ -747,6 +748,7 @@ def create_app(settings: Settings | None = None, store=None):
     cloudlab_training.install(app, store=app.state.store)
     node_api.install(app)
     agent_sandbox.install(app, store=app.state.store)
+    fault_drills.install(app, store=app.state.store)
     return app
 
 
