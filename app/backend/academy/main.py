@@ -19,6 +19,8 @@ from . import (
 from ._version import __version__
 from .auth import identify, local_signer, may_plan_layouts, require_layout_planner
 from .cloudlab import overview as cloudlab_overview
+from .cloudlab_workflow import CloudLabWorkflows, Draft, RunWorkflow, SaveWorkflow
+from .cloudlab_workflow import check as check_cloudlab_workflow
 from .connections import ConnectionService
 from .connector_api import router as connector_router
 from .connector_catalog import approved_release
@@ -104,6 +106,7 @@ def create_app(settings: Settings | None = None, store=None):
     app.state.media = MediaService(app.state.runs)
     app.state.twins = SimpleTwinService(app.state.store, settings)
     app.state.practice = FaultPractice(app.state.store)
+    app.state.cloudlab_workflows = CloudLabWorkflows(app.state.store)
     app.state.mixing_twins = MixingTwinService(app.state.store, app.state.twins)
     if settings.runtime == "local":
         app.add_middleware(
@@ -294,6 +297,22 @@ def create_app(settings: Settings | None = None, store=None):
     @app.get("/api/cloudlab/instruments")
     def cloudlab_instruments(_owner: str = Depends(identify)):
         return cloudlab_overview()
+
+    @app.get("/api/cloudlab/workflow")
+    def cloudlab_workflow(owner: str = Depends(identify)):
+        return app.state.cloudlab_workflows.get(owner)
+
+    @app.put("/api/cloudlab/workflow")
+    def save_cloudlab_workflow(data: SaveWorkflow, owner: str = Depends(identify)):
+        return app.state.cloudlab_workflows.save(owner, data)
+
+    @app.post("/api/cloudlab/workflow/check")
+    def check_cloudlab_draft(data: Draft, _owner: str = Depends(identify)):
+        return check_cloudlab_workflow([s.model_dump() for s in data.steps])
+
+    @app.post("/api/cloudlab/workflow/run")
+    def run_cloudlab_workflow(data: RunWorkflow, owner: str = Depends(identify)):
+        return app.state.cloudlab_workflows.run(owner, data)
 
     @app.get("/api/twins/library")
     def instrument_library(

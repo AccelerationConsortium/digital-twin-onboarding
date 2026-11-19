@@ -19,6 +19,7 @@ import {
   History,
   Users,
   Cloud,
+  Workflow as WorkflowIcon,
   LayoutGrid,
   LogOut,
   Maximize2,
@@ -76,6 +77,7 @@ const DilutionWorkspace = lazy(() => import("./DilutionWorkspace"));
 const CloudLabTraining = lazy(() => import("./CloudLabTraining"));
 const CloudLabPortal = lazy(() => import("./CloudLabPortal"));
 const CloudLabInstruments = lazy(() => import("./CloudLabInstruments"));
+const CloudLabWorkflow = lazy(() => import("./CloudLabWorkflow"));
 const WorkflowMarketplace = lazy(() =>
   import("./Discovery").then((m) => ({ default: m.WorkflowMarketplace })),
 );
@@ -659,7 +661,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -696,7 +698,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -957,6 +959,13 @@ export default function App() {
               >
                 <Cloud size={18} /> Cloud lab onboarding
               </button>
+              <button
+                className={view === "cloudlab-workflow" ? s.activeNav : ""}
+                aria-current={view === "cloudlab-workflow" ? "page" : undefined}
+                onClick={() => nav("cloudlab-workflow")}
+              >
+                <WorkflowIcon size={18} /> Cloud lab workflow
+              </button>
               {view === "lab" && (
                 <button className={s.activeNav}>
                   <FlaskConical size={18} /> Current experiment
@@ -1075,17 +1084,19 @@ export default function App() {
                                 ? "Study groups"
                                 : view === "cloudlab"
                                   ? "Cloud lab onboarding"
-                                  : view === "portal"
-                                    ? "Mock cloud lab portal"
-                                    : view === "discovery"
-                                      ? "Discovery studio"
-                                      : view === "marketplace"
-                                        ? "Workflow marketplace"
-                                        : view === "connector"
-                                          ? "Connector explorer"
-                                          : view === "sim"
-                                            ? "Simulation lab"
-                                            : "Learning lab"))}
+                                  : view === "cloudlab-workflow"
+                                    ? "Cloud lab workflow"
+                                    : view === "portal"
+                                      ? "Mock cloud lab portal"
+                                      : view === "discovery"
+                                        ? "Discovery studio"
+                                        : view === "marketplace"
+                                          ? "Workflow marketplace"
+                                          : view === "connector"
+                                            ? "Connector explorer"
+                                            : view === "sim"
+                                              ? "Simulation lab"
+                                              : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -1192,6 +1203,18 @@ export default function App() {
                   <Suspense fallback={null}>
                     <CloudLabInstruments />
                   </Suspense>
+                  <button
+                    className={s.planLink}
+                    onClick={() => nav("cloudlab-workflow")}
+                  >
+                    <span>
+                      <strong>Chain cloud lab instruments</strong>
+                      <small>
+                        Compose a workflow from what each instrument does.
+                      </small>
+                    </span>
+                    <ArrowRight size={18} />
+                  </button>
                   <button className={s.planLink} onClick={() => nav("plan")}>
                     <span>
                       <strong>Bring your own instruments</strong>
@@ -1225,6 +1248,12 @@ export default function App() {
               ) : view === "cloudlab" ? (
                 <CloudLabTraining
                   onPortal={() => nav("portal")}
+                  onError={showError}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
+              ) : view === "cloudlab-workflow" ? (
+                <CloudLabWorkflow
+                  onBack={() => nav("instruments")}
                   onError={showError}
                   registerLeaveGuard={registerLeaveGuard}
                 />
