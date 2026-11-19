@@ -10,6 +10,7 @@ from . import (
     agent_sandbox,
     arm_simulation,
     cloudlab_training,
+    endurance,
     examples,
     groups,
     node_api,
@@ -361,6 +362,14 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/twins/layout/robustness", dependencies=[Depends(require_layout_planner)])
     def stress_instrument_layout(data: StressLayout, owner: str = Depends(identify)):
         return app.state.twins.stress_layout(owner, data)
+
+    @app.post("/api/twins/layout/endurance", dependencies=[Depends(require_layout_planner)])
+    def endure_instrument_layout(data: endurance.EnduranceRun, owner: str = Depends(identify)):
+        return endurance.run_chunk(app.state.twins, owner, data)
+
+    @app.post("/api/twins/layout/endurance/replay", dependencies=[Depends(require_layout_planner)])
+    def replay_endurance_cycle(data: endurance.EnduranceReplay, owner: str = Depends(identify)):
+        return endurance.run_replay(app.state.twins, owner, data)
 
     @app.post("/api/twins")
     def create_instrument(data: CreateTwin, owner: str = Depends(identify)):
