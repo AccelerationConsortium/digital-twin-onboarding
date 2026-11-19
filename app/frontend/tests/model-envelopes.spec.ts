@@ -84,7 +84,9 @@ test("every drawn model fills its planning envelope and no more", async ({
       ),
     );
     if (off > 0.002) wrong.push(`${c.id} is drawn ${off.toFixed(3)} m off`);
-    // The catalogued size is the model's own: fitting it barely stretches it.
+    // A cloud lab twin draws a comparable instrument's model at its own sourced size.
+    if (byId.get(c.id)!.collection === "cloudlab") continue;
+    // Otherwise the catalogued size is the model's own: fitting it barely stretches it.
     const stretch = Math.max(...c.scale!.map((v) => Math.abs(v - 1)));
     if (stretch > 0.03)
       wrong.push(
@@ -94,6 +96,9 @@ test("every drawn model fills its planning envelope and no more", async ({
   expect(wrong).toEqual([]);
   // The procedural workcell models are always on hand.
   const present = checked.filter((c) => !c.missing).map((c) => c.id);
+  // CI fetches the pinned library models first, so there none may be missing.
+  if (process.env.ACADEMY_REQUIRE_LIBRARY_MODELS === "true")
+    expect(checked.filter((c) => c.missing).map((c) => c.id)).toEqual([]);
   expect(present).toEqual(
     expect.arrayContaining(["opentrons-ot2", "precision-balance"]),
   );
