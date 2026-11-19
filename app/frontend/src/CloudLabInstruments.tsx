@@ -72,6 +72,13 @@ const basisLabel = (basis: string | undefined, item: Instrument) => {
   if (basis === "unset") return "not published";
   return "Academy estimate";
 };
+/** A figure's own source, where it differs from the one the row ends with. */
+const own = (key: string, item: Instrument) => {
+  const label = basisLabel(item.geometry_basis[key], item);
+  return label === basisLabel(item.geometry_basis.access, item)
+    ? ""
+    : ` (${label})`;
+};
 const metres = (v: number[]) => `${v.map((x) => x.toFixed(2)).join(" × ")} m`;
 /** Where along the front a plate goes in, from the open part of that face. */
 const part = (opening: Instrument["opening"]) => {
@@ -257,9 +264,9 @@ export default function CloudLabInstruments() {
                   {open.access === "front" ? "At the front" : "From above"}
                   {part(open.opening)}
                   {open.level_m !== null &&
-                    `, ${open.level_m.toFixed(2)} m above the bench`}
+                    `, ${open.level_m.toFixed(2)} m above the bench${own("level_m", open)}`}
                   {open.drawer_m !== null &&
-                    `; its drawer comes out ${open.drawer_m.toFixed(2)} m`}{" "}
+                    `; its drawer comes out ${open.drawer_m.toFixed(2)} m${own("drawer_m", open)}`}{" "}
                   · {basisLabel(open.geometry_basis.access, open)}
                 </dd>
               </dl>

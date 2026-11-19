@@ -266,7 +266,11 @@ def drawer(spec, placement):
 
 def validate_layout(twins, layout):
     """Every placed footprint lies on the bench, no two footprints overlap and every
-    drawer has room to come out."""
+    drawer has room to come out.
+
+    Two drawers may sweep the same bench: one arm serves one instrument at a time, so
+    only one is out at once.
+    """
     half_w, half_d = layout["bench"]["width"] / 2, layout["bench"]["depth"] / 2
     shapes, drawers = [], []
     for placement in layout["placements"]:

@@ -85,14 +85,17 @@ def fetch(cache, rev):
     }
     for slug in stand_ins():
         for name in FILES:
-            path = cache / f"{slug}__{name}"
+            path = cache / f"{rev}__{slug}__{name}"
             if path.exists():
                 continue
             url = (
                 f"https://huggingface.co/datasets/{REPO}/resolve/{rev}/{rows[slug]['path']}/{name}"
             )
             with urllib.request.urlopen(url, timeout=120) as response:
-                path.write_bytes(response.read())
+                # Renamed into place, so an interrupted download is never reused.
+                part = path.with_name(path.name + ".part")
+                part.write_bytes(response.read())
+                part.replace(path)
 
 
 def evidence(label):
