@@ -15,6 +15,7 @@ from .auth import identify, in_cognito_group
 from .learning import present
 from .models import Experiment, StrictModel
 from .recipes import MIXING
+from .reviews import POINTER, pointer_record
 from .store import Conflict, Write
 from .teaching import new_session
 from .workcell_layout import corners
@@ -134,6 +135,13 @@ def install(app, *, store):
                             f"groupcode#{code}", "group", {"group_id": group_id, "version": 1}, None
                         ),
                         Write(f"group#{group_id}", "group", group, None),
+                        # Server-side only: lets a supervised review find this member.
+                        Write(
+                            f"group#{group_id}",
+                            f"{POINTER}{member['id']}",
+                            pointer_record(member["id"], owner),
+                            None,
+                        ),
                         Write(
                             owner,
                             f"membership#{group_id}",
@@ -166,6 +174,12 @@ def install(app, *, store):
         store.transact(
             [
                 Write(f"group#{group_id}", "group", updated, group["version"]),
+                Write(
+                    f"group#{group_id}",
+                    f"{POINTER}{member['id']}",
+                    pointer_record(member["id"], owner),
+                    None,
+                ),
                 Write(
                     owner,
                     f"membership#{group_id}",

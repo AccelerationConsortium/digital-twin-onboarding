@@ -35,6 +35,7 @@ import {
   LayoutDashboard,
   House,
   ListChecks,
+  MessagesSquare,
 } from "lucide-react";
 import { api, ApiError, configureAuth, json, signIn, signOut } from "./api";
 import type { Config, Course, Experiment, Profile, Session } from "./types";
@@ -72,6 +73,7 @@ const ConnectorSetup = lazy(() => import("./ConnectorSetup"));
 const Workcell = lazy(() => import("./Workcell"));
 const InstrumentModules = lazy(() => import("./InstrumentModules"));
 const StudyGroups = lazy(() => import("./StudyGroups"));
+const SupervisorReview = lazy(() => import("./SupervisorReview"));
 const WorkcellCase = lazy(() => import("./workcellCase/WorkcellCase"));
 const DilutionWorkspace = lazy(() => import("./DilutionWorkspace"));
 const CloudLabTraining = lazy(() => import("./CloudLabTraining"));
@@ -660,7 +662,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|cloudlab|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -697,7 +699,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|cloudlab|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -951,6 +953,13 @@ export default function App() {
                 <Users size={18} /> Study groups
               </button>
               <button
+                className={view === "reviews" ? s.activeNav : ""}
+                aria-current={view === "reviews" ? "page" : undefined}
+                onClick={() => nav("reviews")}
+              >
+                <MessagesSquare size={18} /> Reviews
+              </button>
+              <button
                 className={
                   view === "cloudlab" || view === "portal" ? s.activeNav : ""
                 }
@@ -1075,19 +1084,21 @@ export default function App() {
                               ? "My experiments"
                               : view === "groups"
                                 ? "Study groups"
-                                : view === "cloudlab"
-                                  ? "Cloud lab onboarding"
-                                  : view === "portal"
-                                    ? "Mock cloud lab portal"
-                                    : view === "discovery"
-                                      ? "Discovery studio"
-                                      : view === "marketplace"
-                                        ? "Workflow marketplace"
-                                        : view === "connector"
-                                          ? "Connector explorer"
-                                          : view === "sim"
-                                            ? "Simulation lab"
-                                            : "Learning lab"))}
+                                : view === "reviews"
+                                  ? "Reviews"
+                                  : view === "cloudlab"
+                                    ? "Cloud lab onboarding"
+                                    : view === "portal"
+                                      ? "Mock cloud lab portal"
+                                      : view === "discovery"
+                                        ? "Discovery studio"
+                                        : view === "marketplace"
+                                          ? "Workflow marketplace"
+                                          : view === "connector"
+                                            ? "Connector explorer"
+                                            : view === "sim"
+                                              ? "Simulation lab"
+                                              : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -1233,6 +1244,12 @@ export default function App() {
               ) : view === "portal" ? (
                 <CloudLabPortal
                   onTraining={() => nav("cloudlab")}
+                  onError={showError}
+                />
+              ) : view === "reviews" ? (
+                <SupervisorReview
+                  key={workspaceRouteRevision}
+                  onGroups={() => nav("groups")}
                   onError={showError}
                 />
               ) : view === "groups" ? (

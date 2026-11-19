@@ -180,8 +180,14 @@ class Revision(StrictModel):
     expected_version: int = Field(ge=0, strict=True)
 
 
+AGENT_NAME = r"^[A-Za-z0-9][A-Za-z0-9 ._-]{0,39}$"
+
+
 class OpenEpisode(Revision):
     scenario: Literal["warm-read", "occupied-reader", "last-tip", "too-hot"]
+    # Which agent the episode is for, so its score counts toward that agent's
+    # qualification; without one it counts for the signed-in person.
+    agent: str | None = Field(default=None, pattern=AGENT_NAME)
 
 
 class Call(Revision):
@@ -416,6 +422,7 @@ def install(app, *, store):
             "steps": setup_steps(data.scenario),
             "calls": [],
             "operator_reason": None,
+            "agent": data.agent.strip() if data.agent else None,
         }
         found["episodes"] = [episode, *found["episodes"][: KEEP - 1]]
         version = save(owner, found, data.expected_version)["version"]
