@@ -44,6 +44,18 @@ STATEMENT = (
     "instrument; the cloud lab's own safety review and access policy decide that."
 )
 
+# Other record types this issuer signs with the same key and envelope, by type. Each
+# maps to a check saying whether a record was earned under the current rules and is
+# complete; `verify` stays the one verifier for all of them.
+RECORD_TYPES = {}
+PUBLISHED_RULES = {}
+
+
+def register_record_type(record_type, check, rules):
+    RECORD_TYPES[record_type] = check
+    PUBLISHED_RULES.update(rules)
+
+
 QUESTIONS = [
     {
         "id": "waste",
@@ -575,8 +587,11 @@ def verify(envelope, settings):
     authentic = record is not None
     record = record or {}
     module = record.get("module")
-    known = record.get("type") == RECORD_TYPE
+    other = None if record.get("type") == RECORD_TYPE else RECORD_TYPES.get(record.get("type"))
+    known = record.get("type") == RECORD_TYPE or other is not None
     same_rules = isinstance(module, dict) and module.get("rules_version") == RULES
+    if other is not None:
+        same_rules, complete = other(record)
     expires = record.get("expires_at")
     try:
         lapse = datetime.fromisoformat(expires) if isinstance(expires, str) else None
@@ -584,7 +599,8 @@ def verify(envelope, settings):
         expired = lapse is None or lapse.tzinfo is None or lapse < now()
     except ValueError:
         expired = True
-    complete = record.get("complete") is True
+    if other is None:
+        complete = record.get("complete") is True
     problems = [
         message
         for failed, message in [
@@ -658,6 +674,7 @@ def install(app, *, store):
             "format": ENVELOPE,
             "keys": [public_jwk(settings)] if settings.secret else [],
             "rules": {MODULE: RULES},
+            **({"qualifications": PUBLISHED_RULES} if PUBLISHED_RULES else {}),
             # A verifier judges expiry by this clock, not the learner's.
             "now": stamp(),
         }
