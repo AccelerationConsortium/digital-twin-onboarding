@@ -22,7 +22,7 @@ from typing import Literal
 from fastapi import Depends, HTTPException
 from pydantic import Field
 
-from . import agent_sandbox, cloudlab_training
+from . import agent_sandbox, cloudlab_training, fault_drills
 from .agent_sandbox import AGENT_NAME
 from .auth import identify
 from .fault_practice import FaultPractice
@@ -66,6 +66,8 @@ SANDBOX = {
     "last-tip": [("liquid-handler", "escalate")],
     "too-hot": [("incubator", "escalate")],
 }
+# A drill's instrument template, as the qualification kind it trains for; others count for none.
+DRILL_KINDS = {"liquid-handler": "liquid-handler", "heater": "incubator", "reader": "plate-reader"}
 STATEMENT = (
     "Qualification evidence from synthetic exercises on digital twins. It does not "
     "authorize use of any instrument; the lab's own safety review and access policy decide that."
@@ -167,6 +169,12 @@ def derived(store, owner):
                 record["id"],
                 record["created_at"],
             )
+    ride = fault_drills.record_entry(store.get(owner, fault_drills.KEY))
+    if ride:
+        for drill in ride["drills"]:
+            kind = DRILL_KINDS.get(drill["instrument_kind"])
+            if kind and drill["criterion"] in KINDS[kind]["criteria"]:
+                add(None, kind, drill["criterion"], ride["source"], ride["ref"], ride["passed_at"])
     sandbox = store.get(owner, agent_sandbox.KEY) or {"episodes": []}
     for episode in sandbox["episodes"]:
         score = agent_sandbox.score(episode)

@@ -325,6 +325,33 @@ def test_a_failed_checkride_adds_nothing_to_the_record(client, clock):
     assert "fault_drills" not in record
 
 
+def test_a_passed_checkride_counts_toward_the_qualifications(client, clock):
+    from academy.qualifications import DRILL_KINDS, KINDS
+
+    assert ride(client, clock)["checkrides"][0]["passed"] is True
+    person = next(h for h in client.get("/api/qualifications").json()["holders"] if not h["agent"])
+    passed = {
+        (kind, c["id"])
+        for kind, spec in person["instruments"].items()
+        for c in spec["criteria"]
+        if c["passed"]
+    }
+    assert all(
+        c["source"] == "fault-drills/checkride"
+        for kind, spec in person["instruments"].items()
+        for c in spec["criteria"]
+        if c["passed"]
+    )
+    finish(client)  # only to read which drills the checkride held
+    entry = payload(client.get("/api/cloudlab/qualifications/me").json())["fault_drills"]
+    assert passed == {
+        (DRILL_KINDS[d["instrument_kind"]], d["criterion"])
+        for d in entry["drills"]
+        if d["instrument_kind"] in DRILL_KINDS
+        and d["criterion"] in KINDS[DRILL_KINDS[d["instrument_kind"]]]["criteria"]
+    }
+
+
 def test_checkride_drills_differ_and_block_practice(client, clock):
     found = state(client)
     body = client.post(
