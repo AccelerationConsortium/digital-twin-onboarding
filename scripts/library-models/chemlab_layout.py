@@ -200,7 +200,7 @@ def main():
         raise SystemExit(f"Stand-ins without a row in STAND_INS (or not in cloudlab.py): {missing}")
     result = {}
     for slug in sorted(STAND_INS):
-        manifest = json.loads((cache / f"{slug}__geometry_manifest.json").read_text())
+        manifest = json.loads((cache / f"{rev}__{slug}__geometry_manifest.json").read_text())
         result[slug] = derive(manifest, slug)
         print(slug, sorted(result[slug]), flush=True)
     OUT.write_text(
