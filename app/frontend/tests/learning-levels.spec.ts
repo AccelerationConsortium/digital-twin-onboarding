@@ -157,3 +157,23 @@ test("beginner alone can edit, complete and resume a simple workflow on mobile",
     1,
   );
 });
+
+test("planner resources open the workcell planner on their own tab", async ({
+  page,
+}) => {
+  await enter(page);
+  await page.getByRole("link", { name: "Intermediate", exact: true }).click();
+  await page.getByRole("button", { name: "Open workcell planner" }).click();
+  await expect(page).toHaveURL(/#\/plan\/layout$/);
+  await expect(page.getByRole("tab", { name: "4 · Layout" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.getByRole("button", { name: "Learning lab", exact: true }).click();
+  await page.getByRole("link", { name: "Advanced", exact: true }).click();
+  await page.getByRole("button", { name: "Explore mock connectors" }).click();
+  await expect(page).toHaveURL(/#\/plan\/connectors$/);
+  await expect(
+    page.getByRole("tab", { name: "5 · Connectors" }),
+  ).toHaveAttribute("aria-selected", "true");
+});

@@ -225,7 +225,7 @@ export default function LearningPaths({
               title="Plan a multi-device workcell"
               description="Assign operations to selected instruments, arrange a bench layout and inspect its arm path checks."
               action="Open workcell planner"
-              onOpen={() => onNavigate("instruments/layout")}
+              onOpen={() => onNavigate("plan/layout")}
             />
           </>
         ) : (
@@ -242,7 +242,7 @@ export default function LearningPaths({
               title="Mock command contracts"
               description="Inspect the selected instruments’ mock interfaces and SiLA bundle exports in the workcell planner."
               action="Explore mock connectors"
-              onOpen={() => onNavigate("instruments/connectors")}
+              onOpen={() => onNavigate("plan/connectors")}
             />
             <Resource
               number="03"
