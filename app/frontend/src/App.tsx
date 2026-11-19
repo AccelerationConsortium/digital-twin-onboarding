@@ -19,6 +19,7 @@ import {
   History,
   Users,
   Cloud,
+  Workflow as WorkflowIcon,
   LayoutGrid,
   LogOut,
   Maximize2,
@@ -50,6 +51,7 @@ import {
 import { FirstLessonCard } from "./FirstLessonCard";
 import { DiscoveryInvitation } from "./DiscoveryInvitation";
 import ThemeToggle from "./ThemeToggle";
+import Landing from "./Landing";
 import InstrumentStories from "./InstrumentStories";
 import { latestCourseSession, learningLevelFromPath } from "./learningLevels";
 import {
@@ -76,6 +78,7 @@ const DilutionWorkspace = lazy(() => import("./DilutionWorkspace"));
 const CloudLabTraining = lazy(() => import("./CloudLabTraining"));
 const CloudLabPortal = lazy(() => import("./CloudLabPortal"));
 const CloudLabInstruments = lazy(() => import("./CloudLabInstruments"));
+const CloudLabWorkflow = lazy(() => import("./CloudLabWorkflow"));
 const WorkflowMarketplace = lazy(() =>
   import("./Discovery").then((m) => ({ default: m.WorkflowMarketplace })),
 );
@@ -99,7 +102,6 @@ function Brand({ small = false }: { small?: boolean }) {
   );
 }
 
-type StudioIntent = { instrument: Instrument; starter: Starter };
 const learnLabels = {
   overview: workspaceLabels.overview,
   instruments: "Meet the instruments",
@@ -107,157 +109,6 @@ const learnLabels = {
   sim: "Simulation lab",
   marketplace: "Workflow marketplace",
 };
-const STUDIO_INTENT_KEY = "academy-studio-intent-v1";
-function readStudioIntent(): StudioIntent | null {
-  try {
-    const value = JSON.parse(
-      sessionStorage.getItem(STUDIO_INTENT_KEY) ?? "null",
-    );
-    if (
-      value &&
-      ["flex", "ot2"].includes(value.instrument) &&
-      ["transfer", "distribute", "dilution", "blank"].includes(value.starter)
-    )
-      return value;
-  } catch {
-    /* Storage may be unavailable; the public introductions still work. */
-  }
-  return null;
-}
-function rememberStudioIntent(value: StudioIntent | null) {
-  try {
-    if (value) sessionStorage.setItem(STUDIO_INTENT_KEY, JSON.stringify(value));
-    else sessionStorage.removeItem(STUDIO_INTENT_KEY);
-  } catch {
-    /* In-memory choice remains available when storage is disabled. */
-  }
-}
-
-function Welcome({
-  config,
-  onEnter,
-  onDesign,
-  pending,
-  busy,
-}: {
-  config: Config;
-  onEnter: (name: string) => void;
-  onDesign: (instrument: Instrument, starter: Starter) => void;
-  pending: StudioIntent | null;
-  busy: boolean;
-}) {
-  const [name, setName] = useState("");
-  const entry = useRef<HTMLElement>(null);
-  return (
-    <main className={s.welcome}>
-      <header>
-        <Brand />
-        <button
-          className={s.textButton}
-          onClick={() => {
-            entry.current?.scrollIntoView({
-              block: "center",
-              behavior: "auto",
-            });
-            entry.current
-              ?.querySelector<HTMLInputElement | HTMLButtonElement>(
-                "input, button",
-              )
-              ?.focus({ preventScroll: true });
-          }}
-        >
-          Sign in <ArrowRight size={16} />
-        </button>
-      </header>
-      <InstrumentStories
-        headingLevel={1}
-        onDesign={(instrument, starter) => {
-          onDesign(instrument, starter);
-          entry.current?.scrollIntoView({ block: "center", behavior: "auto" });
-          entry.current
-            ?.querySelector<HTMLInputElement | HTMLButtonElement>(
-              "input, button",
-            )
-            ?.focus({ preventScroll: true });
-        }}
-        busy={busy}
-      />
-      <section
-        className={s.welcomeAccess}
-        ref={entry}
-        aria-label="Save your own workflow"
-      >
-        <div>
-          <span className={s.eyebrow}>FROM WATCHING TO MAKING</span>
-          <h2>Your next experiment starts with an idea.</h2>
-          <p>
-            Choose a starter or an empty canvas. Arrange your bench, combine
-            steps and watch the teaching model respond.
-          </p>
-          {pending && (
-            <p className={s.starterNotice} role="status">
-              Your {pending.instrument === "ot2" ? "OT-2" : "Flex"}{" "}
-              {pending.starter === "blank"
-                ? "blank workflow"
-                : `${pending.starter} starter`}{" "}
-              is selected. Sign in to make it yours.
-            </p>
-          )}
-        </div>
-        <div className={s.welcomeCopy}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              onEnter(name.trim() || "Learner");
-            }}
-          >
-            {config.auth === "local" && (
-              <label className={s.nameInput}>
-                What should we call you?
-                <input
-                  autoComplete="given-name"
-                  maxLength={60}
-                  placeholder="Your first name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-            )}
-            <button
-              className={s.primary}
-              disabled={busy || config.auth === "disabled"}
-            >
-              {busy
-                ? "Opening your workspace…"
-                : config.auth === "cognito"
-                  ? config.self_signup_email_domains?.length
-                    ? "Sign in or create an account"
-                    : "Sign in to Lab Onboarding"
-                  : "Enter the learning lab"}
-              <ArrowRight size={18} />
-            </button>
-          </form>
-          <span className={s.caption}>
-            {config.auth === "local"
-              ? "Local preview · your progress stays on this computer"
-              : config.auth === "disabled"
-                ? "Sign-in has not been configured. Ask your administrator."
-                : config.self_signup_email_domains?.length
-                  ? `New learners can sign up with ${config.self_signup_email_domains.map((domain) => `@${domain}`).join(" or ")}. Verify your email to start learning.`
-                  : "Use your training account to save your progress."}
-          </span>
-        </div>
-      </section>
-      <footer className={s.welcomeFooter}>
-        <span>TEACHING MODEL · SYNTHETIC</span>
-        <span>Watch a workflow</span>
-        <span>Change something</span>
-        <span>Try it again</span>
-      </footer>
-    </main>
-  );
-}
-
 function Onboarding({
   profile,
   onSave,
@@ -586,10 +437,6 @@ export default function App() {
   );
   const [workspaceRouteRevision, setWorkspaceRouteRevision] = useState(0);
   const [discoverySeed, setDiscoverySeed] = useState<Workflow | undefined>();
-  const [pendingStudio, setPendingStudio] = useState<StudioIntent | null>(
-    readStudioIntent,
-  );
-  const intentStarted = useRef(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -659,7 +506,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -696,7 +543,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -802,32 +649,8 @@ export default function App() {
   };
   const createStudio = (instrument: Instrument, starter: Starter) => {
     if (busy) return;
-    if (!profile) {
-      const intent = { instrument, starter };
-      intentStarted.current = false;
-      setPendingStudio(intent);
-      rememberStudioIntent(intent);
-      return;
-    }
     void create(false, makeStudioExperiment(instrument, starter));
   };
-  useEffect(() => {
-    if (
-      !profile?.onboarded ||
-      !pendingStudio ||
-      loading ||
-      intentStarted.current
-    )
-      return;
-    // Consume once, before the request: refresh must not replay an uncertain creation.
-    intentStarted.current = true;
-    rememberStudioIntent(null);
-    setPendingStudio(null);
-    void create(
-      false,
-      makeStudioExperiment(pendingStudio.instrument, pendingStudio.starter),
-    );
-  }, [profile?.onboarded, pendingStudio, loading]);
   const enter = async (name: string) => {
     identityEpoch.current += 1;
     setBusy(true);
@@ -871,11 +694,10 @@ export default function App() {
           </button>
         </div>
       ) : !profile ? (
-        <Welcome
+        <Landing
+          brand={<Brand />}
           config={config}
           onEnter={enter}
-          onDesign={createStudio}
-          pending={pendingStudio}
           busy={busy}
         />
       ) : !profile.onboarded ? (
@@ -957,6 +779,13 @@ export default function App() {
               >
                 <Cloud size={18} /> Cloud lab onboarding
               </button>
+              <button
+                className={view === "cloudlab-workflow" ? s.activeNav : ""}
+                aria-current={view === "cloudlab-workflow" ? "page" : undefined}
+                onClick={() => nav("cloudlab-workflow")}
+              >
+                <WorkflowIcon size={18} /> Cloud lab workflow
+              </button>
               {view === "lab" && (
                 <button className={s.activeNav}>
                   <FlaskConical size={18} /> Current experiment
@@ -1032,9 +861,6 @@ export default function App() {
                       setSession(null);
                       setSessions([]);
                       setView("overview");
-                      setPendingStudio(null);
-                      rememberStudioIntent(null);
-                      intentStarted.current = false;
                       window.history.replaceState(
                         window.history.state,
                         "",
@@ -1075,17 +901,19 @@ export default function App() {
                                 ? "Study groups"
                                 : view === "cloudlab"
                                   ? "Cloud lab onboarding"
-                                  : view === "portal"
-                                    ? "Mock cloud lab portal"
-                                    : view === "discovery"
-                                      ? "Discovery studio"
-                                      : view === "marketplace"
-                                        ? "Workflow marketplace"
-                                        : view === "connector"
-                                          ? "Connector explorer"
-                                          : view === "sim"
-                                            ? "Simulation lab"
-                                            : "Learning lab"))}
+                                  : view === "cloudlab-workflow"
+                                    ? "Cloud lab workflow"
+                                    : view === "portal"
+                                      ? "Mock cloud lab portal"
+                                      : view === "discovery"
+                                        ? "Discovery studio"
+                                        : view === "marketplace"
+                                          ? "Workflow marketplace"
+                                          : view === "connector"
+                                            ? "Connector explorer"
+                                            : view === "sim"
+                                              ? "Simulation lab"
+                                              : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -1192,6 +1020,18 @@ export default function App() {
                   <Suspense fallback={null}>
                     <CloudLabInstruments />
                   </Suspense>
+                  <button
+                    className={s.planLink}
+                    onClick={() => nav("cloudlab-workflow")}
+                  >
+                    <span>
+                      <strong>Chain cloud lab instruments</strong>
+                      <small>
+                        Compose a workflow from what each instrument does.
+                      </small>
+                    </span>
+                    <ArrowRight size={18} />
+                  </button>
                   <button className={s.planLink} onClick={() => nav("plan")}>
                     <span>
                       <strong>Bring your own instruments</strong>
@@ -1225,6 +1065,12 @@ export default function App() {
               ) : view === "cloudlab" ? (
                 <CloudLabTraining
                   onPortal={() => nav("portal")}
+                  onError={showError}
+                  registerLeaveGuard={registerLeaveGuard}
+                />
+              ) : view === "cloudlab-workflow" ? (
+                <CloudLabWorkflow
+                  onBack={() => nav("instruments")}
                   onError={showError}
                   registerLeaveGuard={registerLeaveGuard}
                 />

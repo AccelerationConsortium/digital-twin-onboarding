@@ -7,7 +7,7 @@ from academy import layout_search
 from academy.collision import shapes
 from academy.examples import EXAMPLES, build
 from academy.simple_twins import TwinSpec
-from academy.workcell_layout import _yaw, access
+from academy.workcell_layout import TRAY, _yaw, access, footprint
 from pydantic import ValidationError
 
 BENCH = {"width": 2.4, "depth": 1.6}
@@ -150,19 +150,17 @@ def test_only_slots_behind_the_open_part_are_served():
 
 def test_an_opening_without_slots_moves_the_tray_and_counts_as_geometry():
     from academy.simple_twins import detail_layers
-    from academy.workcell_layout import TRAY, footprint
 
     _, _, flex = cell(None)
     spec = {**flex["spec"], "access": "front"}
     # Without drawn slots the opening is where the tray comes out, on that side.
     tray = TwinSpec(**{**spec, "sites": [], "resource": {"slots": 1}, "opening": LEFT_FRONT})
     place = {"x": 0, "z": 0, "yaw": 0, "access": "front"}
-    dumped = tray.model_dump()
-    point, *_ = access(dumped, place)
-    x0, _, z0, z1 = footprint(dumped)
-    # A tray's length out of the left face, level with the middle of its front half.
-    assert abs(point[0] - (x0 - TRAY)) < 1e-9
-    assert abs(point[2] - (z0 + (z1 - z0) * 0.75)) < 1e-9
+    point, *_ = access(tray.model_dump(), place)
+    x0, _, z0, z1 = footprint(tray.model_dump())
+    # In front of the left face, at the middle of its open front half.
+    assert point[0] == pytest.approx(x0 - TRAY)
+    assert point[2] == pytest.approx(z0 + (z1 - z0) * 0.75)
     opened = {**spec, "opening": LEFT_FRONT}
     assert "geometry" in detail_layers(spec, opened)[1]
     # So do the loading height and the drawn slots, which confirm marks as geometry edits.
