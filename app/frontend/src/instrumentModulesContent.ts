@@ -142,11 +142,13 @@ export const unitOperations: {
     name: "Mix",
     what: "Aspirate and dispense in the same well, or shake the whole plate.",
     uses: ["Pipette", "Heater-Shaker"],
+    practice: { instrument: "flex", starter: "mix" },
   },
   {
     name: "Incubate",
     what: "Hold samples at a temperature for a set time.",
     uses: ["Temperature Module", "Heater-Shaker"],
+    practice: { instrument: "flex", starter: "incubate" },
   },
   {
     name: "Thermal cycling",
@@ -162,10 +164,12 @@ export const unitOperations: {
     name: "Move labware",
     what: "Carry a plate between slots and modules during a run.",
     uses: ["Gripper"],
+    practice: { instrument: "flex", starter: "move" },
   },
   {
     name: "Read a plate",
     what: "Measure every well and record the result.",
     uses: ["Absorbance Plate Reader", "Gripper"],
+    practice: { instrument: "flex", starter: "read" },
   },
 ];

@@ -534,11 +534,17 @@ export default function WorkflowStudio({
                 disabled={!editable}
                 onChange={(event) => setStarter(event.target.value as Starter)}
               >
-                {Object.entries(STARTERS).map(([key, value]) => (
-                  <option key={key} value={key}>
-                    {value.title}
-                  </option>
-                ))}
+                {Object.entries(STARTERS)
+                  .filter(
+                    ([, value]) =>
+                      !value.instruments ||
+                      value.instruments.includes(instrument),
+                  )
+                  .map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {value.title}
+                    </option>
+                  ))}
               </select>
             </label>
             <button
