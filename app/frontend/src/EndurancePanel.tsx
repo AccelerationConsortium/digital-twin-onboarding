@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Repeat, Square } from "lucide-react";
 import { api, json } from "./api";
 import type { ArmFrame, Layout } from "./instrumentTypes";
+import LikeliestFailure from "./LikeliestFailure";
 import studio from "./InstrumentStudio.module.css";
 import s from "./EndurancePanel.module.css";
 import panel from "./LayoutPanel.module.css";
@@ -64,9 +65,10 @@ export type ReplayMotion = {
   frames: ArmFrame[];
   joints: number[][];
 };
-type Replay = {
+export type Replay = {
   seed: number;
-  record: Cycle;
+  /** The cycle is null for one the likeliest-failure search found. */
+  record: Omit<Cycle, "cycle"> & { cycle: number | null };
   transfers: {
     step: number;
     seconds: number;
@@ -259,19 +261,24 @@ export default function EndurancePanel({
     }
   };
 
+  const display = (result: Replay) => {
+    setReplay(result);
+    const failing = result.record.failures[0]?.step;
+    onReplay(
+      result.motions.find((m) => m.step === failing) ??
+        result.motions[0] ??
+        null,
+    );
+  };
+
   const show = async (cycle: number) => {
     setError("");
     try {
-      const result = await api<Replay>(
-        "/twins/layout/endurance/replay",
-        json({ ...settings(), seed: ran?.seed ?? seed, cycle }),
-      );
-      setReplay(result);
-      const failing = result.record.failures[0]?.step;
-      onReplay(
-        result.motions.find((m) => m.step === failing) ??
-          result.motions[0] ??
-          null,
+      display(
+        await api<Replay>(
+          "/twins/layout/endurance/replay",
+          json({ ...settings(), seed: ran?.seed ?? seed, cycle }),
+        ),
       );
     } catch (e) {
       setError((e as Error).message);
@@ -517,10 +524,18 @@ export default function EndurancePanel({
           </button>
         </div>
       )}
+      <LikeliestFailure
+        settings={settings}
+        bench={JSON.stringify([placements, seed, speed, noise, grip])}
+        ready={ready && !running}
+        onShow={display}
+      />
       {replay && (
         <details className={s.more} open>
           <summary>
-            Cycle {replay.record.cycle}{" "}
+            {replay.record.cycle === null
+              ? "Found cycle"
+              : `Cycle ${replay.record.cycle}`}{" "}
             {replay.record.ok
               ? "held"
               : `· ${replay.record.failures.length} failed`}

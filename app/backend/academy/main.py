@@ -7,6 +7,7 @@ from mangum import Mangum
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import (
+    adversary,
     agent_sandbox,
     arm_simulation,
     cloudlab_training,
@@ -375,6 +376,19 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/twins/layout/endurance/replay", dependencies=[Depends(require_layout_planner)])
     def replay_endurance_cycle(data: endurance.EnduranceReplay, owner: str = Depends(identify)):
         return endurance.run_replay(app.state.twins, owner, data)
+
+    @app.post(
+        "/api/twins/layout/endurance/adversary", dependencies=[Depends(require_layout_planner)]
+    )
+    def search_likeliest_failure(data: adversary.AdversaryRun, owner: str = Depends(identify)):
+        return adversary.run_chunk(app.state.twins, owner, data)
+
+    @app.post(
+        "/api/twins/layout/endurance/adversary/replay",
+        dependencies=[Depends(require_layout_planner)],
+    )
+    def replay_likeliest_failure(data: adversary.AdversaryReplay, owner: str = Depends(identify)):
+        return adversary.run_replay(app.state.twins, owner, data)
 
     @app.post("/api/twins")
     def create_instrument(data: CreateTwin, owner: str = Depends(identify)):
