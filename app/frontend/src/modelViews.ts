@@ -61,6 +61,8 @@ export type Stage = {
   /** The loaded model, in its own frame; `holder` stands it upright on the floor. */
   model: THREE.Object3D;
   holder: THREE.Object3D;
+  /** Frames the model again, after something changes its size. */
+  fit: () => void;
 };
 
 /**
@@ -116,7 +118,14 @@ export function stage(
         .setFromObject(holder)
         .getSize(new THREE.Vector3());
       floor.scale.setScalar(Math.max(size.x, size.z) * 0.9);
-      shown = { renderer, scene, camera, model: loaded.object, holder };
+      shown = {
+        renderer,
+        scene,
+        camera,
+        model: loaded.object,
+        holder,
+        fit: resize,
+      };
       resize();
       on.ready?.(shown);
       on.state("ready");
