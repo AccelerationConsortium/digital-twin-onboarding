@@ -305,6 +305,8 @@ export type LayoutPreview = {
   blocked: BlockedMotion | null;
   /** The saved workflow in time; empty when it could not be planned. */
   timeline?: TimelineStep[];
+  /** Joint angles each arm waits in, clear of every instrument; null when none is. */
+  rest?: Record<string, number[] | null>;
   /** What arm paths are simulated with; null when only the geometry is checked. */
   simulation: {
     engine: "mujoco";
@@ -323,6 +325,8 @@ export type LayoutMetrics = {
   reach_margin_m: number;
   elbow_deg: number;
   area_m2: number;
+  /** Smallest clearance or reach margin over every workflow the layout was checked for. */
+  margin_m?: number;
 };
 export type LayoutCandidate = LayoutMetrics & {
   layout: Layout;
@@ -462,6 +466,8 @@ export type InstrumentCatalog = {
   layout: Layout | null;
   brief: Brief | null;
   constraints: Constraint[];
+  /** Workflows kept for this bench besides the current one. */
+  bench_workflows?: BenchWorkflow[];
   templates: Record<string, TwinSpec>;
   simready: Record<string, SimReadyAsset>;
   astra_available: boolean;
@@ -476,4 +482,100 @@ export type ConnectorPackage = {
   device_id: string;
   evidence: "synthetic";
   files: Record<string, string>;
+};
+
+export type BenchWorkflow = { id: string; name: string; steps: Step[] };
+export type ToleranceAxis = "x" | "z" | "yaw" | "height";
+/** One replanning of a misplaced layout. */
+export type ToleranceCheck = {
+  ok: boolean;
+  cause: string | null;
+  step: number | null;
+  transfer: string | null;
+  blocker: string | null;
+  link: string | null;
+  message?: string | null;
+};
+export type ToleranceTask = Record<string, unknown> & { task: number };
+export type ToleranceSide = {
+  band: number;
+  saturated: boolean;
+  limit: ToleranceCheck | null;
+  workflow: number;
+} | null;
+export type ToleranceBinding = ToleranceCheck & {
+  axis: ToleranceAxis;
+  sign: -1 | 1;
+  band: number;
+};
+export type ToleranceRow = {
+  twin_id: string;
+  name: string;
+  role: "station" | "spare" | "arm";
+  xz_m: number | null;
+  yaw_deg: number | null;
+  height_m: number | null;
+  sides: Partial<
+    Record<ToleranceAxis, { minus: ToleranceSide; plus: ToleranceSide }>
+  >;
+  binding: ToleranceBinding | null;
+  complete: boolean;
+  tool?: {
+    longer_m: number | null;
+    shorter_m: number | null;
+    lateral_m: number | null;
+  };
+};
+export type TolerancePoint = {
+  level_m: number;
+  level_deg: number;
+  runs: number;
+  passed: number;
+  skipped: number;
+  drawn: number;
+  rate: number | null;
+  lower: number | null;
+  by_workflow: (number | null)[];
+  causes: Record<string, number>;
+};
+export type ToleranceAdvice = {
+  level_m: number;
+  level_deg: number;
+  rate: number;
+  lower: number;
+  runs: number;
+  needed: number;
+} | null;
+/** Allowed error per axis, [toward minus, toward plus]; null until measured. */
+export type ToleranceBands = Record<
+  string,
+  Partial<Record<ToleranceAxis, [number | null, number | null]>>
+>;
+export type ToleranceSummary = {
+  evidence: "synthetic";
+  workflows: string[];
+  target: number;
+  samples: number;
+  requirements: ToleranceRow[];
+  arms: ToleranceRow[];
+  per_workflow: {
+    name: string;
+    xz_m: number | null;
+    binding:
+      (ToleranceCheck & { name: string; axis: string; sign: number }) | null;
+  }[];
+  curves: Record<
+    "instruments" | "arm",
+    { points: TolerancePoint[]; advice: ToleranceAdvice }
+  >;
+  overlay: ToleranceBands;
+  capture_m: number;
+};
+export type ToleranceChunk = {
+  total: number;
+  next: number | null;
+  trail: ToleranceCheck[];
+  done: ToleranceTask[];
+  checked: number;
+  summary: ToleranceSummary;
 };

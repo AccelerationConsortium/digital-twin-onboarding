@@ -8,6 +8,11 @@ the user can compare them. `improve_layout` then moves the instruments of one la
 toward the objectives the user chose. Both are chunked so each request stays inside the Lambda
 limit; the client resumes from `next` until the list is exhausted or it stops.
 
+`shared` names other saved workflows that use the same bench: their stations are placed
+around the arms too, a layout counts only when every workflow plans on it, and
+`margin_m` is the smallest clearance or reach margin over all of them, the objective
+for a layout that tolerates placement errors in every workflow.
+
 Deterministic: the same inputs and start index always give the same layouts while a
 chunk stays under its time cap. Synthetic geometry only, as checked by the planner.
 """
@@ -145,14 +150,19 @@ def _distinct(a, b):
 
 
 class Search:
-    def __init__(self, twins, bench, steps, fixed, constraints=()):
+    def __init__(self, twins, bench, steps, fixed, constraints=(), shared=()):
         self.twins, self.bench, self.steps = twins, bench, steps
+        self.shared = [list(other) for other in shared]
         self.fixed = {p["twin_id"]: {**p, "kept": True} for p in fixed}
         self.reasons = Counter()
         self.details = {}
         self.transfers = [s for s in steps if s["operation"] == "transfer"]
         if not self.transfers:
             raise PlanError("state", "Save a workflow with a transfer step to search for a layout")
+        # Every workflow on the bench is served by the same arms and stations.
+        self.transfers += [
+            s for other in self.shared for s in other if s["operation"] == "transfer"
+        ]
         self.arms = list(dict.fromkeys(s["device_id"] for s in self.transfers))
         self.serving, uses = {}, {}
         for s in self.transfers:
@@ -166,7 +176,8 @@ class Search:
             (t for t in self.serving if t not in self.fixed), key=lambda t: -uses[t]
         )
         busy = {*self.arms, *self.serving}
-        self.read_constraints(constraints, {*busy, *(s["device_id"] for s in steps)})
+        devices = {s["device_id"] for other in [steps, *self.shared] for s in other}
+        self.read_constraints(constraints, {*busy, *devices})
         self.spares = [
             t for t in twins if t not in busy and t not in self.fixed and t not in self.excluded
         ]
@@ -525,7 +536,7 @@ class Search:
             return _distinct(a, b)
         return self.shape(a) != self.shape(b)
 
-    def metrics(self, layout, motions):
+    def metrics(self, layout, motions, shared=()):
         places = {p["twin_id"]: p for p in layout["placements"]}
         margin = min(
             self.profile(s["device_id"]).reach
@@ -551,6 +562,9 @@ class Search:
             "reach_margin_m": round(margin, 3),
             "elbow_deg": min(m["elbow_deg"] for m in motions),
             "area_m2": round((max(xs) - min(xs)) * (max(zs) - min(zs)), 2),
+            # How far any instrument may sit off before some workflow on this bench loses a
+            # path: the smallest clearance or reach margin over every one of them.
+            "margin_m": round(min(margin, *(m["clearance_m"] for m in [*motions, *shared])), 3),
         }
 
     def check(self, layout):
@@ -568,8 +582,11 @@ class Search:
                     name,
                 )
                 return None
+        shared = []
         try:
             motions = plan_workflow(self.twins, layout, self.steps)
+            for other in self.shared:
+                shared += plan_workflow(self.twins, layout, other)
         except PlanError as exc:
             hit = getattr(exc, "attempt", None) or {}
             if hit.get("blocked_by"):
@@ -579,9 +596,10 @@ class Search:
             return None
         return {
             "layout": layout,
-            **self.metrics(layout, motions),
+            **self.metrics(layout, motions, shared),
             "slots": slots,
             "motions": motions,
+            "workflows": 1 + len(self.shared),
         }
 
     def attempt(self, start, deadline, plans_left, seen):
@@ -637,14 +655,16 @@ class Search:
         return found
 
 
-def search_layouts(twins, bench, steps, fixed=(), start=0, avoid=(), seconds=None, constraints=()):
+def search_layouts(
+    twins, bench, steps, fixed=(), start=0, avoid=(), seconds=None, constraints=(), shared=()
+):
     """One chunk of the enumeration, from starting arrangement `start` onward.
 
     `avoid` holds layouts earlier chunks already returned, so they are not checked again.
     `constraints` are the user's preferences: slots an arm must reach, zones, distances
-    and instruments left off the bench.
+    and instruments left off the bench. `shared` are other workflows the layout must run.
     """
-    search = Search(twins, bench, steps, fixed, constraints)
+    search = Search(twins, bench, steps, fixed, constraints, shared)
     deadline = time.monotonic() + (CHUNK_SECONDS if seconds is None else seconds)
     found = []
     seen = [list(placements) for placements in avoid]
@@ -685,6 +705,7 @@ OBJECTIVES = {
     "clearance_m": False,
     "reach_margin_m": False,
     "elbow_deg": False,
+    "margin_m": False,
 }
 NUDGES = (0.1, 0.05)  # metres an instrument is moved in one try
 GAIN = 0.005  # share of one objective a move must win to be kept
@@ -700,7 +721,9 @@ def _worth(candidate, current, objectives):
     return total
 
 
-def improve_layout(twins, layout, steps, objectives, start=0, idle=0, seconds=None, constraints=()):
+def improve_layout(
+    twins, layout, steps, objectives, start=0, idle=0, seconds=None, constraints=(), shared=()
+):
     """One chunk of moving the instruments of a working layout toward the objectives.
 
     Each try moves one instrument that is not kept a short way along the bench and plans
@@ -708,7 +731,7 @@ def improve_layout(twins, layout, steps, objectives, start=0, idle=0, seconds=No
     together. `idle` counts tries since the last move that stayed: once every move has
     been tried without one, the layout is as good as this search gets and `next` is None.
     """
-    search = Search(twins, layout["bench"], steps, [], constraints)
+    search = Search(twins, layout["bench"], steps, [], constraints, shared)
     # The starting layout has to respect the saved preferences, or no result would.
     for p in layout["placements"]:
         if not search.preferred(p["twin_id"], p, layout["placements"]):

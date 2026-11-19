@@ -504,7 +504,7 @@ test("bench layout plans a collision-checked arm path for each transfer", async 
   await page.getByLabel("Heating station z").fill(String(armZ));
   await expect(
     page.getByText(
-      /Sample transfer robot, Heating station overlap or leave the bench/,
+      /^(Sample transfer robot overlaps Heating station|Heating station overlaps Sample transfer robot)\.$/,
     ),
   ).toBeVisible();
   await expect(

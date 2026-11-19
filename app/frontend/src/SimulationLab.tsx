@@ -215,7 +215,7 @@ export default function SimulationLab({
         `/#/sim/${prepared.id}`,
       );
       launch.current = null;
-      remember(prepared.id, engine);
+      if (engine) remember(prepared.id, engine);
     }
     return prepared;
   };
@@ -232,7 +232,12 @@ export default function SimulationLab({
         (run
           ? NATIVE
           : (offered(twinRun?.twin.key) ??
-            (catalog?.enabled ? NATIVE : (catalog?.twins[0]?.key ?? NATIVE)))));
+            // Nothing is chosen until the catalog says what can run here.
+            (catalog
+              ? catalog.enabled
+                ? NATIVE
+                : (catalog.twins[0]?.key ?? NATIVE)
+              : null))));
   const twin = catalog?.twins.find((item) => item.key === engine);
   const frames = twinRun?.frames.length ?? 0;
   const replaying =
@@ -419,7 +424,7 @@ export default function SimulationLab({
           <PageStory page="sim" />
         </div>
         <div className={s.launch}>
-          <fieldset className={s.engines} disabled={busy || locked}>
+          <fieldset className={s.engines} disabled={busy || locked || !catalog}>
             <legend>Run on</legend>
             {catalog?.twins.map((item) => (
               <label key={item.key}>

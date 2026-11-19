@@ -26,7 +26,7 @@ from nacl.exceptions import BadSignatureError
 from nacl.signing import SigningKey
 from pydantic import Field
 
-from . import competencies, opentrons_check
+from . import competencies, fault_drills, opentrons_check
 from .auth import identify
 from .models import Action, StrictModel
 from .store import Conflict
@@ -43,6 +43,18 @@ STATEMENT = (
     "Training evidence from synthetic exercises. It does not authorize use of any "
     "instrument; the cloud lab's own safety review and access policy decide that."
 )
+
+# Other record types this issuer signs with the same key and envelope, by type. Each
+# maps to a check saying whether a record was earned under the current rules and is
+# complete; `verify` stays the one verifier for all of them.
+RECORD_TYPES = {}
+PUBLISHED_RULES = {}
+
+
+def register_record_type(record_type, check, rules):
+    RECORD_TYPES[record_type] = check
+    PUBLISHED_RULES.update(rules)
+
 
 QUESTIONS = [
     {
@@ -507,7 +519,7 @@ def seconds_between(start, end):
     return round((datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds())
 
 
-def record(owner, training, settings):
+def record(owner, training, settings, drills=None):
     issued = now()
     tasks = []
     for key, task in training["tasks"].items():
@@ -559,6 +571,8 @@ def record(owner, training, settings):
                     )
                 ],
             },
+            # A passed fault-drill checkride, when there is one; it is signed with the rest.
+            **({"fault_drills": drills} if drills else {}),
             "evidence": "synthetic",
             "statement": STATEMENT,
         },
@@ -575,8 +589,11 @@ def verify(envelope, settings):
     authentic = record is not None
     record = record or {}
     module = record.get("module")
-    known = record.get("type") == RECORD_TYPE
+    other = None if record.get("type") == RECORD_TYPE else RECORD_TYPES.get(record.get("type"))
+    known = record.get("type") == RECORD_TYPE or other is not None
     same_rules = isinstance(module, dict) and module.get("rules_version") == RULES
+    if other is not None:
+        same_rules, complete = other(record)
     expires = record.get("expires_at")
     try:
         lapse = datetime.fromisoformat(expires) if isinstance(expires, str) else None
@@ -584,7 +601,8 @@ def verify(envelope, settings):
         expired = lapse is None or lapse.tzinfo is None or lapse < now()
     except ValueError:
         expired = True
-    complete = record.get("complete") is True
+    if other is None:
+        complete = record.get("complete") is True
     problems = [
         message
         for failed, message in [
@@ -658,6 +676,7 @@ def install(app, *, store):
             "format": ENVELOPE,
             "keys": [public_jwk(settings)] if settings.secret else [],
             "rules": {MODULE: RULES},
+            **({"qualifications": PUBLISHED_RULES} if PUBLISHED_RULES else {}),
             # A verifier judges expiry by this clock, not the learner's.
             "now": stamp(),
         }
@@ -735,7 +754,8 @@ def install(app, *, store):
         training = store.get(owner, KEY)
         if training is None:
             raise HTTPException(404, "Start the training first")
-        return record(owner, training, settings)
+        drills = fault_drills.record_entry(store.get(owner, fault_drills.KEY))
+        return record(owner, training, settings, drills)
 
     @app.post("/api/cloudlab/records/verify")
     def verify_record(data: RecordCheck, _owner: str = Depends(identify)):

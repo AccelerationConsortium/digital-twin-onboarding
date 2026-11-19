@@ -51,8 +51,14 @@ jobs:
           PACKER_BIN: packer
       - name: Install Chromium for browser journeys
         run: bash scripts/install-browser-ci.sh
+      # After verify.sh has built dist, so the models are only served to the journeys and
+      # never bundled. The envelope journey then checks every library model.
+      - name: Fetch the pinned library models
+        run: uv run --frozen python scripts/library-models/chemlab_models.py fetch
       - run: npm run test:e2e
         working-directory: app/frontend
+        env:
+          ACADEMY_REQUIRE_LIBRARY_MODELS: 'true'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: failure()
         with:

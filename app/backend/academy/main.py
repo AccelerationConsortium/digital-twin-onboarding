@@ -7,13 +7,18 @@ from mangum import Mangum
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import (
+    adversary,
     agent_sandbox,
     arm_simulation,
     cloudlab_training,
+    endurance,
     examples,
+    fault_drills,
     groups,
     node_api,
     opentrons_check,
+    qualifications,
+    reviews,
     sim2real_api,
 )
 from ._version import __version__
@@ -43,6 +48,7 @@ from .pairing import PairRunService
 from .paper_workflows import PaperId, Picks
 from .paper_workflows import template as paper_template
 from .recipes import MIXING, CreateMixing, MixingPlan, mixing_session
+from .run_monitor import router as run_monitor_router
 from .runs import GpuRequest, RunControl, RunService, SubmitRun
 from .settings import Settings
 from .simple_twins import (
@@ -57,6 +63,7 @@ from .simple_twins import (
     MatchTwin,
     RecordResidual,
     RefineLayout,
+    SaveBenchWorkflow,
     SaveConstraints,
     SaveLayout,
     SavePlan,
@@ -64,6 +71,8 @@ from .simple_twins import (
     SimpleTwinService,
     SizeCheck,
     StressLayout,
+    ToleranceLayout,
+    ToleranceSummary,
 )
 from .simple_twins import Revision as TwinRevision
 from .store import Conflict, DynamoStore, SQLiteStore
@@ -105,6 +114,7 @@ def create_app(settings: Settings | None = None, store=None):
         app.state.store, enabled=settings.connector_real_enabled, approved_release=approved_release
     )
     app.include_router(mock_connector_router)
+    app.include_router(run_monitor_router)
     app.include_router(connector_router)
     app.include_router(catalog_router)
     app.include_router(workcell_router)
@@ -395,6 +405,57 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/twins/layout/robustness", dependencies=[Depends(require_layout_planner)])
     def stress_instrument_layout(data: StressLayout, owner: str = Depends(identify)):
         return app.state.twins.stress_layout(owner, data)
+
+    @app.post("/api/twins/layout/endurance", dependencies=[Depends(require_layout_planner)])
+    def endure_instrument_layout(data: endurance.EnduranceRun, owner: str = Depends(identify)):
+        return endurance.run_chunk(app.state.twins, owner, data)
+
+    @app.post("/api/twins/layout/endurance/replay", dependencies=[Depends(require_layout_planner)])
+    def replay_endurance_cycle(data: endurance.EnduranceReplay, owner: str = Depends(identify)):
+        return endurance.run_replay(app.state.twins, owner, data)
+
+    @app.post("/api/twins/layout/tolerance", dependencies=[Depends(require_layout_planner)])
+    def instrument_layout_tolerance(data: ToleranceLayout, owner: str = Depends(identify)):
+        return app.state.twins.tolerance(owner, data)
+
+    @app.post("/api/twins/layout/template", dependencies=[Depends(require_layout_planner)])
+    def placement_template(
+        data: ToleranceSummary,
+        pages: bool = Query(default=False),
+        owner: str = Depends(identify),
+    ):
+        body = app.state.twins.placement_template(owner, data, pages)
+        if pages:
+            return Response(body, media_type="text/html; charset=utf-8")
+        return Response(
+            body,
+            media_type="image/svg+xml",
+            headers={"Content-Disposition": 'attachment; filename="placement-template.svg"'},
+        )
+
+    @app.post("/api/twins/layout/workflows", dependencies=[Depends(require_layout_planner)])
+    def keep_bench_workflow(data: SaveBenchWorkflow, owner: str = Depends(identify)):
+        return app.state.twins.keep_workflow(owner, data)
+
+    @app.delete(
+        "/api/twins/layout/workflows/{workflow_id}",
+        dependencies=[Depends(require_layout_planner)],
+    )
+    def drop_bench_workflow(workflow_id: UUID, data: TwinRevision, owner: str = Depends(identify)):
+        return app.state.twins.drop_workflow(owner, workflow_id, data)
+
+    @app.post(
+        "/api/twins/layout/endurance/adversary", dependencies=[Depends(require_layout_planner)]
+    )
+    def search_likeliest_failure(data: adversary.AdversaryRun, owner: str = Depends(identify)):
+        return adversary.run_chunk(app.state.twins, owner, data)
+
+    @app.post(
+        "/api/twins/layout/endurance/adversary/replay",
+        dependencies=[Depends(require_layout_planner)],
+    )
+    def replay_likeliest_failure(data: adversary.AdversaryReplay, owner: str = Depends(identify)):
+        return adversary.run_replay(app.state.twins, owner, data)
 
     @app.post("/api/twins")
     def create_instrument(data: CreateTwin, owner: str = Depends(identify)):
@@ -781,6 +842,9 @@ def create_app(settings: Settings | None = None, store=None):
     cloudlab_training.install(app, store=app.state.store)
     node_api.install(app)
     agent_sandbox.install(app, store=app.state.store)
+    fault_drills.install(app, store=app.state.store)
+    reviews.install(app, store=app.state.store)
+    qualifications.install(app, store=app.state.store)
     return app
 
 

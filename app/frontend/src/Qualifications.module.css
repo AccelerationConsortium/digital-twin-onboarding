@@ -1,0 +1,187 @@
+.page {
+  composes: page from "./CloudLabTraining.module.css";
+}
+.header {
+  composes: header from "./CloudLabTraining.module.css";
+}
+.synthetic {
+  composes: synthetic from "./CloudLabTraining.module.css";
+}
+.card {
+  composes: card from "./CloudLabTraining.module.css";
+}
+.note {
+  composes: note from "./CloudLabTraining.module.css";
+}
+.primary {
+  composes: primary from "./CloudLabTraining.module.css";
+}
+.secondary {
+  composes: secondary from "./CloudLabTraining.module.css";
+}
+.textButton {
+  composes: textButton from "./CloudLabTraining.module.css";
+}
+.actions {
+  composes: actions from "./CloudLabTraining.module.css";
+}
+.passed {
+  composes: passed from "./CloudLabTraining.module.css";
+}
+.bad {
+  composes: bad from "./CloudLabTraining.module.css";
+}
+.error {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--danger);
+  background: var(--warn-soft);
+  font-size: 14px;
+}
+
+.holder h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.holder h2 svg {
+  color: var(--muted);
+}
+.kinds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.kind {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+.kind[data-complete="true"] {
+  border-color: var(--brand);
+}
+.kind h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.criteria {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+}
+.criteria li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 8px;
+}
+.criteria li > svg {
+  margin-top: 2px;
+}
+.criteria li > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.criteria small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.earn a {
+  color: var(--accent);
+  font-weight: 600;
+}
+.kind .primary {
+  justify-self: start;
+}
+
+.record {
+  display: grid;
+  gap: 14px;
+  border-color: var(--brand);
+}
+.record h2 {
+  margin: 0;
+}
+.facts {
+  composes: facts from "./CloudLabTraining.module.css";
+  grid-template-columns: minmax(0, max-content) max-content;
+}
+.statement {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--warn);
+  background: var(--warn-soft);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.verify {
+  display: grid;
+  gap: 12px;
+}
+.verify h2 {
+  margin: 0;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+.field textarea,
+.field select {
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+  font-size: 13px;
+  min-width: 0;
+}
+.field textarea {
+  min-height: 120px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+.checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.verdict {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+.verdict li {
+  padding-left: 12px;
+  border-left: 3px solid var(--line-strong);
+}
+.verdict li[data-ok="true"] {
+  border-left-color: var(--brand);
+}
+.verdict li[data-ok="false"] {
+  border-left-color: var(--danger);
+}
+
+@media (max-width: 860px) {
+  .kinds,
+  .checks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -39,6 +39,9 @@ JOINT_STEP = 0.05  # interpolation resolution in joint space
 LIFT = 0.25
 KEEP_FRAMES = 90
 NOMINAL_SPEED = 20  # °/s, the UR5e connector's default, for runtime estimates
+SWEEP_STEP = 0.003  # metres: a move is halved until no point of the arm travels farther
+# The pose the 3D view draws an idle UR arm in (degrees in the planner's DH frame).
+HOME = [math.radians(v) for v in (60, -90, 90, -90, -90, 0)]
 
 
 class MotionError(PlanError):
@@ -507,10 +510,48 @@ class Planner:
         self.name = actor["spec"]["name"]
         self.rest = {0: {actor["id"]}}  # the base capsule sits on its own base plate
         self.bent = 0  # straight-elbow solutions rejected, for the failure reason
+        # Link length from the base to the grasp point and the thickest link, which
+        # bound how far any point of the arm can travel when the joints turn.
+        pts = points([0.0] * 6, self.base, self.arm)
+        self.length = sum(_norm(_sub(b, a)) for a, b in zip(pts, pts[1:], strict=False))
+        self.thickest = max(radius for _, radius in self.arm.links)
 
     def measure(self, q, ignore=None):
         return self.scene.measure(
             points(q, self.base, self.arm), ignore or self.rest, self.arm.links
+        )
+
+    def _between(self, a, b, clear_a, clear_b, ignore):
+        """A hit on the move from a to b, or None; a start the caller accepted under its
+        own allowances (a gripper inside the station it serves) is taken as given."""
+        return self.sweep(a, b, clear_a, clear_b[0], ignore) if clear_a >= SAFETY else None
+
+    def sweep(self, a, b, clear_a, clear_b, ignore=None):
+        """None when every pose on the straight joint move from a to b keeps SAFETY clear,
+        else (clearance, link, obstacle) of a pose on it that does not.
+
+        Both ends are already measured. No point of the arm travels farther than `moved`
+        between them, so a pose a fraction t along is at least
+        min(clear_a - t * moved, clear_b - (1 - t) * moved) clear; where that bound could
+        drop below SAFETY the move is halved and its middle measured.
+        """
+        turn = sum(abs(x - y) for x, y in zip(a, b, strict=True))
+        ends = zip(points(a, self.base, self.arm), points(b, self.base, self.arm), strict=True)
+        # The chord each joint point travels, how far an arc strays from its chord, and
+        # the capsule surface turning about its own axis.
+        moved = (
+            max(_norm(_sub(p, q)) for p, q in ends)
+            + self.length * turn * turn / 8
+            + self.thickest * turn
+        )
+        if (clear_a + clear_b - moved) / 2 >= SAFETY or moved < SWEEP_STEP:
+            return None
+        middle = [(x + y) / 2 for x, y in zip(a, b, strict=True)]
+        clear = self.measure(middle, ignore)
+        if clear[0] < SAFETY:
+            return clear
+        return self.sweep(a, middle, clear_a, clear[0], ignore) or self.sweep(
+            middle, b, clear[0], clear_b, ignore
         )
 
     def ik(self, position, rotation, seed):
@@ -555,29 +596,35 @@ class Planner:
             1, math.ceil(length / 0.015), math.ceil(_span(pose(0)[1][0], pose(1)[1][0]) / 0.05)
         )
         joints, worst = [q], math.inf
+        previous = self.measure(q, ignore)[0]
         for k in range(1, steps + 1):
             point, rotation = pose(k / steps)
             nxt = self.ik(point, rotation, q)
             if nxt is None or _span(nxt, q) > 0.35:
                 return None, None, joints
             clear = self.measure(nxt, ignore)
-            if clear[0] < SAFETY:
-                return None, clear, [*joints, nxt]
+            # The arm moves straight in joint space between solutions; check that move too.
+            hit = clear if clear[0] < SAFETY else self._between(q, nxt, previous, clear, ignore)
+            if hit:
+                return None, hit, [*joints, nxt]
             worst = min(worst, clear[0])
             joints.append(nxt)
-            q = nxt
+            q, previous = nxt, clear[0]
         return joints, worst, None
 
     def edge(self, a, b, ignore=None, step=JOINT_STEP):
         n = max(1, math.ceil(_span(a, b) / step))
         path, worst = [], math.inf
+        last, previous = a, self.measure(a, ignore)[0]
         for k in range(1, n + 1):
             q = [x + (y - x) * k / n for x, y in zip(a, b, strict=True)]
             clear = self.measure(q, ignore)
-            if clear[0] < SAFETY:
-                return None, clear, [*path, q]
+            hit = clear if clear[0] < SAFETY else self._between(last, q, previous, clear, ignore)
+            if hit:
+                return None, hit, [*path, q]
             worst = min(worst, clear[0])
             path.append(q)
+            last, previous = q, clear[0]
         return path, worst, None
 
     def rrt_connect(self, start, goal, seed):
@@ -723,7 +770,7 @@ def _thin(seq):
     return seq[::keep] + ([seq[-1]] if (len(seq) - 1) % keep else [])
 
 
-def plan_transfer(twins, layout, step_no, step, sites=(None, None)):
+def plan_transfer(twins, layout, step_no, step, sites=(None, None), attempt=0):
     actor, source, target = (twins[step[k]] for k in ("device_id", "source_id", "target_id"))
     src_site, tgt_site = sites
     places = {p["twin_id"] for p in layout["placements"]}
@@ -814,7 +861,10 @@ def plan_transfer(twins, layout, step_no, step, sites=(None, None)):
                     clear = min(leg[1] for leg in legs)
                     kind = "upright"
             if dense is None:
-                dense = planner.rrt_connect(qa, qb, f"{step_no}:{source['id']}:{target['id']}")
+                # Seeded by what the step is, never by twin ids: those are random per
+                # workspace, and the same workflow must always get the same path.
+                seed = f"{step_no}:{source['spec']['name']}:{target['spec']['name']}:{attempt}"
+                dense = planner.rrt_connect(qa, qb, seed)
                 kind = "rrt_connect"
                 clear = None if dense is None else min(planner.measure(q)[0] for q in dense)
             if dense is not None:
@@ -908,6 +958,29 @@ def _profile(chain):
     }
 
 
+RRT_TRIES = 4  # sampled paths tried for one transfer before the simulation's refusal stands
+
+
+def plan_checked(twins, layout, step_no, step, sites=(None, None), benches=None):
+    """A transfer planned and, where MuJoCo is installed, run in its bench.
+
+    A sampled (RRT) path that the simulation refuses is a property of that sample, not of
+    the layout, so a few other seeds are tried before the refusal is reported.
+    """
+    benches = {} if benches is None else benches
+    for attempt in range(RRT_TRIES):
+        planned = plan_transfer(twins, layout, step_no, step, sites, attempt)
+        if not arm_simulation.available():
+            return planned
+        try:
+            _simulated(benches, twins, layout, planned, planned["_chain"])
+        except MotionError:
+            if planned["planner"] != "rrt_connect" or attempt == RRT_TRIES - 1:
+                raise
+            continue
+        return planned
+
+
 def plan_workflow(twins, layout, steps, keep_frames=False):
     """Motions for every transfer step; raises PlanError('geometry') on the first failure.
 
@@ -921,12 +994,10 @@ def plan_workflow(twins, layout, steps, keep_frames=False):
         if step["operation"] != "transfer":
             continue
         try:
-            planned = plan_transfer(twins, layout, index + 1, step, sites[index + 1])
+            planned = plan_checked(twins, layout, index + 1, step, sites[index + 1], benches)
             chain = planned.pop("_chain")
             if keep_frames:
                 planned["profile"] = _profile(chain)
-            if arm_simulation.available():
-                _simulated(benches, twins, layout, planned, chain)
         except MotionError as exc:
             exc.motions = motions
             raise
@@ -938,6 +1009,31 @@ def plan_workflow(twins, layout, steps, keep_frames=False):
             planned.pop("joints")
         motions.append(planned)
     return motions
+
+
+def rest_poses(twins, layout, motions=()):
+    """Joint angles each placed arm is drawn waiting in, clear of every instrument.
+
+    The home pose where it is clear; else home turned about the base, a twelfth of a turn
+    at a time; else where the arm's first planned transfer starts. None when none is.
+    """
+    rests = {}
+    for placement in layout["placements"]:
+        twin = twins[placement["twin_id"]]
+        if not twin.get("spec") or "transfer" not in twin["spec"]["operations"]:
+            continue
+        planner = Planner(twins, layout, twin)
+        turns = [[HOME[0] + k * math.pi / 6, *HOME[1:]] for k in range(12)]
+        start = next(
+            (m["joints"][0] for m in motions if m["actor_id"] == twin["id"] and m.get("joints")),
+            None,
+        )
+        found = next(
+            (q for q in turns if planner.measure(_wrap(q))[0] >= SAFETY),
+            start,
+        )
+        rests[twin["id"]] = found and [round(v, 4) for v in _wrap(found)]
+    return rests
 
 
 CHAIN_LIMIT = 24  # waypoints the connector's Action Composer accepts
@@ -978,7 +1074,7 @@ def action_chain(twins, layout, steps, step_no, speed):
     if arm_for(twins[steps[step_no - 1]["device_id"]]["spec"]).key != "ur5e":
         raise PlanError("state", "Arm paths export to the UR5e connector only")
     sites = transfer_sites(twins, steps)[step_no]
-    planned = plan_transfer(twins, layout, step_no, steps[step_no - 1], sites)
+    planned = plan_checked(twins, layout, step_no, steps[step_no - 1], sites)
     planner = planned["_chain"]["planner"]
     segments = planned["_chain"]["segments"]
     reference = segments[0][1][0]

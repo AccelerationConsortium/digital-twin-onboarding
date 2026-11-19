@@ -29,6 +29,7 @@ import {
   type LibraryResults,
   type LayoutPreview,
   type LayoutSearchChunk,
+  type ToleranceBands,
   type BriefRole,
   type ExampleCell,
   type Operation,
@@ -42,10 +43,12 @@ import BriefPanel, { RoleBindings, applyBlocker } from "./BriefPanel";
 import s from "./InstrumentStudio.module.css";
 import ChainEditor, { type ChainResult } from "./ChainEditor";
 import LayoutData from "./LayoutData";
+import type { ReplayMotion } from "./EndurancePanel";
 import LayoutPanel from "./LayoutPanel";
+import MonitoredRun from "./MonitoredRun";
 import { armAt, duration } from "./layoutTimeline";
 import { LIBRARY_QUERY_KEY } from "./LessonSearch";
-import { conflicts, defaultLayout } from "./layoutGeometry";
+import { clashes, conflicts, defaultLayout } from "./layoutGeometry";
 import TwinCard from "./TwinCard";
 
 const TwinScene = lazy(() => import("./TwinScene"));
@@ -100,6 +103,13 @@ async function encodePhoto(file: File) {
   return btoa(binary);
 }
 
+/** Where everything stands on the bench, ignoring how the layout was stored. */
+function arrangement(layout: Layout) {
+  return JSON.stringify(
+    layout.placements.map((p) => [p.twin_id, p.x, p.z, p.yaw]),
+  );
+}
+
 function save(name: string, text: string) {
   saveBlob(name, new Blob([text], { type: "text/plain" }));
 }
@@ -138,6 +148,10 @@ export default function InstrumentStudio({
   const layoutDirty = useRef(false);
   const layoutRevision = useRef(0);
   const [preview, setPreview] = useState<LayoutPreview | null>(null);
+  // Where each arm waits, as the server checked it, by the arrangement it was checked on.
+  const rests = useRef(new Map<string, LayoutPreview["rest"]>());
+  // Measured placement bands of the layout draft, drawn around each instrument.
+  const [bands, setBands] = useState<ToleranceBands | null>(null);
   const [checking, setChecking] = useState(false);
   const [selectedMotion, setSelectedMotion] = useState(0);
   const [armFrame, setArmFrame] = useState(0);
@@ -333,6 +347,7 @@ export default function InstrumentStudio({
   const draftKey =
     tab === "layout" && draft.placements.length ? JSON.stringify(draft) : "";
   const localConflict = draftKey ? conflicts(draft, specs).size > 0 : false;
+  const clashing = localConflict ? clashes(draft, specs) : null;
   useEffect(() => {
     if (!draftKey || localConflict) {
       setPreview(null);
@@ -348,6 +363,7 @@ export default function InstrumentStudio({
           json(JSON.parse(draftKey)),
         );
         if (live) {
+          rests.current.set(arrangement(JSON.parse(draftKey)), result.rest);
           setPreview(result);
           setSelectedMotion(result.blocked ? result.motions.length : 0);
         }
@@ -426,6 +442,8 @@ export default function InstrumentStudio({
   const [editing, setEditing] = useState<number | null>(null);
   const [editPose, setEditPose] = useState<number[] | null>(null);
   const [editRun, setEditRun] = useState<ChainResult | null>(null);
+  // One cycle of a stress run, shown in place of the planned path.
+  const [replay, setReplay] = useState<ReplayMotion | null>(null);
   const editMotion =
     tab === "layout" && editing !== null
       ? (preview?.motions.find((m) => m.step === editing) ?? null)
@@ -435,6 +453,7 @@ export default function InstrumentStudio({
     if (tab === "layout") return;
     setEditing(null);
     setEditRun(null);
+    setReplay(null);
   }, [tab]);
   const timed =
     tab === "layout" &&
@@ -461,21 +480,24 @@ export default function InstrumentStudio({
     );
     return () => window.clearInterval(timer);
   }, [playing, rate, runtime]);
-  const moment = timed ? armAt(timed, clock) : null;
+  const replaying = tab === "layout" && !editMotion ? replay : null;
+  const moment = timed && !replaying ? armAt(timed, clock) : null;
   const motionFrames = editMotion
     ? (editRun?.frames ?? null)
-    : (moment?.motion.frames ?? selected?.frames ?? null);
+    : (replaying?.frames ?? moment?.motion.frames ?? selected?.frames ?? null);
   useEffect(() => {
     setArmFrame(0);
-    if (!motionFrames?.length || timed) return;
+    if (!motionFrames?.length || (timed && !replaying)) return;
     // Loop the path with a short hold on the final pose.
     const timer = window.setInterval(
       () => setArmFrame((f) => (f + 1) % (motionFrames.length + 15)),
       70,
     );
     return () => window.clearInterval(timer);
-  }, [motionFrames, timed]);
-  const shown = editMotion ? editRun : (moment?.motion ?? selected);
+  }, [motionFrames, timed, replaying]);
+  const shown = editMotion
+    ? editRun
+    : (replaying ?? moment?.motion ?? selected);
   const shownFrame = moment
     ? moment.frame
     : Math.min(armFrame, (motionFrames?.length ?? 1) - 1);
@@ -646,7 +668,7 @@ export default function InstrumentStudio({
             <span>
               {tab === "layout"
                 ? motionFrames
-                  ? `${showingBlocked ? "Blocked attempt" : "Planned path"} · Step ${shown!.step} · drag to orbit`
+                  ? `${replaying ? "Endurance cycle" : showingBlocked ? "Blocked attempt" : "Planned path"} · Step ${shown!.step} · drag to orbit`
                   : `${draft.placements.length} on the bench · drag to orbit`
                 : trace
                   ? `Last run · Step ${trace.step} · ${operationLabels[trace.operation]} · ${name(trace.device_id)}`
@@ -656,6 +678,14 @@ export default function InstrumentStudio({
           </div>
           <Suspense fallback={<div className={s.scene} />}>
             <TwinScene
+              rests={
+                tab === "layout"
+                  ? preview?.rest
+                  : catalog.layout
+                    ? rests.current.get(arrangement(catalog.layout))
+                    : null
+              }
+              clashes={tab === "layout" ? clashing : null}
               twins={
                 tab === "instruments" || tab === "describe"
                   ? catalog.twins
@@ -685,6 +715,7 @@ export default function InstrumentStudio({
               armActor={editMotion?.actor_id ?? shown?.actor_id ?? null}
               path={motionFrames?.map((f) => f[f.length - 1]) ?? null}
               blocked={showingBlocked ? blockedTwin : null}
+              bands={tab === "layout" ? bands : null}
             />
           </Suspense>
           {tab === "workflow" && trace && (
@@ -1052,7 +1083,12 @@ export default function InstrumentStudio({
                       ? timed!.motions.indexOf(moment.motion)
                       : selectedMotion
                   }
+                  onReplay={(motion) => {
+                    setReplay(motion);
+                    if (motion) setPlaying(false);
+                  }}
                   onSelectMotion={(i) => {
+                    setReplay(null);
                     setSelectedMotion(i);
                     // Choosing a transfer plays it from its start.
                     const step = timed?.timeline!.find(
@@ -1087,12 +1123,26 @@ export default function InstrumentStudio({
                         }
                       : undefined
                   }
-                  onSearch={(fixed, start, avoid) =>
+                  onSearch={(fixed, start, avoid, shared) =>
                     api<LayoutSearchChunk>(
                       "/twins/layout/search",
-                      json({ bench: draft.bench, fixed, start, avoid }),
+                      json({ bench: draft.bench, fixed, start, avoid, shared }),
                     )
                   }
+                  kept={catalog.bench_workflows ?? []}
+                  canKeep={
+                    catalog.steps.some((st) => st.operation === "transfer") &&
+                    !(catalog.bench_workflows ?? []).some(
+                      (w) =>
+                        JSON.stringify(w.steps) ===
+                        JSON.stringify(catalog.steps),
+                    )
+                  }
+                  onKeep={(name) => mutate("/twins/layout/workflows", { name })}
+                  onDrop={(id) =>
+                    mutate(`/twins/layout/workflows/${id}`, {}, "DELETE")
+                  }
+                  onBands={setBands}
                   onEdit={(step) => {
                     setPlaying(false);
                     setEditRun(null);
@@ -1437,6 +1487,10 @@ export default function InstrumentStudio({
                       </small>
                     </div>
                   )}
+                  <MonitoredRun
+                    catalog={catalog}
+                    disabled={busy || dirty.current}
+                  />
                 </>
               )}
             </>

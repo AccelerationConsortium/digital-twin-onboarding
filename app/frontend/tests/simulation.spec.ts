@@ -249,6 +249,31 @@ test("recovering a selected experiment cannot submit a new one while state is un
   ).toBeEnabled();
 });
 
+test("nothing is chosen to run on until the lab says what can run here", async ({
+  page,
+}) => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/api/simulations", async (route) => {
+    if (route.request().method() === "GET") await held;
+    await route.continue();
+  });
+  await enter(page);
+  const gpu = page.getByRole("radio", { name: /Digital twin on GPU/ });
+  await expect(gpu).toBeDisabled();
+  await expect(gpu).not.toBeChecked();
+  await expect(
+    page.getByRole("button", { name: "Run mixing experiment", exact: true }),
+  ).toBeDisabled();
+  release();
+  // Without a qualified GPU the teaching twin is what runs, and the choice opens.
+  await expect(
+    page.getByRole("radio", { name: /Flex teaching twin/ }),
+  ).toBeChecked();
+  await expect(gpu).toBeEnabled();
+  await expect(gpu).not.toBeChecked();
+});
+
 test("first visit can request a GPU before mixing execution is qualified", async ({
   page,
 }) => {

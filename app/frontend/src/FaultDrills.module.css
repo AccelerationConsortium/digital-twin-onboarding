@@ -1,0 +1,208 @@
+.starts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0 20px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.field input,
+.field select,
+.field textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 400;
+  font-size: 14px;
+}
+.run {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.run li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.run li span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  min-width: 1.5em;
+}
+.run li[data-state="done"] {
+  color: var(--ink-2);
+  border-left-color: var(--brand);
+}
+.run li[data-state="running"] {
+  color: var(--ink);
+  font-weight: 600;
+  border-left-color: var(--brand);
+  background: var(--accent-soft);
+  animation: pulse 1s ease-in-out infinite;
+}
+.run li[data-state="fault"] {
+  color: var(--ink);
+  font-weight: 600;
+  border-left-color: var(--danger);
+  background: var(--warn-soft);
+}
+@keyframes pulse {
+  50% {
+    background: transparent;
+  }
+}
+.alarm {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px;
+  border-left: 3px solid var(--danger);
+  background: var(--warn-soft);
+}
+.alarm svg {
+  color: var(--danger);
+  margin-top: 3px;
+}
+.alarm p {
+  margin: 0;
+  font-weight: 600;
+}
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chosen {
+  margin: 16px 0 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+.actions,
+.endings {
+  border: 0;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+}
+.actions legend,
+.endings legend {
+  padding: 0;
+  font-weight: 600;
+}
+.actions button,
+.endings button {
+  text-align: left;
+}
+.endings {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.subhead {
+  margin: 20px 0 0;
+  font-size: 15px;
+}
+.ok {
+  color: var(--ok);
+  vertical-align: -3px;
+}
+.bad {
+  color: var(--danger);
+  vertical-align: -3px;
+}
+.details {
+  margin-top: 16px;
+  font-size: 14px;
+}
+.details summary {
+  cursor: pointer;
+  padding-block: 8px;
+}
+.ride {
+  margin-top: 28px;
+}
+.ride h2,
+.lab h2 {
+  margin: 0;
+  font:
+    600 20px/1.3 "Manrope",
+    sans-serif;
+}
+.lab {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.lab > .field {
+  max-width: 280px;
+}
+.incidents {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.incidents li {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.incidents span {
+  color: var(--muted);
+  font-size: 14px;
+}
+.incidents button {
+  justify-self: start;
+  margin-top: 8px;
+}
+.author {
+  display: grid;
+  max-width: 560px;
+}
+.author button {
+  justify-self: start;
+}
+@media (prefers-reduced-motion: reduce) {
+  .run li[data-state="running"] {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .alarm {
+    grid-template-columns: auto 1fr;
+  }
+  .timer {
+    grid-column: 2;
+  }
+  .actions button,
+  .endings button {
+    width: 100%;
+  }
+}
