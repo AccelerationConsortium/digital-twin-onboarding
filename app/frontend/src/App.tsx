@@ -79,6 +79,7 @@ const CloudLabTraining = lazy(() => import("./CloudLabTraining"));
 const CloudLabPortal = lazy(() => import("./CloudLabPortal"));
 const CloudLabInstruments = lazy(() => import("./CloudLabInstruments"));
 const CloudLabWorkflow = lazy(() => import("./CloudLabWorkflow"));
+const InstrumentLesson = lazy(() => import("./InstrumentLesson"));
 const WorkflowMarketplace = lazy(() =>
   import("./Discovery").then((m) => ({ default: m.WorkflowMarketplace })),
 );
@@ -436,6 +437,8 @@ export default function App() {
     learningLevelFromPath(window.location.hash),
   );
   const [workspaceRouteRevision, setWorkspaceRouteRevision] = useState(0);
+  // The cloud lab instrument whose teaching page is open, from #/instruments/<id>.
+  const [lesson, setLesson] = useState<string | null>(null);
   const [discoverySeed, setDiscoverySeed] = useState<Workflow | undefined>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -515,6 +518,7 @@ export default function App() {
       shownRun.current = null;
       setSession(null);
       setView(route?.[1] ?? "overview");
+      setLesson(route?.[1] === "instruments" ? (route[2] ?? null) : null);
       if (route?.[1] === "learn")
         setLearningLevel(learningLevelFromPath(window.location.hash));
       if (route?.[1] === "discovery")
@@ -547,6 +551,7 @@ export default function App() {
       );
       if (route) {
         setView(route[1]);
+        setLesson(route[1] === "instruments" ? (route[2] ?? null) : null);
         if (route[1] === "learn")
           setLearningLevel(learningLevelFromPath(window.location.hash));
         if (route[1] === "discovery")
@@ -614,6 +619,7 @@ export default function App() {
     if (leaveGuard.current && !leaveGuard.current()) return;
     navigationEpoch.current += 1;
     setView(target.split("/")[0]);
+    setLesson(target.startsWith("instruments/") ? target.split("/")[1] : null);
     if (target.split("/")[0] === "learn")
       setLearningLevel(learningLevelFromPath(target));
     setSession(null);
@@ -930,7 +936,7 @@ export default function App() {
               }
             >
               {[
-                "instruments",
+                ...(lesson ? [] : ["instruments"]),
                 "sim",
                 "discovery",
                 "connector",
@@ -1013,12 +1019,23 @@ export default function App() {
                   }}
                   registerLeaveGuard={registerLeaveGuard}
                 />
+              ) : view === "instruments" && lesson ? (
+                <div className={s.instrumentPage}>
+                  <InstrumentLesson
+                    id={lesson}
+                    onOpen={(id) => nav(`instruments/${id}`)}
+                    onBack={() => nav("instruments")}
+                    onWorkflow={() => nav("cloudlab-workflow")}
+                  />
+                </div>
               ) : view === "instruments" ? (
                 <div className={s.instrumentPage}>
                   <InstrumentStories onDesign={createStudio} busy={busy} />
                   <InstrumentModules onDesign={createStudio} busy={busy} />
                   <Suspense fallback={null}>
-                    <CloudLabInstruments />
+                    <CloudLabInstruments
+                      onTeach={(id) => nav(`instruments/${id}`)}
+                    />
                   </Suspense>
                   <button
                     className={s.planLink}

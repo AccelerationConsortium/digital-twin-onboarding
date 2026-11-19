@@ -12,6 +12,8 @@ folder), and writes app/backend/academy/chemlab_layout.json. For each stand-in:
   level_m   the height above the bench a sample is set down at
   site      where on the footprint that is, in the twin's frame (x right, z toward the front)
   extends_m how far a drawer moves out of the front, to keep clear
+  parts     the components a learner can point at in the 3D view
+  joints    of those, the ones that move: type, axis, limits and pivot in the asset frame
 
 Every field carries the dataset's evidence for it: `manufacturer` where the asset records a
 manufacturer document, otherwise `engineering_assumption`, with the dataset's own label as
@@ -60,6 +62,26 @@ STAND_INS = {
     "thermo_orbitrapexploris": (("", (0, 1, 2)), None, None),
     "shimadzu_icpms2030": (("main_unit_W_D_H_excluding_protrusions", (0, 1, 2)), None, None),
     "cytiva_ktaoligosynt": (("full_W_H_D", (0, 2, 1)), None, None),
+}
+# The components a learner can point at on each stand-in's model: the doors, lids and
+# drawers a sample goes through and what they uncover. Their joints are the motions the
+# 3D view plays, so the view never moves a part further than its contract allows.
+PARTS = {
+    "bmg_clariostarplus": ("plate_carrier", "top_lid", "injector_a"),
+    "biorad_cfxopus": ("lid", "sample_block"),
+    "biotek_405ts": ("plate_carrier", "manifold"),
+    "eppendorf_cellxpertc170i": ("outer_door", "inner_door", "shelf_rack"),
+    "agilent_1260infinity": ("drawer_1", "sampler_door", "mct_door"),
+    "biotage_selekt": ("tray", "collector_y", "collector_x"),
+    "sciex_pa800": ("sample_cover", "cartridge_cover", "sample_tray_inlet"),
+    "cem_libertyblue": ("reactor_cover", "reactor_clamp", "reactor", "aa_rack"),
+    "thermo_dionexintegrion": ("main_door", "column_compartment"),
+    "thermo_orbitrapexploris": ("source_housing",),
+    "shimadzu_icpms2030": ("plasma_cover", "torch", "spray_chamber"),
+    "cytiva_ktaoligosynt": ("column_clamp", "column_valve", "column"),
+    # No joints in these contracts: the model is shown as it stands.
+    "agilent_hplc1260": (),
+    "agilent_gc8890b": (),
 }
 # Which part of each drawer's front is open: the drawer's own front panel.
 DRAWER_FRONT = {"agilent_1260infinity": "drawer_1", "biotage_selekt": "tray_handle"}
@@ -190,18 +212,41 @@ def derive(manifest, slug):
     return out
 
 
+def motion(manifest, slug):
+    """The parts a learner can point at and the joints among them, in the asset frame."""
+    parts = components(manifest)
+    named = PARTS[slug]
+    missing = [cid for cid in named if cid not in parts]
+    if missing:
+        raise SystemExit(f"{slug}: no component {missing} in the contract")
+    joints = {}
+    for cid in named:
+        moves = manifest.get("joint_definitions", {}).get(cid)
+        if not moves:
+            continue
+        limits = moves.get("limits_m", moves.get("limits_rad"))
+        joints[cid] = {
+            "type": moves["type"],
+            "axis": [round(v, 6) for v in moves["axis"]],
+            "limits": [round(v, 6) for v in limits],
+            "pivot": [round(v, 5) for v in origin(manifest, parts, cid)],
+            **evidence(moves["range_evidence"]),
+        }
+    return {"parts": list(named), "joints": joints} if named else {}
+
+
 def main():
     rev = revision()
     cache = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(tempfile.mkdtemp())
     cache.mkdir(parents=True, exist_ok=True)
     fetch(cache, rev)
-    missing = set(stand_ins()) ^ set(STAND_INS)
+    missing = (set(stand_ins()) ^ set(STAND_INS)) | (set(STAND_INS) ^ set(PARTS))
     if missing:
         raise SystemExit(f"Stand-ins without a row in STAND_INS (or not in cloudlab.py): {missing}")
     result = {}
     for slug in sorted(STAND_INS):
         manifest = json.loads((cache / f"{rev}__{slug}__geometry_manifest.json").read_text())
-        result[slug] = derive(manifest, slug)
+        result[slug] = {**derive(manifest, slug), **motion(manifest, slug)}
         print(slug, sorted(result[slug]), flush=True)
     OUT.write_text(
         json.dumps(
