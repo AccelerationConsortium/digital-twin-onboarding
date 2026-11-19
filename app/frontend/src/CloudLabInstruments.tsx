@@ -255,13 +255,27 @@ export default function CloudLabInstruments() {
                 <dt>Plate goes in</dt>
                 <dd>
                   {open.access === "front" ? "At the front" : "From above"}
-                  {part(open.opening)}
-                  {open.level_m !== null &&
-                    `, ${open.level_m.toFixed(2)} m above the bench`}
-                  {open.drawer_m !== null &&
-                    `; its drawer comes out ${open.drawer_m.toFixed(2)} m`}{" "}
-                  · {basisLabel(open.geometry_basis.access, open)}
+                  {part(open.opening)} ·{" "}
+                  {basisLabel(open.geometry_basis.access, open)}
                 </dd>
+                {open.level_m !== null && (
+                  <>
+                    <dt>Loading height</dt>
+                    <dd>
+                      {open.level_m.toFixed(2)} m above the bench ·{" "}
+                      {basisLabel(open.geometry_basis.level_m, open)}
+                    </dd>
+                  </>
+                )}
+                {open.drawer_m !== null && (
+                  <>
+                    <dt>Drawer</dt>
+                    <dd>
+                      Comes out {open.drawer_m.toFixed(2)} m ·{" "}
+                      {basisLabel(open.geometry_basis.drawer_m, open)}
+                    </dd>
+                  </>
+                )}
               </dl>
               <details className={s.sources}>
                 <summary>Sources</summary>

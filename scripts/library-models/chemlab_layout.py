@@ -85,14 +85,22 @@ def fetch(cache, rev):
     }
     for slug in stand_ins():
         for name in FILES:
-            path = cache / f"{slug}__{name}"
+            path = cached(cache, rev, slug, name)
             if path.exists():
                 continue
             url = (
                 f"https://huggingface.co/datasets/{REPO}/resolve/{rev}/{rows[slug]['path']}/{name}"
             )
+            # Written beside its name and renamed whole, so a broken download is never reused.
+            part = path.with_suffix(".part")
             with urllib.request.urlopen(url, timeout=120) as response:
-                path.write_bytes(response.read())
+                part.write_bytes(response.read())
+            part.replace(path)
+
+
+def cached(cache, rev, slug, name):
+    """A downloaded file, named by the revision it came from."""
+    return cache / f"{rev}__{slug}__{name}"
 
 
 def evidence(label):
@@ -197,7 +205,7 @@ def main():
         raise SystemExit(f"Stand-ins without a row in STAND_INS (or not in cloudlab.py): {missing}")
     result = {}
     for slug in sorted(STAND_INS):
-        manifest = json.loads((cache / f"{slug}__geometry_manifest.json").read_text())
+        manifest = json.loads(cached(cache, rev, slug, FILES[0]).read_text())
         result[slug] = derive(manifest, slug)
         print(slug, sorted(result[slug]), flush=True)
     OUT.write_text(

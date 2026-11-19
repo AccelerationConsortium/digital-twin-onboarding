@@ -96,9 +96,10 @@ export function entry(spec: TwinSpec): [Point, number] {
     end: 1,
   };
   const middle = (start + end) / 2;
-  if (face === "front") return [[x0 + (x1 - x0) * middle, z1 + TRAY], 0];
+  const out = tray(spec);
+  if (face === "front") return [[x0 + (x1 - x0) * middle, z1 + out], 0];
   const z = z0 + (z1 - z0) * middle;
-  return face === "left" ? [[x0 - TRAY, z], -90] : [[x1 + TRAY, z], 90];
+  return face === "left" ? [[x0 - out, z], -90] : [[x1 + out, z], 90];
 }
 
 export function loads(spec: TwinSpec, p?: Placement): Access {
@@ -106,6 +107,11 @@ export function loads(spec: TwinSpec, p?: Placement): Access {
 }
 
 const TRAY = 0.08; // mirrors workcell_layout.TRAY
+
+/** Mirrors workcell_layout.tray: how far out labware is presented, its drawer or a tray. */
+function tray(spec: TwinSpec): number {
+  return spec.drawer_m || TRAY;
+}
 
 /** Where an instrument without slots presents its tray, in front of its face. */
 export function frontFace(spec: TwinSpec, p: Placement): Point {

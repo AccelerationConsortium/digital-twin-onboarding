@@ -282,7 +282,7 @@ def validate_layout(twins, layout):
         shapes.append((twin, shape))
         if swept := drawer(twin["spec"], placement):
             drawers.append((twin, swept))
-    for twin, swept in drawers:
+    for i, (twin, swept) in enumerate(drawers):
         if any(abs(x) > half_w + 1e-9 or abs(z) > half_d + 1e-9 for x, z in swept):
             raise PlanError("geometry", f"{twin['spec']['name']}'s drawer runs past the bench edge")
         for other, other_shape in shapes:
@@ -290,6 +290,12 @@ def validate_layout(twins, layout):
                 raise PlanError(
                     "geometry",
                     f"{twin['spec']['name']}'s drawer runs into {other['spec']['name']}",
+                )
+        for other, other_swept in drawers[i + 1 :]:
+            if _overlap(swept, other_swept):
+                raise PlanError(
+                    "geometry",
+                    f"{twin['spec']['name']}'s drawer runs into {other['spec']['name']}'s drawer",
                 )
 
 

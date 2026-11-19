@@ -506,3 +506,40 @@ def test_a_drawer_needs_room_to_come_out():
         wl.validate_layout(twins, {"bench": BENCH, "placements": rows})
     rows[1]["x"] = 0.6  # clear of the drawer
     wl.validate_layout(twins, {"bench": BENCH, "placements": rows})
+
+
+def test_two_drawers_cannot_open_into_each_other():
+    import pytest
+    from academy.cloudlab import CLOUDLAB
+
+    spec = CLOUDLAB["plate-reader"]["spec"]
+    a = {"id": "a", "spec": {**spec, "name": "Reader A"}}
+    b = {"id": "b", "spec": {**spec, "name": "Reader B"}}
+    twins = {"a": a, "b": b}
+    depth, width = spec["parts"][0]["size"][2], spec["parts"][0]["size"][0]
+    middle = (spec["opening"]["start"] + spec["opening"]["end"]) / 2
+    # Face to face, fronts 0.3 m apart: each drawer clears the other reader's body, but
+    # the two drawers (0.185 m each) meet in the gap. B is turned round, so its opening is
+    # shifted across to sit opposite A's.
+    gap = 0.3
+    rows = [
+        {"twin_id": "a", "x": 0, "z": -(depth + gap) / 2, "yaw": 0, "access": "front"},
+        {
+            "twin_id": "b",
+            "x": 2 * (middle - 0.5) * width,
+            "z": (depth + gap) / 2,
+            "yaw": 180,
+            "access": "front",
+        },
+    ]
+    for row in rows:
+        assert not any(
+            wl._overlap(wl.drawer(twins[o["twin_id"]]["spec"], o), wl.corners(t["spec"], row))
+            for o in rows
+            for t in [twins[row["twin_id"]]]
+            if o is not row
+        )
+    with pytest.raises(wl.PlanError, match="Reader A's drawer runs into Reader B's drawer"):
+        wl.validate_layout(twins, {"bench": BENCH, "placements": rows})
+    rows[1]["z"] += 0.1  # 0.4 m apart: both drawers fit
+    wl.validate_layout(twins, {"bench": BENCH, "placements": rows})
