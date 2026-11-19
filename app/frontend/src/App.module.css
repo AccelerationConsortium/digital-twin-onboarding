@@ -191,44 +191,7 @@
   font-size: 12px;
   color: var(--muted);
 }
-.welcome {
-  max-width: 1500px;
-  padding: 36px 6vw 0;
-  margin: auto;
-  min-height: 100vh;
-}
-.welcome > header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 48px;
-}
-.welcomeAccess p {
-  color: var(--muted);
-  line-height: 1.7;
-  max-width: 62ch;
-}
-.welcomeAccess {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr);
-  gap: 48px;
-  padding: 48px 0;
-  margin-top: 36px;
-  border-top: var(--hairline) solid var(--line);
-  align-items: center;
-}
-.welcomeAccess h2 {
-  font-size: clamp(24px, 2.6vw, 34px);
-  line-height: 1.2;
-  letter-spacing: -0.035em;
-  margin: 16px 0;
-}
-.welcomeAccess .starterNotice {
-  color: var(--ink-brand);
-  font-weight: 600;
-  border-left: 3px solid var(--brand);
-  padding-left: 14px;
-}
+
 .planLink {
   width: 100%;
   margin-top: 28px;
@@ -271,129 +234,11 @@
   padding: 38px 4.3% 60px;
 }
 @media (max-width: 700px) {
-  .welcome > header {
-    margin-bottom: 32px;
-  }
-  .welcomeAccess {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 22px;
-  }
   .instrumentPage {
     padding: 24px 16px 40px;
   }
 }
-.welcomeGrid {
-  display: grid;
-  grid-template-columns: 1fr 1.08fr;
-  gap: 7%;
-  align-items: center;
-  padding: 82px 0 85px;
-}
-.welcomeCopy h1 {
-  font-size: clamp(38px, 4.2vw, 67px);
-  line-height: 1.12;
-  font-weight: 600;
-  letter-spacing: -2.8px;
-  margin: 22px 0;
-}
-.welcomeCopy h1 em {
-  font-style: normal;
-  color: var(--accent);
-}
-.welcomeCopy > p {
-  font-size: 15px;
-  line-height: 1.9;
-  color: var(--muted);
-  margin-bottom: 30px;
-}
-.welcomeCopy form {
-  max-width: 330px;
-}
-.welcomeCopy .caption {
-  display: block;
-  margin-top: 14px;
-}
-.nameInput {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 14px;
-}
-.nameInput input {
-  background: transparent;
-  min-height: 46px;
-}
-.welcomeCopy .primary {
-  width: 100%;
-}
-.welcomeVisual {
-  position: relative;
-  background: var(--surface-3);
-  border-radius: 12px;
-  padding: 25px 26px 18px;
-  transform: rotate(1deg);
-}
-.visualHeading {
-  display: flex;
-  justify-content: space-between;
-  font-size: 8px;
-  letter-spacing: 1.2px;
-  color: var(--muted);
-  margin-bottom: 18px;
-}
-.visualFooter {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  gap: 15px;
-  padding: 22px 3px 3px;
-}
-.visualFooter > span {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.visualFooter > span:last-child {
-  color: var(--muted);
-  font-size: 10px;
-}
-.floatingNote {
-  position: absolute;
-  bottom: -30px;
-  left: 22px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  background: var(--surface);
-  border: var(--hairline) solid var(--line);
-  padding: 17px 20px;
-  box-shadow: 0 12px 25px #2b38280a;
-  border-radius: 7px;
-  transform: rotate(-3deg);
-  font-size: 13px;
-}
-.floatingNote small {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 5px;
-}
-.welcomeFooter {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 25px 0;
-  border-top: var(--hairline) solid var(--line);
-  font-size: 11px;
-  color: var(--muted);
-}
-.welcomeFooter > span:first-child {
-  letter-spacing: 2px;
-  font-size: 9px;
-  font-weight: 600;
-}
+
 .deck {
   background: var(--surface-3);
   border: var(--hairline) solid var(--line-strong);
@@ -1804,28 +1649,6 @@
   }
 }
 @media (max-width: 850px) {
-  .welcomeGrid {
-    grid-template-columns: 1fr;
-    gap: 55px;
-    padding: 55px 0 65px;
-  }
-  .welcomeCopy h1 {
-    font-size: 55px;
-  }
-  .welcomeVisual {
-    max-width: 540px;
-    width: 100%;
-    margin: auto;
-  }
-  .welcomeCopy {
-    max-width: 580px;
-  }
-  .welcomeFooter {
-    flex-wrap: wrap;
-  }
-  .welcomeFooter > span:first-child {
-    width: 100%;
-  }
   .sidebar {
     width: 75px;
     padding: 25px 8px;
@@ -1959,46 +1782,13 @@
   }
 }
 @media (max-width: 550px) {
-  .welcome {
-    padding: 24px 6vw 0;
-  }
   .headerNote {
     font-size: 10px;
   }
   .headerNote svg {
     display: none;
   }
-  .welcomeCopy h1 {
-    font-size: 43px;
-    letter-spacing: -2px;
-  }
-  .welcomeCopy > p {
-    font-size: 13px;
-  }
-  .welcomeVisual {
-    padding: 20px 15px;
-  }
-  .visualHeading {
-    font-size: 6px;
-  }
-  .visualFooter {
-    font-size: 10px;
-  }
-  .visualFooter > span:last-child {
-    display: none;
-  }
-  .floatingNote {
-    left: 8px;
-    padding: 12px 15px;
-    font-size: 11px;
-  }
-  .floatingNote small {
-    font-size: 9px;
-  }
-  .welcomeFooter {
-    font-size: 9px;
-    gap: 15px;
-  }
+
   .onboardBody {
     margin: 45px auto;
   }
