@@ -208,3 +208,36 @@ def test_wells_of_the_flat_plate_cannot_start_overfull():
     with pytest.raises(ValidationError, match="360"):
         design([], diluent_volume=400)
     assert check(design([move("reader")]).model_dump())["api_level"] == "2.25"
+
+
+# The module starters the Practise buttons open (studioContent MODULE_STARTERS).
+STARTERS = {
+    "mix": (
+        ["heater_shaker"],
+        [move("heater_shaker"), {"kind": "shake", "value": 1000, "seconds": 30}, move("deck")],
+    ),
+    "incubate": (
+        ["temperature"],
+        [move("temperature"), {"kind": "heat", "value": 37}, move("deck")],
+    ),
+    "move": (["temperature"], [move("temperature"), move("deck")]),
+    "read": (["reader"], [move("reader"), {"kind": "read"}, move("deck")]),
+}
+
+
+@pytest.mark.parametrize("instrument", ["flex", "ot2"])
+@pytest.mark.parametrize("starter", list(STARTERS))
+def test_module_starters_complete(starter, instrument):
+    modules, then = STARTERS[starter]
+    if instrument == "ot2" and "reader" in modules:
+        pytest.skip("The OT-2 has no plate reader; the read starter is Flex only")
+    # The Flex moves the plate with its gripper; on the OT-2 it is moved by hand.
+    session = run(
+        design(
+            [*TRANSFER, *then],
+            [*(["gripper"] if instrument == "flex" else []), *modules],
+            instrument,
+        )
+    )
+    assert session["status"] == "completed" and session["assessment"]["passed"]
+    assert session["state"]["plate"]["at"] == "deck"

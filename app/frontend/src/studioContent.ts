@@ -1,7 +1,15 @@
 import type { Action, DeckModule, Experiment, Place } from "./types";
 
 export type Instrument = "flex" | "ot2";
-export type Starter = "transfer" | "distribute" | "dilution" | "blank";
+export type Starter =
+  | "transfer"
+  | "distribute"
+  | "dilution"
+  | "mix"
+  | "incubate"
+  | "move"
+  | "read"
+  | "blank";
 
 export const INSTRUMENT_NAMES: Record<Instrument, string> = {
   flex: "Opentrons Flex",
@@ -16,39 +24,103 @@ export const STUDIO_LAYOUTS: Record<
   ot2: { stock: "1", plate: "2", tips: "4", waste: "12" },
 };
 
-export const STARTERS: Record<Starter, { title: string; description: string }> =
+export const STARTERS: Record<
+  Starter,
   {
-    transfer: {
-      title: "Transfer",
-      description: "Move 100 µL from a stock solution into one well.",
-    },
-    distribute: {
-      title: "Distribute",
-      description: "Aspirate once, then share 240 µL across three wells.",
-    },
-    dilution: {
-      title: "Serial dilution",
-      description:
-        "Transfer through three wells with fresh tips and ideal mixing.",
-    },
-    blank: {
-      title: "Blank workflow",
-      description: "Choose your own steps, volumes and destinations.",
-    },
-  };
+    title: string;
+    description: string;
+    /** Instruments that have the modules the starter uses; all when left out. */
+    instruments?: Instrument[];
+  }
+> = {
+  transfer: {
+    title: "Transfer",
+    description: "Move 100 µL from a stock solution into one well.",
+  },
+  distribute: {
+    title: "Distribute",
+    description: "Aspirate once, then share 240 µL across three wells.",
+  },
+  dilution: {
+    title: "Serial dilution",
+    description:
+      "Transfer through three wells with fresh tips and ideal mixing.",
+  },
+  mix: {
+    title: "Shake to mix",
+    description:
+      "Transfer into a well, then shake the plate on the Heater-Shaker.",
+  },
+  incubate: {
+    title: "Incubate",
+    description: "Transfer into a well, then hold the plate at 37 °C.",
+  },
+  move: {
+    title: "Move a plate",
+    description: "Carry the plate onto a module and back to the deck.",
+  },
+  read: {
+    title: "Read a plate",
+    description: "Transfer into a well, then measure the plate in the reader.",
+    instruments: ["flex"],
+  },
+  blank: {
+    title: "Blank workflow",
+    description: "Choose your own steps, volumes and destinations.",
+  },
+};
 
 const action = (
   kind: Action["kind"],
   well: Action["well"] = "stock",
   volume = 100,
 ): Action => ({ kind, well, volume });
+const plateTo = (to: Place): Action => ({ ...action("move"), to });
+
+/** Module steps after one transfer, and the modules they need on the deck. */
+const MODULE_STARTERS: Partial<
+  Record<Starter, { modules: DeckModule[]; then: Action[] }>
+> = {
+  mix: {
+    modules: ["heater_shaker"],
+    then: [
+      plateTo("heater_shaker"),
+      { ...action("shake"), value: 1000, seconds: 30 },
+      plateTo("deck"),
+    ],
+  },
+  incubate: {
+    modules: ["temperature"],
+    then: [
+      plateTo("temperature"),
+      { ...action("heat"), value: 37 },
+      plateTo("deck"),
+    ],
+  },
+  move: {
+    modules: ["temperature"],
+    then: [plateTo("temperature"), plateTo("deck")],
+  },
+  read: {
+    modules: ["reader"],
+    then: [plateTo("reader"), action("read"), plateTo("deck")],
+  },
+};
 
 export function makeStudioExperiment(
   instrument: Instrument,
   starter: Starter,
 ): Experiment {
-  const actions: Action[] =
-    starter === "blank"
+  const transfer = [
+    action("pickup"),
+    action("aspirate"),
+    action("dispense", "A1"),
+    action("drop"),
+  ];
+  const withModules = MODULE_STARTERS[starter];
+  const actions: Action[] = withModules
+    ? [...transfer, ...withModules.then]
+    : starter === "blank"
       ? []
       : starter === "distribute"
         ? [
@@ -66,12 +138,7 @@ export function makeStudioExperiment(
               action("dispense", (["A1", "A2", "A3"] as const)[index]),
               action("drop"),
             ])
-          : [
-              action("pickup"),
-              action("aspirate"),
-              action("dispense", "A1"),
-              action("drop"),
-            ];
+          : transfer;
   return {
     title: `${INSTRUMENT_NAMES[instrument]} · ${STARTERS[starter].title}`,
     course_id: "workflow-sandbox",
@@ -80,6 +147,13 @@ export function makeStudioExperiment(
     source_volume: 1000,
     diluent_volume: starter === "dilution" ? 100 : 0,
     actions,
+    // The Flex moves the plate with its gripper; on the OT-2 it is moved by hand.
+    ...(withModules && {
+      modules: [
+        ...(instrument === "flex" ? (["gripper"] as DeckModule[]) : []),
+        ...withModules.modules,
+      ],
+    }),
   };
 }
 
