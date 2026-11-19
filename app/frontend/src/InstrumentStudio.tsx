@@ -47,6 +47,7 @@ import { armAt, duration } from "./layoutTimeline";
 import { LIBRARY_QUERY_KEY } from "./LessonSearch";
 import { conflicts, defaultLayout } from "./layoutGeometry";
 import TwinCard from "./TwinCard";
+import UnitOperationTable from "./UnitOperationTable";
 
 const TwinScene = lazy(() => import("./TwinScene"));
 type Tab = "describe" | "instruments" | "workflow" | "layout" | "connectors";
@@ -1162,6 +1163,19 @@ export default function InstrumentStudio({
                     {catalog.layout &&
                       " Transfers must also have a collision-free arm path on the saved bench layout."}
                   </p>
+                  <UnitOperationTable
+                    twins={confirmed}
+                    disabled={steps.length >= 48}
+                    onPick={(op, device) =>
+                      editSteps([
+                        ...steps,
+                        {
+                          ...stepFor(device, op.command!),
+                          ...(op.value !== undefined && { value: op.value }),
+                        },
+                      ])
+                    }
+                  />
                   <datalist id="workflow-samples">
                     {[
                       ...new Set([
