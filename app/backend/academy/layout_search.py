@@ -24,7 +24,6 @@ from .parallel import schedule
 from .workcell_layout import (
     GRIPPER,
     TOOL,
-    TRAY,
     Planner,
     _add,
     _col,
@@ -39,6 +38,7 @@ from .workcell_layout import (
     mount,
     opening_sites,
     plan_workflow,
+    tray,
     validate_layout,
 )
 
@@ -80,7 +80,8 @@ def _pose(spec, side, point, toward):
     if side == "front":
         # The face it is entered through is the one turned toward the arm.
         (nx, nz), (px, pz), _ = entry(spec)
-        local, turned = (px + nx * TRAY, pz + nz * TRAY), math.degrees(math.atan2(nx, nz))
+        out = tray(spec)
+        local, turned = (px + nx * out, pz + nz * out), math.degrees(math.atan2(nx, nz))
     yaw = round((facing - turned) / 90) * 90 % 360
     yaw = yaw - 360 if yaw > 180 else yaw
     rx, rz = _yaw(yaw, *local)

@@ -184,7 +184,7 @@ export type Twin = {
   revision: number;
   residuals: Residual[];
   /** Where the dimensions come from; a layout is as trustworthy as its weakest twin. */
-  size_basis?: "checked" | "catalogued" | "estimated";
+  size_basis?: "checked" | "datasheet" | "catalogued" | "estimated";
 };
 export type Step = {
   device_id: string;

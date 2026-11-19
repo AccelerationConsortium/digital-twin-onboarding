@@ -1,0 +1,345 @@
+{
+ "license": "CC-BY-NC-4.0",
+ "repo": "MBZUAI/ChemLab-Assets",
+ "revision": "3b67020dcccb22e60be3235f32b39d03da5959ab",
+ "stand_ins": {
+  "agilent_1260infinity": {
+   "access": {
+    "detail": "joint drawer_1 (prismatic)",
+    "evidence": "engineering_assumption",
+    "value": "front"
+   },
+   "extends_m": {
+    "detail": "engineering_assumption",
+    "evidence": "engineering_assumption",
+    "value": 0.3
+   },
+   "level_m": {
+    "detail": "engineering_assumption",
+    "evidence": "engineering_assumption",
+    "value": 0.3972
+   },
+   "opening": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": {
+     "end": 0.239,
+     "face": "front",
+     "start": 0.038
+    }
+   },
+   "port": "vial_tray_1",
+   "site": {
+    "detail": "engineering_assumption",
+    "evidence": "engineering_assumption",
+    "value": [
+     -0.2513,
+     0.113
+    ]
+   },
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.6945,
+     0.494,
+     1.061
+    ]
+   }
+  },
+  "agilent_gc8890b": {
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.58,
+     0.51,
+     0.49
+    ]
+   }
+  },
+  "agilent_hplc1260": {},
+  "biorad_cfxopus": {
+   "access": {
+    "detail": "joint lid (prismatic)",
+    "evidence": "engineering_assumption",
+    "value": "top"
+   },
+   "level_m": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": 0.2065
+   },
+   "port": "sample_block",
+   "site": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.0,
+     0.152
+    ]
+   },
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.33,
+     0.56,
+     0.36
+    ]
+   }
+  },
+  "biotage_selekt": {
+   "access": {
+    "detail": "joint tray (prismatic)",
+    "evidence": "engineering_assumption",
+    "value": "front"
+   },
+   "extends_m": {
+    "detail": "engineering_assumption",
+    "evidence": "engineering_assumption",
+    "value": 0.12
+   },
+   "level_m": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": 0.037
+   },
+   "opening": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": {
+     "end": 0.593,
+     "face": "front",
+     "start": 0.019
+    }
+   },
+   "port": "tray",
+   "site": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": [
+     -0.064,
+     0.003
+    ]
+   },
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.335,
+     0.393,
+     0.545
+    ]
+   }
+  },
+  "biotek_405ts": {
+   "access": {
+    "detail": "joint plate_carrier (prismatic)",
+    "evidence": "engineering_assumption",
+    "value": "top"
+   },
+   "level_m": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 0.082
+   },
+   "port": "plate_carrier",
+   "site": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": [
+     0.078,
+     0.14
+    ]
+   },
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.3556,
+     0.4318,
+     0.254
+    ]
+   }
+  },
+  "bmg_clariostarplus": {
+   "access": {
+    "detail": "joint plate_carrier (prismatic)",
+    "evidence": "engineering_assumption",
+    "value": "front"
+   },
+   "extends_m": {
+    "detail": "engineering_assumption",
+    "evidence": "engineering_assumption",
+    "value": 0.185
+   },
+   "level_m": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": 0.074
+   },
+   "opening": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": {
+     "end": 0.427,
+     "face": "front",
+     "start": 0.106
+    }
+   },
+   "port": "plate_carrier",
+   "site": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": [
+     -0.105,
+     0.1823
+    ]
+   },
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.45,
+     0.51,
+     0.4
+    ]
+   }
+  },
+  "cem_libertyblue": {
+   "access": {
+    "detail": "joint reactor_cover (prismatic)",
+    "evidence": "engineering_assumption",
+    "value": "top"
+   },
+   "level_m": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": 0.3
+   },
+   "port": "reactor",
+   "site": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.0292,
+     0.14
+    ]
+   },
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     1.149,
+     0.5,
+     0.75
+    ]
+   }
+  },
+  "cytiva_ktaoligosynt": {
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.7,
+     0.54,
+     0.63
+    ]
+   }
+  },
+  "eppendorf_cellxpertc170i": {
+   "access": {
+    "detail": "joint outer_door (revolute)",
+    "evidence": "engineering_assumption",
+    "value": "front"
+   },
+   "level_m": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 0.265
+   },
+   "port": "shelf_1",
+   "site": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": [
+     0.0,
+     -0.015
+    ]
+   },
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.718,
+     0.715,
+     0.9
+    ]
+   }
+  },
+  "sciex_pa800": {
+   "access": {
+    "detail": "joint sample_cover (revolute)",
+    "evidence": "engineering_assumption",
+    "value": "front"
+   },
+   "level_m": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": 0.329
+   },
+   "port": "sample_tray_inlet",
+   "site": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": [
+     -0.055,
+     0.1531
+    ]
+   },
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.635,
+     0.721,
+     0.742
+    ]
+   }
+  },
+  "shimadzu_icpms2030": {
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.87,
+     0.645,
+     0.587
+    ]
+   }
+  },
+  "thermo_dionexintegrion": {
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.3,
+     0.559,
+     0.625
+    ]
+   }
+  },
+  "thermo_orbitrapexploris": {
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.534,
+     0.763,
+     0.703
+    ]
+   }
+  }
+ }
+}

@@ -136,25 +136,27 @@ class TwinSpec(StrictModel):
     access: Literal["top", "front"] | None = None
     level_m: float | None = Field(default=None, ge=0, le=2, allow_inf_nan=False)
     # An enclosure entered through part of one face; left out, its whole front is open.
+    # Without drawn slots it is where the tray or drawer comes out.
     opening: Opening | None = None
+    # How far a drawer comes out of the open face (metres); left out, a short tray. The
+    # layout keeps the bench in front of it clear.
+    drawer_m: float | None = Field(default=None, ge=0.02, le=0.6, allow_inf_nan=False)
 
     @model_serializer(mode="wrap")
     def keep_saved_shape(self, handler):
         spec = handler(self)
         # Twins saved before openings existed compare equal to themselves.
-        if self.opening is None:
-            spec.pop("opening", None)
+        for key in ("opening", "drawer_m"):
+            if getattr(self, key) is None:
+                spec.pop(key, None)
         return spec
 
     @model_validator(mode="after")
     def consistent(self):
         if not self.name.strip() or len(set(self.operations)) != len(self.operations):
             raise ValueError("Name and unique operations are required")
-        if self.opening and self.access != "front":
-            raise ValueError("Only an instrument entered from a side has an opening")
-        if self.opening and not self.sites:
-            # Only a twin with drawn slots is modelled as an enclosure with walls.
-            raise ValueError("An opening needs the instrument's slots drawn")
+        if (self.opening or self.drawer_m) and self.access != "front":
+            raise ValueError("Only an instrument entered from a side has an opening or drawer")
         if self.limits.min_temp_c > self.limits.max_temp_c:
             raise ValueError("Minimum temperature must not exceed maximum temperature")
         holds = "load" in self.operations
@@ -204,7 +206,7 @@ def detail_layers(old, new):
     changed = {
         layer
         for layer, keys in {
-            "geometry": ["parts", "opening", "access"],
+            "geometry": ["parts", "opening", "access", "drawer_m"],
             "volume": [],
             "container": [],
             "resource": ["resource"],
@@ -448,20 +450,37 @@ class SizeCheck(Revision):
     checked: bool
 
 
+# Strongest first.
+SIZE_BASES = ("checked", "datasheet", "catalogued", "estimated")
+
+
 def size_basis(twin):
     """How far a twin's dimensions can be trusted; a layout is as good as its weakest one.
 
-    `checked`: the learner compared them with the real instrument. `catalogued`: the
-    unedited footprint of a library entry. `estimated`: a template, a photo sketch,
-    hand-edited parts or a cloud lab entry, whose footprint is a stand-in.
+    `checked`: the learner compared them with the real instrument. `datasheet`: a cloud
+    lab entry whose every geometry value comes, unedited, from a comparable model's
+    datasheet or the manufacturer figures in its stand-in's contract. `catalogued`: the
+    unedited footprint of a library entry.
+    `estimated`: a template, a photo sketch, hand-edited geometry or any other cloud lab
+    entry, whose footprint is a stand-in.
     """
     if twin.get("size_checked"):
         return "checked"
     if twin["source"] == "cloudlab_asset":
-        return "estimated"
+        bases = (twin.get("asset") or {}).get("geometry_basis") or {}
+        sourced = bases and all(
+            b.startswith(("datasheet:", "manufacturer:")) for b in bases.values()
+        )
+        return "datasheet" if sourced and not twin.get("size_edited") else "estimated"
     if twin["source"].endswith("_asset") and not twin.get("size_edited"):
         return "catalogued"
     return "estimated"
+
+
+def layout_basis(twins, placements):
+    """The weakest size basis among the placed twins; None when nothing is placed."""
+    found = {size_basis(twins[p["twin_id"]]) for p in placements if p["twin_id"] in twins}
+    return max(found, key=SIZE_BASES.index) if found else None
 
 
 class ConnectorMode(Revision):
@@ -1419,10 +1438,12 @@ class SimpleTwinService:
             "blocked": None,
             "timeline": [],
             "simulation": arm_simulation.describe(NOMINAL_SPEED),
+            "size_basis": None,
         }
         if not layout:
             return result
         twins = {t["id"]: t for t in record["twins"]}
+        result["size_basis"] = layout_basis(twins, layout["placements"])
         try:
             trace = execute_mock(twins, record["steps"]) if record["steps"] else []
             result["motions"] = plan_workflow(twins, layout, record["steps"], keep_frames=True)
@@ -1460,6 +1481,8 @@ class SimpleTwinService:
             )
             if data.start == 0:
                 result["consolidation"] = consolidation(twins, record["steps"])
+            for option in result["candidates"]:
+                option["size_basis"] = layout_basis(twins, option["layout"]["placements"])
             return result
         except PlanError as exc:
             raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
@@ -1629,8 +1652,9 @@ class SimpleTwinService:
         spec = data.spec.model_dump(mode="json")
         if twin["confirmed"] and spec == twin["spec"]:
             return self.catalog(owner)
-        if spec["parts"] != twin["spec"]["parts"]:
-            # New dimensions are the learner's own, and no longer the ones that were checked.
+        geometry = ("parts", "access", "level_m", "opening", "drawer_m", "sites")
+        if any(spec.get(k) != twin["spec"].get(k) for k in geometry):
+            # New geometry is the learner's own, and no longer the one that was checked.
             twin.update(size_edited=True, size_checked=False)
         if twin["confirmed"]:
             grown, changed = detail_layers(twin["spec"], spec)

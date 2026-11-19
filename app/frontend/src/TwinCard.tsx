@@ -668,9 +668,11 @@ export default function TwinCard({
           Sizes checked against the real instrument
           {twin.size_basis !== "checked" && (
             <small>
-              {twin.size_basis === "catalogued"
-                ? "library footprint"
-                : "estimated"}
+              {twin.size_basis === "datasheet"
+                ? "comparable model's datasheet"
+                : twin.size_basis === "catalogued"
+                  ? "library footprint"
+                  : "estimated"}
             </small>
           )}
         </label>

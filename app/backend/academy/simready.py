@@ -47,7 +47,7 @@ def footprint_spec(size_zup, color, spec, assumptions):
         assumptions=assumptions,
         sites=deck_sites(deck, spec.get("deck_at", (0.0, 0.0))) if deck else [],
         access=spec.get("access") or ("front" if front else "top"),
-        level_m=LEVELS[deck] if deck else None,
+        level_m=spec.get("level_m", LEVELS[deck] if deck else None),
     ).model_dump(mode="json")
 
 

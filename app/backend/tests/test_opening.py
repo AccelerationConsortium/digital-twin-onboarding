@@ -148,12 +148,15 @@ def test_only_slots_behind_the_open_part_are_served():
     )
 
 
-def test_an_opening_needs_drawn_slots_and_counts_as_geometry():
+def test_an_opening_without_slots_moves_the_tray_and_counts_as_geometry():
     from academy.simple_twins import detail_layers
 
     _, _, flex = cell(None)
     spec = {**flex["spec"], "access": "front"}
-    with pytest.raises(ValidationError, match="slots drawn"):
-        TwinSpec(**{**spec, "sites": [], "opening": LEFT_FRONT})
+    # Without drawn slots the opening is where the tray comes out, on that side.
+    tray = TwinSpec(**{**spec, "sites": [], "resource": {"slots": 1}, "opening": LEFT_FRONT})
+    place = {"x": 0, "z": 0, "yaw": 0, "access": "front"}
+    point, *_ = access(tray.model_dump(), place)
+    assert point[0] < -0.435 and point[2] > 0
     opened = {**spec, "opening": LEFT_FRONT}
     assert "geometry" in detail_layers(spec, opened)[1]
