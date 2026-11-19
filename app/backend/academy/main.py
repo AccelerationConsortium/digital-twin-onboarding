@@ -55,6 +55,7 @@ from .simple_twins import (
     MatchTwin,
     RecordResidual,
     RefineLayout,
+    SaveBenchWorkflow,
     SaveConstraints,
     SaveLayout,
     SavePlan,
@@ -62,6 +63,8 @@ from .simple_twins import (
     SimpleTwinService,
     SizeCheck,
     StressLayout,
+    ToleranceLayout,
+    ToleranceSummary,
 )
 from .simple_twins import Revision as TwinRevision
 from .store import Conflict, DynamoStore, SQLiteStore
@@ -375,6 +378,36 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/twins/layout/endurance/replay", dependencies=[Depends(require_layout_planner)])
     def replay_endurance_cycle(data: endurance.EnduranceReplay, owner: str = Depends(identify)):
         return endurance.run_replay(app.state.twins, owner, data)
+
+    @app.post("/api/twins/layout/tolerance", dependencies=[Depends(require_layout_planner)])
+    def instrument_layout_tolerance(data: ToleranceLayout, owner: str = Depends(identify)):
+        return app.state.twins.tolerance(owner, data)
+
+    @app.post("/api/twins/layout/template", dependencies=[Depends(require_layout_planner)])
+    def placement_template(
+        data: ToleranceSummary,
+        pages: bool = Query(default=False),
+        owner: str = Depends(identify),
+    ):
+        body = app.state.twins.placement_template(owner, data, pages)
+        if pages:
+            return Response(body, media_type="text/html; charset=utf-8")
+        return Response(
+            body,
+            media_type="image/svg+xml",
+            headers={"Content-Disposition": 'attachment; filename="placement-template.svg"'},
+        )
+
+    @app.post("/api/twins/layout/workflows", dependencies=[Depends(require_layout_planner)])
+    def keep_bench_workflow(data: SaveBenchWorkflow, owner: str = Depends(identify)):
+        return app.state.twins.keep_workflow(owner, data)
+
+    @app.delete(
+        "/api/twins/layout/workflows/{workflow_id}",
+        dependencies=[Depends(require_layout_planner)],
+    )
+    def drop_bench_workflow(workflow_id: UUID, data: TwinRevision, owner: str = Depends(identify)):
+        return app.state.twins.drop_workflow(owner, workflow_id, data)
 
     @app.post("/api/twins")
     def create_instrument(data: CreateTwin, owner: str = Depends(identify)):

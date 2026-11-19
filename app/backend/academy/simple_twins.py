@@ -24,7 +24,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException
 from pydantic import Field, ValidationError, model_serializer, model_validator
 
-from . import arm_simulation
+from . import arm_simulation, tolerance
 from .arms import arm_for
 from .consolidate import consolidation
 from .layout_search import OBJECTIVES, SHIFTS, improve_layout, robustness, search_layouts
@@ -593,6 +593,8 @@ class SaveConstraints(Revision):
 
 class SearchLayouts(StrictModel):
     bench: Bench
+    # Also run every workflow kept for this bench on each layout found.
+    shared: bool = False
     # Instruments the user keeps where they are; the search places the rest.
     fixed: list[Placement] = Field(default=[], max_length=12)
     start: int = Field(default=0, ge=0, le=100_000)
@@ -616,12 +618,67 @@ class ImproveLayout(LayoutDraft):
     start: int = Field(default=0, ge=0, le=1000)
     # Moves tried since the last one that stayed, as the previous chunk returned it.
     idle: int = Field(default=0, ge=0, le=1000)
+    shared: bool = False  # every move must keep the bench's other workflows running
 
     @model_validator(mode="after")
     def once(self):
         if len(set(self.objectives)) != len(self.objectives):
             raise ValueError("Name each objective once")
         return self
+
+
+BENCH_WORKFLOWS = 4  # workflows kept for one bench besides the current one
+Text = Annotated[str, Field(max_length=400)]
+
+
+class SaveBenchWorkflow(Revision):
+    """Keep the current workflow for the bench, to check layouts against later."""
+
+    name: str = Field(min_length=1, max_length=60)
+
+
+class ToleranceCheck(StrictModel):
+    """One replanning of a misplaced layout, as an earlier chunk returned it."""
+
+    ok: bool
+    cause: str | None = Field(default=None, max_length=20)
+    step: int | None = Field(default=None, ge=1, le=48)
+    transfer: Text | None = None
+    blocker: Text | None = None
+    link: str | None = Field(default=None, max_length=60)
+    message: Text | None = None
+
+
+class ToleranceTask(StrictModel):
+    task: int = Field(ge=0, le=20_000)
+    kind: Literal["band", "sample"]
+    twin_id: str | None = Field(default=None, max_length=40)
+    axis: Literal[tuple(tolerance.AXES)] | None = None
+    sign: Literal[-1, 1] | None = None
+    workflow: int | None = Field(default=None, ge=0, le=BENCH_WORKFLOWS)
+    band: float | None = Field(default=None, ge=0, le=360, allow_inf_nan=False)
+    saturated: bool | None = None
+    limit: ToleranceCheck | None = None
+    checks: int | None = Field(default=None, ge=0, le=64)
+    group: Literal[tolerance.GROUPS] | None = None
+    level: int | None = Field(default=None, ge=0, lt=len(tolerance.LEVELS))
+    index: int | None = Field(default=None, ge=0, le=64)
+    skipped: bool | None = None
+    results: list[ToleranceCheck] = Field(default=[], max_length=BENCH_WORKFLOWS + 1)
+
+
+class ToleranceSummary(LayoutDraft):
+    # "bench": the current workflow and every one kept for this bench.
+    workflows: Literal["current", "bench"] = "current"
+    seed: int = Field(default=0, ge=0, le=1_000_000)
+    samples: int = Field(default=tolerance.SAMPLES, ge=4, le=64)
+    target: float = Field(default=0.99, ge=0.5, le=0.999, allow_inf_nan=False)
+    done: list[ToleranceTask] = Field(default=[], max_length=10_000)
+
+
+class ToleranceLayout(ToleranceSummary):
+    start: int = Field(default=0, ge=0, le=10_000)
+    trail: list[ToleranceCheck] = Field(default=[], max_length=64)
 
 
 class BedrockTwins:
@@ -1240,6 +1297,7 @@ class SimpleTwinService:
         return {
             "layout": None,  # records saved before layouts existed
             "constraints": [],  # or before layout preferences
+            "bench_workflows": [],  # or before workflows were kept for a bench
             **record,
             "twins": [{**drawn(t), "size_basis": size_basis(t)} for t in record["twins"]],
             # None for records saved before workflow descriptions. The model conversation
@@ -1461,6 +1519,7 @@ class SimpleTwinService:
                 data.start,
                 [[p.model_dump(mode="json") for p in layout] for layout in data.avoid],
                 constraints=record.get("constraints", []),
+                shared=self.shared_steps(record, data.shared),
             )
             if data.start == 0:
                 result["consolidation"] = consolidation(twins, record["steps"])
@@ -1486,9 +1545,93 @@ class SimpleTwinService:
                 data.start,
                 data.idle,
                 constraints=record.get("constraints", []),
+                shared=self.shared_steps(record, data.shared),
             )
         except PlanError as exc:
             raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
+
+    def bench_workflows(self, record, which):
+        """[(name, steps)]: the current workflow, then those kept for the bench if asked."""
+        named = [("Current workflow", record["steps"])]
+        if which == "bench":
+            named += [(w["name"], w["steps"]) for w in record.get("bench_workflows", [])]
+        twins = {t["id"] for t in record["twins"] if t["confirmed"] and t["spec"]}
+        for name, steps in named:
+            used = {s[k] for s in steps for k in ("device_id", "source_id", "target_id")}
+            if not used <= {*twins, None}:
+                raise HTTPException(409, f"{name} uses an instrument that is not confirmed")
+        return named
+
+    def shared_steps(self, record, shared):
+        return [steps for _, steps in self.bench_workflows(record, "bench")[1:]] if shared else []
+
+    def keep_workflow(self, owner, data):
+        record = self.current(owner, data.expected_version)
+        if not any(s["operation"] == "transfer" for s in record["steps"]):
+            raise HTTPException(422, "Save a workflow with a transfer step first")
+        kept = record.get("bench_workflows", [])
+        if len(kept) >= BENCH_WORKFLOWS:
+            raise HTTPException(422, f"A bench keeps at most {BENCH_WORKFLOWS} other workflows")
+        if any(w["steps"] == record["steps"] for w in kept):
+            raise HTTPException(409, "This workflow is already kept for the bench")
+        record["bench_workflows"] = [
+            *kept,
+            {"id": str(uuid4()), "name": data.name.strip(), "steps": deepcopy(record["steps"])},
+        ]
+        return self.save(owner, record, data.expected_version)
+
+    def drop_workflow(self, owner, workflow_id, data):
+        record = self.current(owner, data.expected_version)
+        kept = record.get("bench_workflows", [])
+        if not any(w["id"] == str(workflow_id) for w in kept):
+            raise HTTPException(404, "Kept workflow not found")
+        record["bench_workflows"] = [w for w in kept if w["id"] != str(workflow_id)]
+        return self.save(owner, record, data.expected_version)
+
+    def tolerance_inputs(self, owner, data):
+        record = self.get(owner)
+        layout = self.placed(record, data)
+        if not layout or not record["steps"]:
+            raise HTTPException(409, "Save a workflow and place its instruments first")
+        twins = {t["id"]: t for t in record["twins"] if t["confirmed"] and t["spec"]}
+        if any(p["twin_id"] not in twins for p in layout["placements"]):
+            raise HTTPException(409, "Confirm every instrument on the bench first")
+        return twins, layout, self.bench_workflows(record, data.workflows)
+
+    def tolerance(self, owner, data):
+        """Read-only chunk: how far each instrument and the arm may sit off their spots."""
+        twins, layout, named = self.tolerance_inputs(owner, data)
+        try:
+            return tolerance.analyse(
+                twins,
+                layout,
+                named,
+                [t.model_dump() for t in data.done],
+                data.start,
+                [t.model_dump() for t in data.trail],
+                data.seed,
+                data.samples,
+                data.target,
+            )
+        except PlanError as exc:
+            raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
+
+    def placement_template(self, owner, data, pages):
+        """The bench at 1:1 with outlines, datums and the allowed bands analysed so far."""
+        twins, layout, named = self.tolerance_inputs(owner, data)
+        try:
+            workflows = tolerance.workflows_of(named)
+            plan = tolerance.tasks(twins, layout, workflows, data.samples)
+            done = [t.model_dump() for t in data.done]
+            if len(done) > len(plan) or not all(
+                tolerance.matches(plan[i], r, i) for i, r in enumerate(done)
+            ):
+                raise PlanError("state", "This analysis does not match the layout")
+            result = tolerance.summary(twins, layout, workflows, done, data.samples, data.target)
+        except PlanError as exc:
+            raise HTTPException(422, {"message": str(exc), "layer": exc.layer}) from exc
+        render = tolerance.template_pages if pages else tolerance.template_svg
+        return render(twins, layout, result)
 
     def stress_layout(self, owner, data):
         """Read-only chunk: does the saved workflow survive small placement errors?"""
@@ -2012,6 +2155,7 @@ class SimpleTwinService:
             brief=None,
         )
         record.pop("constraints", None)
+        record.pop("bench_workflows", None)
         # Every example is planned in the tests; planning it again here would only make
         # opening one slow. The layout tab checks it like any other layout.
         return self.save(owner, record, data.expected_version)

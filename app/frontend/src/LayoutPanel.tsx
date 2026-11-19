@@ -2,17 +2,20 @@ import { useRef, useState } from "react";
 import { Download, Pencil, RotateCw, Trash2 } from "lucide-react";
 import type {
   Access,
+  BenchWorkflow,
   Constraint,
   Layout,
   LayoutPreview,
   LayoutSearchChunk,
   Placement,
   Refinement,
+  ToleranceBands,
   Twin,
   TwinSpec,
 } from "./instrumentTypes";
 import {
   SLOT,
+  allowedRegion,
   armReach,
   centre,
   clashes,
@@ -30,6 +33,7 @@ import EndurancePanel, { type ReplayMotion } from "./EndurancePanel";
 import LayoutOptions from "./LayoutOptions";
 import LayoutPreferences from "./LayoutPreferences";
 import LayoutRefine from "./LayoutRefine";
+import LayoutTolerance from "./LayoutTolerance";
 import s from "./LayoutPanel.module.css";
 
 const PAD = 0.12;
@@ -55,6 +59,11 @@ export default function LayoutPanel({
   onRefine,
   onEdit,
   onReplay,
+  kept,
+  canKeep,
+  onKeep,
+  onDrop,
+  onBands,
   busy,
 }: {
   twins: Twin[];
@@ -73,7 +82,15 @@ export default function LayoutPanel({
     fixed: Placement[],
     start: number,
     avoid: Placement[][],
+    shared: boolean,
   ) => Promise<LayoutSearchChunk>;
+  /** Workflows kept for this bench besides the current one. */
+  kept: BenchWorkflow[];
+  canKeep: boolean;
+  onKeep: (name: string) => void;
+  onDrop: (id: string) => void;
+  /** Measured placement bands of the layout shown, or null. */
+  onBands: (bands: ToleranceBands | null) => void;
   constraints: Constraint[];
   onConstraints: (next: Constraint[]) => void;
   /** Present when the server has a language model to read layout requests. */
@@ -93,6 +110,19 @@ export default function LayoutPanel({
   const reachedNow =
     reached?.layout === JSON.stringify(layout.placements) ? reached.slots : {};
   const [speed, setSpeed] = useState(20);
+  const [bands, setBands] = useState<ToleranceBands | null>(null);
+  // The x/z band of the instrument that can move least, to mark it on the bench.
+  const tightest = bands
+    ? Object.entries(bands)
+        .map(([id, b]) => ({
+          id,
+          least: Math.min(
+            ...[...(b.x ?? []), ...(b.z ?? [])].map((v) => v ?? Infinity),
+          ),
+        }))
+        .filter((b) => Number.isFinite(b.least))
+        .sort((a, b) => a.least - b.least)[0]?.id
+    : null;
   const svg = useRef<SVGSVGElement>(null);
   const drag = useRef<{ id: string; dx: number; dz: number } | null>(null);
   const specs = new Map(
@@ -215,6 +245,23 @@ export default function LayoutPanel({
             />
           );
         })}
+        {bands &&
+          layout.placements.map((p) => {
+            const spec = specs.get(p.twin_id);
+            const band = bands[p.twin_id];
+            if (!spec || !band || (!band.x && !band.z)) return null;
+            return (
+              <polygon
+                key={`allowed-${p.twin_id}`}
+                className={`${s.allowed} ${p.twin_id === tightest ? s.allowedTight : ""}`}
+                points={allowedRegion(spec, p, band)
+                  .map((c) => c.join(","))
+                  .join(" ")}
+              >
+                <title>Allowed region of {spec.name}</title>
+              </polygon>
+            );
+          })}
         {layout.placements.map((p) => {
           const spec = specs.get(p.twin_id);
           if (!spec) return null;
@@ -347,6 +394,19 @@ export default function LayoutPanel({
           onChange(next);
         }}
         onSearch={onSearch}
+        shared={kept.length > 0}
+      />
+      <LayoutTolerance
+        layout={layout}
+        kept={kept}
+        canKeep={canKeep}
+        busy={busy}
+        onKeep={onKeep}
+        onDrop={onDrop}
+        onBands={(next) => {
+          setBands(next);
+          onBands(next);
+        }}
       />
 
       {current ? (

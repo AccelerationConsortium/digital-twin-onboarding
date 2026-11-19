@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import type { ArmFrame, Layout, Twin, Vec } from "./instrumentTypes";
+import type {
+  ArmFrame,
+  Layout,
+  ToleranceBands,
+  Twin,
+  Vec,
+} from "./instrumentTypes";
 import { armModel, fitted, instrumentModel } from "./instrumentModels";
 import {
   ARM_RADII,
+  allowedRegion,
   armReach,
   isArm,
   meeting,
@@ -27,7 +34,8 @@ type Robot = Awaited<ReturnType<typeof armModel>>;
  * angles (capsules from joint points until the model has loaded). Without a layout the
  * twins sit side by side; with one they sit where they are placed. An idle arm waits in
  * `rests` (checked clear by the server); instruments in `clashes` are drawn red, with
- * the space two of them share marked.
+ * the space two of them share marked. Measured placement bands are drawn on the bench
+ * as the dashed region each instrument may cover.
  */
 export default function TwinScene({
   twins,
@@ -41,6 +49,7 @@ export default function TwinScene({
   blocked,
   rests,
   clashes,
+  bands,
 }: {
   twins: (Pick<Twin, "id" | "spec" | "confirmed"> &
     Partial<Pick<Twin, "asset">>)[];
@@ -54,9 +63,11 @@ export default function TwinScene({
   blocked?: string | null;
   rests?: Record<string, number[] | null> | null;
   clashes?: Clash[] | null;
+  bands?: ToleranceBands | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const overlay = useRef<THREE.Group | null>(null);
+  const regions = useRef<THREE.Group | null>(null);
   const robots = useRef(new Map<string, Robot>());
   const [loaded, setLoaded] = useState(0);
   const key =
@@ -277,6 +288,9 @@ export default function TwinScene({
     const group = new THREE.Group();
     scene.add(group);
     overlay.current = group;
+    const allowed = new THREE.Group();
+    scene.add(allowed);
+    regions.current = allowed;
     controls.target.copy(center);
 
     const resize = () => {
@@ -309,7 +323,9 @@ export default function TwinScene({
       observer.disconnect();
       controls.dispose();
       clear(group);
+      clear(allowed);
       overlay.current = null;
+      regions.current = null;
       robots.current.clear();
       // Instrument models share their cached template's buffers; only owned arms are freed.
       owned.forEach((o) => {
@@ -322,6 +338,36 @@ export default function TwinScene({
     };
     // `key` captures every input that changes the scene.
   }, [key]);
+
+  // Bands grow chunk by chunk during an analysis; only their outlines are redrawn.
+  const bandKey = JSON.stringify(bands ?? null);
+  useEffect(() => {
+    const group = regions.current;
+    if (!group || !layout || !bands) return;
+    const outline = new THREE.LineDashedMaterial({
+      color: "#f2a65a",
+      dashSize: 0.02,
+      gapSize: 0.012,
+    });
+    for (const p of layout.placements) {
+      const spec = twins.find((t) => t.id === p.twin_id)?.spec;
+      const band = bands[p.twin_id];
+      if (!spec || !band || (!band.x && !band.z)) continue;
+      const ring = allowedRegion(spec, p, band).map(
+        ([px, pz]) => new THREE.Vector3(px, 0.002, pz),
+      );
+      const line = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(ring),
+        outline,
+      );
+      line.computeLineDistances();
+      group.add(line);
+    }
+    return () => {
+      clear(group);
+      outline.dispose();
+    };
+  }, [bandKey, key]);
 
   // The arm changes every animation frame, so it lives in its own group.
   const armKey = JSON.stringify([arm, armJoints, armActor, path]);

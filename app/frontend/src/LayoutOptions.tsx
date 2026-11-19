@@ -77,6 +77,12 @@ const METRICS: {
     show: (v) => `${v.toFixed(2)} m² bench`,
   },
   {
+    key: "margin_m",
+    label: "Tolerance margin",
+    better: "high",
+    show: (v) => `${(v * 100).toFixed(1)} cm tolerance margin`,
+  },
+  {
     key: "holds",
     label: "Placement tolerance",
     better: "high",
@@ -130,6 +136,7 @@ export default function LayoutOptions({
   name,
   onApply,
   onSearch,
+  shared: canShare,
 }: {
   layout: Layout;
   constraints: Constraint[];
@@ -139,8 +146,13 @@ export default function LayoutOptions({
     fixed: Placement[],
     start: number,
     avoid: Placement[][],
+    shared: boolean,
   ) => Promise<LayoutSearchChunk>;
+  /** Other workflows are kept for this bench. */
+  shared: boolean;
 }) {
+  const [everyWorkflow, setEveryWorkflow] = useState(true);
+  const shared = canShare && everyWorkflow;
   const kept = layout.placements.filter((p) => p.kept);
   const [aroundKept, setAroundKept] = useState(true);
   const fixed = aroundKept ? kept : [];
@@ -165,7 +177,7 @@ export default function LayoutOptions({
   const runId = useRef(0);
 
   // Results answer one bench, one set of kept instruments and one set of preferences.
-  const inputs = JSON.stringify([layout.bench, fixed, constraints]);
+  const inputs = JSON.stringify([layout.bench, fixed, constraints, shared]);
   useEffect(() => {
     runId.current += 1;
     setFound([]);
@@ -198,6 +210,7 @@ export default function LayoutOptions({
           fixed,
           start,
           all.map((c) => c.layout.placements),
+          shared,
         );
         if (runId.current !== id) return;
         all = [...all, ...chunk.candidates];
@@ -248,7 +261,13 @@ export default function LayoutOptions({
       while (next !== null) {
         const chunk: LayoutImprovement = await api<LayoutImprovement>(
           "/twins/layout/improve",
-          json({ ...best.layout, objectives: targets, start: next, idle }),
+          json({
+            ...best.layout,
+            objectives: targets,
+            start: next,
+            idle,
+            shared,
+          }),
         );
         if (runId.current !== id) return;
         ({ next, idle } = chunk);
@@ -323,6 +342,16 @@ export default function LayoutOptions({
             Around {kept.length} kept
           </label>
         </div>
+        {canShare && (
+          <label className={s.inlineCheck}>
+            <input
+              type="checkbox"
+              checked={everyWorkflow}
+              onChange={(e) => setEveryWorkflow(e.target.checked)}
+            />
+            Every bench workflow
+          </label>
+        )}
         {running ? (
           <button
             className={studio.secondary}

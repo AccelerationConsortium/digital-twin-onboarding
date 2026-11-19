@@ -400,3 +400,43 @@ export function siteCentres(spec: TwinSpec, p: Placement) {
     return { key: site.key, at: [p.x + rx, p.z + rz] as Point };
   });
 }
+
+function hull(points: Point[]): Point[] {
+  const pts = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cross = (o: Point, a: Point, b: Point) =>
+    (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const half = (list: Point[]) => {
+    const out: Point[] = [];
+    for (const p of list) {
+      while (
+        out.length >= 2 &&
+        cross(out[out.length - 2], out[out.length - 1], p) <= 0
+      )
+        out.pop();
+      out.push(p);
+    }
+    out.pop();
+    return out;
+  };
+  return [...half(pts), ...half([...pts].reverse())];
+}
+
+/** Mirrors tolerance.allowed_outline: the footprint swept over its measured x/z band. */
+export function allowedRegion(
+  spec: TwinSpec,
+  p: Placement,
+  band: {
+    x?: [number | null, number | null];
+    z?: [number | null, number | null];
+  },
+): Point[] {
+  const [xm, xp] = band.x ?? [0, 0];
+  const [zm, zp] = band.z ?? [0, 0];
+  return hull(
+    corners(spec, p).flatMap(([x, z]) =>
+      [-(xm ?? 0), xp ?? 0].flatMap((dx) =>
+        [-(zm ?? 0), zp ?? 0].map((dz) => [x + dx, z + dz] as Point),
+      ),
+    ),
+  );
+}
