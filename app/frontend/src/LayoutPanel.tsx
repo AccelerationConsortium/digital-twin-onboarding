@@ -26,6 +26,7 @@ import {
   type Point,
 } from "./layoutGeometry";
 import studio from "./InstrumentStudio.module.css";
+import EndurancePanel, { type ReplayMotion } from "./EndurancePanel";
 import LayoutOptions from "./LayoutOptions";
 import LayoutPreferences from "./LayoutPreferences";
 import LayoutRefine from "./LayoutRefine";
@@ -53,6 +54,7 @@ export default function LayoutPanel({
   onConstraints,
   onRefine,
   onEdit,
+  onReplay,
   busy,
 }: {
   twins: Twin[];
@@ -78,6 +80,8 @@ export default function LayoutPanel({
   onRefine?: (text: string) => Promise<Refinement>;
   /** Opens a planned transfer's waypoints for editing by hand. */
   onEdit?: (step: number) => void;
+  /** Shows one cycle of a stress run in the 3D view; null returns to the plan. */
+  onReplay: (motion: ReplayMotion | null) => void;
   busy: boolean;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -564,6 +568,12 @@ export default function LayoutPanel({
           </small>
         )}
       </div>
+      <EndurancePanel
+        layout={layout}
+        ready={!bad.size && !!preview && !preview.error && motions.length > 0}
+        simulated={!!simulated}
+        onReplay={onReplay}
+      />
       <div className={studio.actions}>
         <button
           className={studio.primary}

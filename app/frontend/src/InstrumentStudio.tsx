@@ -42,6 +42,7 @@ import BriefPanel, { RoleBindings, applyBlocker } from "./BriefPanel";
 import s from "./InstrumentStudio.module.css";
 import ChainEditor, { type ChainResult } from "./ChainEditor";
 import LayoutData from "./LayoutData";
+import type { ReplayMotion } from "./EndurancePanel";
 import LayoutPanel from "./LayoutPanel";
 import { armAt, duration } from "./layoutTimeline";
 import { LIBRARY_QUERY_KEY } from "./LessonSearch";
@@ -437,6 +438,8 @@ export default function InstrumentStudio({
   const [editing, setEditing] = useState<number | null>(null);
   const [editPose, setEditPose] = useState<number[] | null>(null);
   const [editRun, setEditRun] = useState<ChainResult | null>(null);
+  // One cycle of a stress run, shown in place of the planned path.
+  const [replay, setReplay] = useState<ReplayMotion | null>(null);
   const editMotion =
     tab === "layout" && editing !== null
       ? (preview?.motions.find((m) => m.step === editing) ?? null)
@@ -446,6 +449,7 @@ export default function InstrumentStudio({
     if (tab === "layout") return;
     setEditing(null);
     setEditRun(null);
+    setReplay(null);
   }, [tab]);
   const timed =
     tab === "layout" &&
@@ -472,21 +476,24 @@ export default function InstrumentStudio({
     );
     return () => window.clearInterval(timer);
   }, [playing, rate, runtime]);
-  const moment = timed ? armAt(timed, clock) : null;
+  const replaying = tab === "layout" && !editMotion ? replay : null;
+  const moment = timed && !replaying ? armAt(timed, clock) : null;
   const motionFrames = editMotion
     ? (editRun?.frames ?? null)
-    : (moment?.motion.frames ?? selected?.frames ?? null);
+    : (replaying?.frames ?? moment?.motion.frames ?? selected?.frames ?? null);
   useEffect(() => {
     setArmFrame(0);
-    if (!motionFrames?.length || timed) return;
+    if (!motionFrames?.length || (timed && !replaying)) return;
     // Loop the path with a short hold on the final pose.
     const timer = window.setInterval(
       () => setArmFrame((f) => (f + 1) % (motionFrames.length + 15)),
       70,
     );
     return () => window.clearInterval(timer);
-  }, [motionFrames, timed]);
-  const shown = editMotion ? editRun : (moment?.motion ?? selected);
+  }, [motionFrames, timed, replaying]);
+  const shown = editMotion
+    ? editRun
+    : (replaying ?? moment?.motion ?? selected);
   const shownFrame = moment
     ? moment.frame
     : Math.min(armFrame, (motionFrames?.length ?? 1) - 1);
@@ -657,7 +664,7 @@ export default function InstrumentStudio({
             <span>
               {tab === "layout"
                 ? motionFrames
-                  ? `${showingBlocked ? "Blocked attempt" : "Planned path"} · Step ${shown!.step} · drag to orbit`
+                  ? `${replaying ? "Stress cycle" : showingBlocked ? "Blocked attempt" : "Planned path"} · Step ${shown!.step} · drag to orbit`
                   : `${draft.placements.length} on the bench · drag to orbit`
                 : trace
                   ? `Last run · Step ${trace.step} · ${operationLabels[trace.operation]} · ${name(trace.device_id)}`
@@ -1071,7 +1078,12 @@ export default function InstrumentStudio({
                       ? timed!.motions.indexOf(moment.motion)
                       : selectedMotion
                   }
+                  onReplay={(motion) => {
+                    setReplay(motion);
+                    if (motion) setPlaying(false);
+                  }}
                   onSelectMotion={(i) => {
+                    setReplay(null);
                     setSelectedMotion(i);
                     // Choosing a transfer plays it from its start.
                     const step = timed?.timeline!.find(

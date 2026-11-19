@@ -118,8 +118,13 @@ def _quat(rows):
     return out
 
 
-def arm_xml(arm, base, tool):
-    """The arm as MJCF bodies, mounted at the planner's base frame (a 4x4, y up)."""
+def arm_xml(arm, base, tool, held="", gripper_kg=None):
+    """The arm as MJCF bodies, mounted at the planner's base frame (a 4x4, y up).
+
+    `held` is MJCF placed in the gripper body (whose frame is the flange's), and
+    `gripper_kg` the gripper's own mass when the labware is modelled there separately.
+    """
+    gripper_kg = PAYLOAD_KG if gripper_kg is None else gripper_kg
     body = BODIES[arm.key]
     d, a = arm.d, arm.a
     upper, fore = -a[1], -a[2]
@@ -205,7 +210,8 @@ def arm_xml(arm, base, tool):
                   <body>
                     <geom name="arm:gripper:0" class="arm" type="capsule" size="{TOOL_RADIUS}"
                       fromto="0 {d[5] + TOOL_RADIUS} 0 0 {d[5] + tool - TOOL_RADIUS} 0"
-                      mass="{PAYLOAD_KG}"/>
+                      mass="{gripper_kg}"/>
+                    {held}
                   </body>
                 </body>
               </body>
@@ -251,7 +257,7 @@ def layout_boxes(twins, layout, actor):
     return boxes
 
 
-def scene_xml(arm, base, tool, boxes, gravity):
+def scene_xml(arm, base, tool, boxes, gravity, held="", gripper_kg=None):
     """Static boxes and the arm. A box marked `stand` may touch the arm's base links."""
     geoms = "".join(
         f'<geom name="box:{n}" class="fixed" type="box" size="{_fmt(box["half"])}" '
@@ -275,7 +281,7 @@ def scene_xml(arm, base, tool, boxes, gravity):
   </default>
   <worldbody>
     {geoms}
-    {arm_xml(arm, base, tool)}
+    {arm_xml(arm, base, tool, held, gripper_kg)}
   </worldbody>
   <actuator>
     {motors}
@@ -330,9 +336,11 @@ def _profile(joints, speed, limits):
 class Bench:
     """One compiled scene, reused for every move the same arm makes in it."""
 
-    def __init__(self, arm, base, tool, boxes, gravity=(0, -9.81, 0)):
+    def __init__(self, arm, base, tool, boxes, gravity=(0, -9.81, 0), held="", gripper_kg=None):
         self.arm, self.boxes = arm, boxes
-        self.model = mujoco.MjModel.from_xml_string(scene_xml(arm, base, tool, boxes, gravity))
+        self.model = mujoco.MjModel.from_xml_string(
+            scene_xml(arm, base, tool, boxes, gravity, held, gripper_kg)
+        )
         self.data = mujoco.MjData(self.model)
         self.names = [
             mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_GEOM, i)
@@ -341,6 +349,11 @@ class Bench:
         self.torque = np.array(BODIES[arm.key]["torque"], dtype=float)
         self.rated = [math.radians(v) for v in BODIES[arm.key]["speed"]]
         self.pairs = self._pairs()
+        # The same pairs as arrays, to skip far-apart ones in one vector operation.
+        self._i = np.array([p[0] for p in self.pairs], dtype=int)
+        self._j = np.array([p[1] for p in self.pairs], dtype=int)
+        self._reach = self.model.geom_rbound[self._i] + self.model.geom_rbound[self._j]
+        self._own = np.array([p[4] is None for p in self.pairs], dtype=bool)
 
     @classmethod
     def of_layout(cls, twins, layout, actor, arm, base, tool):
@@ -373,13 +386,18 @@ class Bench:
 
     def _measure(self, out, label, touching, now):
         model, data = self.model, self.data
-        for i, j, link, obstacle, box_id in self.pairs:
+        if not self.pairs:
+            return
+        # Clearances only shrink below, so a pair already too far apart stays skipped.
+        apart = np.linalg.norm(data.geom_xpos[self._i] - data.geom_xpos[self._j], axis=1)
+        within = np.where(self._own, out["self_clearance_m"], out["clearance_m"])
+        near = np.flatnonzero(self._reach + within >= apart)
+        for index in near:
+            i, j, link, obstacle, box_id = self.pairs[index]
             if link == "gripper" and (touching is None or box_id in touching):
                 continue  # the gripper reaches into the station it serves
             key = "self_clearance_m" if box_id is None else "clearance_m"
-            if model.geom_rbound[i] + model.geom_rbound[j] + out[key] < np.linalg.norm(
-                data.geom_xpos[i] - data.geom_xpos[j]
-            ):
+            if self._reach[index] + out[key] < apart[index]:
                 continue
             gap = mujoco.mj_geomDistance(model, data, i, j, out[key], None)
             if gap < out[key]:
@@ -394,8 +412,11 @@ class Bench:
                         "at_s": round(now, 2),
                     }
 
-    def _follow(self, out, label, at, duration, touching, deadline=math.inf):
-        """Track `at(t)` for `duration`, then let the arm settle; adds to `out`."""
+    def _follow(self, out, label, at, duration, touching, deadline=math.inf, observe=None):
+        """Track `at(t)` for `duration`, then let the arm settle; adds to `out`.
+
+        `observe(t)` is called after every physics step, for loads measured along the way.
+        """
         model, data = self.model, self.data
         inertial = np.zeros(model.nv)
         steps = math.ceil(duration / TIMESTEP)
@@ -419,6 +440,8 @@ class Bench:
             )
             data.ctrl[:] = np.clip(wanted, -self.torque, self.torque)
             mujoco.mj_step(model, data)
+            if observe:
+                observe(began + n * TIMESTEP)
             if float(np.max(np.abs(data.qpos - checked))) > CHECK_RAD or n == steps:
                 checked = data.qpos.copy()
                 self._measure(out, label, touching, began + n * TIMESTEP)
