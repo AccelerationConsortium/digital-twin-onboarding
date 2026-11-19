@@ -29,6 +29,7 @@ import {
   type Overview,
 } from "./cloudlabFacts";
 import type { Operation } from "./instrumentTypes";
+import TwinAnatomy from "./TwinAnatomy";
 import TwinExplorer, { useTwin } from "./TwinExplorer";
 import s from "./WorkflowStudio.module.css";
 import c from "./CloudLabWorkflow.module.css";
@@ -649,6 +650,15 @@ function Studio({
           </details>
         </aside>
       </div>
+
+      {item.mesh && item.anatomy && (
+        <section className={l.anatomy} aria-label="Anatomy">
+          <div className={s.sectionHeading}>
+            <h2>Inside</h2>
+          </div>
+          <TwinAnatomy mesh={item.mesh} anatomy={item.anatomy} />
+        </section>
+      )}
 
       <footer className={l.footer}>
         <p className={l.fine}>

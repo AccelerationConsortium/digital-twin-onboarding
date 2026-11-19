@@ -14,6 +14,7 @@ folder), and writes app/backend/academy/chemlab_layout.json. For each stand-in:
   extends_m how far a drawer moves out of the front, to keep clear
   parts     the components a learner can point at in the 3D view
   joints    of those, the ones that move: type, axis, limits and pivot in the asset frame
+  components every component the model names, which the anatomy view may group
 
 Every field carries the dataset's evidence for it: `manufacturer` where the asset records a
 manufacturer document, otherwise `engineering_assumption`, with the dataset's own label as
@@ -246,7 +247,11 @@ def main():
     result = {}
     for slug in sorted(STAND_INS):
         manifest = json.loads((cache / f"{rev}__{slug}__geometry_manifest.json").read_text())
-        result[slug] = {**derive(manifest, slug), **motion(manifest, slug)}
+        result[slug] = {
+            **derive(manifest, slug),
+            **motion(manifest, slug),
+            "components": sorted(components(manifest)),
+        }
         print(slug, sorted(result[slug]), flush=True)
     OUT.write_text(
         json.dumps(

@@ -1,5 +1,6 @@
 // What Meet the instruments and the teaching pages show of a cloud lab twin.
 import type { Mesh, Operation } from "./instrumentTypes";
+import type { Anatomy } from "./TwinAnatomy";
 import type { Motion } from "./twinMotion";
 
 export type Instrument = {
@@ -37,6 +38,7 @@ export type Instrument = {
     state: string | null;
   }[];
   motion: Motion | null;
+  anatomy: Anatomy | null;
   in_workflow: boolean;
   /** Slot names, and a first workflow that uses every action once. */
   sites: string[];

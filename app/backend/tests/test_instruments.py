@@ -503,14 +503,14 @@ def test_stand_in_twins_take_their_contract_values_and_evidence():
 
 def test_pinned_contract_values_carry_no_dataset_text():
     allowed = {"size", "access", "level_m", "opening", "site", "extends_m", "port"}
-    allowed |= {"parts", "joints"}
+    allowed |= {"parts", "joints", "components"}
     for slug, found in CONTRACTS["stand_ins"].items():
         assert found.keys() <= allowed, slug
         for key, item in found.items():
             if key == "port":
                 assert re.fullmatch(r"[a-z0-9_]+", item)
                 continue
-            if key == "parts":
+            if key in {"parts", "components"}:
                 assert all(re.fullmatch(r"[a-z0-9_]+", part) for part in item)
                 continue
             if key == "joints":

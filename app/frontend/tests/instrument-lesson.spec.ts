@@ -69,6 +69,23 @@ test("each cloud lab instrument opens its own studio", async ({ page }) => {
       path: `${process.env.SHOTS}/instrument-studio.png`,
     });
 
+  // Its anatomy numbers the parts inside; picking one says what it does.
+  const inside = page.getByRole("region", { name: "Anatomy" });
+  const key = inside.getByRole("listitem");
+  await expect(key).toHaveCount(6);
+  await expect(key.first()).toContainText("1Manifold");
+  await key.first().getByRole("button").click();
+  await expect(key.first().getByRole("button")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(inside).toContainText(
+    "Manifold. Rows of tubes that dispense buffer into the wells and aspirate it again.",
+  );
+  await expect(
+    inside.getByRole("slider", { name: "Take apart" }),
+  ).toBeVisible();
+
   await page.getByText("About this instrument").click();
   await expect(
     page.getByText("96-tube manifold for 96-well SBS plates"),
@@ -96,6 +113,7 @@ test("each cloud lab instrument opens its own studio", async ({ page }) => {
   await expect(
     page.getByText("No 3D model; the twin is one estimated box."),
   ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Anatomy" })).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: /Chain it with other instruments/ }),
   ).toHaveCount(0);

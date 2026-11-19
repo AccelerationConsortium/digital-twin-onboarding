@@ -16,6 +16,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from .cloudlab import CLOUDLAB, CONTRACTS, overview
+from .cloudlab_anatomy import anatomy
 from .cloudlab_workflow import INSTRUMENTS as WORKFLOW
 from .mock_contract import PlanError, execute_mock, site_keys
 from .models import StrictModel
@@ -496,6 +497,7 @@ def instruments():
         key = item["id"]
         item["does"] = DOES[key]
         item["motion"] = motion(key)
+        item["anatomy"] = anatomy(key)
         shown = {x["shows"]: x["id"] for x in (item["motion"] or {"states": []})["states"]}
         # A step the 3D view can show names the state that shows it.
         item["steps"] = [
