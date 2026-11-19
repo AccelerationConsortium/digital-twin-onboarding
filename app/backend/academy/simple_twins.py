@@ -37,6 +37,7 @@ from .workcell_layout import (
     action_chain,
     chain_check,
     plan_workflow,
+    rest_poses,
     validate_layout,
 )
 
@@ -1418,6 +1419,7 @@ class SimpleTwinService:
             "error": None,
             "blocked": None,
             "timeline": [],
+            "rest": {},
             "simulation": arm_simulation.describe(NOMINAL_SPEED),
         }
         if not layout:
@@ -1435,6 +1437,8 @@ class SimpleTwinService:
             )
         except PlanError as exc:
             result["error"] = {"message": str(exc), "layer": exc.layer}
+        # Where the 3D view draws each arm while it waits, clear of every instrument.
+        result["rest"] = rest_poses(twins, layout, result["motions"])
         return result
 
     def search_layout(self, owner, data):
