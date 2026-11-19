@@ -122,7 +122,7 @@ const isChoice = (id: TaskId | "record"): id is ChoiceId =>
 const after = (id: TaskId): TaskId | "record" =>
   ORDER[ORDER.indexOf(id) + 1] ?? "record";
 /** The record inside a signed envelope; the portal is what checks the signature. */
-const unwrap = (envelope: { payload?: string }) =>
+export const unwrap = (envelope: { payload?: string }) =>
   JSON.parse(
     new TextDecoder().decode(
       Uint8Array.from(
