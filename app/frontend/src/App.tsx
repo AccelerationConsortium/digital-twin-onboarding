@@ -37,6 +37,7 @@ import {
   House,
   ListChecks,
   MessagesSquare,
+  Award,
 } from "lucide-react";
 import { api, ApiError, configureAuth, json, signIn, signOut } from "./api";
 import type { Config, Course, Experiment, Profile, Session } from "./types";
@@ -76,6 +77,7 @@ const Workcell = lazy(() => import("./Workcell"));
 const InstrumentModules = lazy(() => import("./InstrumentModules"));
 const StudyGroups = lazy(() => import("./StudyGroups"));
 const SupervisorReview = lazy(() => import("./SupervisorReview"));
+const Qualifications = lazy(() => import("./Qualifications"));
 const WorkcellCase = lazy(() => import("./workcellCase/WorkcellCase"));
 const DilutionWorkspace = lazy(() => import("./DilutionWorkspace"));
 const CloudLabTraining = lazy(() => import("./CloudLabTraining"));
@@ -509,7 +511,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -546,7 +548,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -791,6 +793,13 @@ export default function App() {
                 <Cloud size={18} /> Cloud lab onboarding
               </button>
               <button
+                className={view === "qualifications" ? s.activeNav : ""}
+                aria-current={view === "qualifications" ? "page" : undefined}
+                onClick={() => nav("qualifications")}
+              >
+                <Award size={18} /> Qualifications
+              </button>
+              <button
                 className={view === "cloudlab-workflow" ? s.activeNav : ""}
                 aria-current={view === "cloudlab-workflow" ? "page" : undefined}
                 onClick={() => nav("cloudlab-workflow")}
@@ -912,21 +921,23 @@ export default function App() {
                                 ? "Study groups"
                                 : view === "reviews"
                                   ? "Reviews"
-                                  : view === "cloudlab"
-                                    ? "Cloud lab onboarding"
-                                    : view === "cloudlab-workflow"
-                                      ? "Cloud lab workflow"
-                                      : view === "portal"
-                                        ? "Mock cloud lab portal"
-                                        : view === "discovery"
-                                          ? "Discovery studio"
-                                          : view === "marketplace"
-                                            ? "Workflow marketplace"
-                                            : view === "connector"
-                                              ? "Connector explorer"
-                                              : view === "sim"
-                                                ? "Simulation lab"
-                                                : "Learning lab"))}
+                                  : view === "qualifications"
+                                    ? "Qualifications"
+                                    : view === "cloudlab"
+                                      ? "Cloud lab onboarding"
+                                      : view === "cloudlab-workflow"
+                                        ? "Cloud lab workflow"
+                                        : view === "portal"
+                                          ? "Mock cloud lab portal"
+                                          : view === "discovery"
+                                            ? "Discovery studio"
+                                            : view === "marketplace"
+                                              ? "Workflow marketplace"
+                                              : view === "connector"
+                                                ? "Connector explorer"
+                                                : view === "sim"
+                                                  ? "Simulation lab"
+                                                  : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -1092,6 +1103,8 @@ export default function App() {
                   onTraining={() => nav("cloudlab")}
                   onError={showError}
                 />
+              ) : view === "qualifications" ? (
+                <Qualifications key={workspaceRouteRevision} onOpen={nav} />
               ) : view === "reviews" ? (
                 <SupervisorReview
                   key={workspaceRouteRevision}
