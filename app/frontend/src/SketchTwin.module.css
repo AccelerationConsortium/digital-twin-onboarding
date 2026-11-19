@@ -48,59 +48,66 @@
 .drop {
   fill: var(--accent);
   stroke: none;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: drip 3.2s var(--ease-in-out) infinite 2.4s;
+  opacity: 0;
+  animation: fade-in 0.6s ease 2.4s forwards;
 }
-@keyframes drip {
-  0%,
-  100% {
-    opacity: 0;
-    transform: scale(0.4) translateY(0);
-  }
-  30%,
-  60% {
+@keyframes fade-in {
+  to {
     opacity: 1;
-    transform: scale(1) translateY(4px);
   }
 }
 
-/* Exploded view: parts lift apart along Y, hold, then settle back. */
+/* One plate: drawn in, exploded, settled, then faded before the next. */
+.plate {
+  animation: plate 17s linear both;
+}
+@keyframes plate {
+  0%,
+  94% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 .part {
-  animation: explode 14s var(--ease-in-out) infinite;
-  animation-delay: calc(3s + var(--k) * 0.18s);
+  animation: explode 9s var(--ease-in-out) both;
+  animation-delay: calc(3.6s + var(--k) * 0.15s);
 }
 @keyframes explode {
   0%,
-  18%,
-  86%,
   100% {
-    transform: translateY(0);
+    transform: translate(0, 0);
   }
-  36%,
-  66% {
-    transform: translateY(var(--lift));
-  }
-}
-/* The beam travels front to back; the carriage runs along it. */
-.beam {
-  animation: beam 9s var(--ease-in-out) infinite alternate 2.6s;
-}
-@keyframes beam {
-  to {
-    transform: translate(54px, -36px);
+  30%,
+  70% {
+    transform: translate(var(--dx), var(--dy));
   }
 }
-.carriage {
-  animation: carriage 6.5s var(--ease-in-out) infinite alternate 2.6s;
+
+.trace path {
+  stroke-width: 1;
+  opacity: 0.6;
 }
-@keyframes carriage {
-  from {
-    transform: translateX(-150px);
-  }
-  to {
-    transform: translateX(170px);
-  }
+.trace .signal {
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  opacity: 1;
+  animation-duration: 3.2s;
+  animation-delay: 2.6s;
+}
+.trace text {
+  fill: var(--sketch-ink);
+  stroke: none;
+  font:
+    600 10px ui-monospace,
+    "SFMono-Regular",
+    Menlo,
+    monospace;
+  letter-spacing: 1.4px;
+  opacity: 0.7;
+  animation: fade 0.8s ease both;
+  animation-delay: 2.2s;
 }
 
 .callout path {
@@ -137,6 +144,6 @@
     stroke-dashoffset: 0;
   }
   .drop {
-    opacity: 0;
+    display: none;
   }
 }

@@ -3,13 +3,11 @@
   --py: 30%;
   --nx: 0;
   --ny: 0;
-  /* Light: graphite on sketchbook paper. Dark: chalk on a night-blue bench. */
-  --sketch-ink: #2f3d38;
+  /* The system greens: ink-green lines on warm paper, or on deep green at night. */
+  --sketch-ink: var(--brand-strong);
   --sketch-paper: var(--surface-0);
-  --sky-top: #f7f5ee;
-  --sky-bottom: #ece9de;
-  --grid: rgb(54 84 69 / 0.07);
-  --ray: rgb(255 255 255 / 0.75);
+  --grid: color-mix(in srgb, var(--brand) 8%, transparent);
+  --ray: color-mix(in srgb, var(--brand-soft) 80%, white);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -17,25 +15,28 @@
   display: flex;
   flex-direction: column;
   padding: 36px 6vw 0;
-  background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
+  background:
+    radial-gradient(
+      90vw 70vh at 80% 10%,
+      color-mix(in srgb, var(--brand-soft) 85%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      var(--surface-1),
+      var(--surface-0) 60%,
+      var(--surface-2)
+    );
 }
 @media (prefers-color-scheme: dark) {
   :global(:root:not([data-theme="light"])) .landing {
-    --sketch-ink: #cfe0ea;
-    --sketch-paper: #0e1824;
-    --sky-top: #142334;
-    --sky-bottom: #0a1119;
-    --grid: rgb(160 200 220 / 0.05);
-    --ray: rgb(170 210 235 / 0.16);
+    --sketch-ink: var(--brand-text);
+    --ray: color-mix(in srgb, var(--brand-text) 16%, transparent);
   }
 }
 :global(:root[data-theme="dark"]) .landing {
-  --sketch-ink: #cfe0ea;
-  --sketch-paper: #0e1824;
-  --sky-top: #142334;
-  --sky-bottom: #0a1119;
-  --grid: rgb(160 200 220 / 0.05);
-  --ray: rgb(170 210 235 / 0.16);
+  --sketch-ink: var(--brand-text);
+  --ray: color-mix(in srgb, var(--brand-text) 16%, transparent);
 }
 
 /* Ambient layers: drawing grid, drifting colour, light shafts, the sketched twin. */
