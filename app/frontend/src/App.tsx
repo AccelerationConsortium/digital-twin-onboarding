@@ -1108,7 +1108,10 @@ export default function App() {
                   />
                 </div>
               ) : view === "sim" ? (
-                <SimulationLab onOpenInstruments={() => nav("plan/workflow")} />
+                <SimulationLab
+                  onOpenInstruments={() => nav("plan/workflow")}
+                  onNavigate={nav}
+                />
               ) : view === "cloudlab" ? (
                 <CloudLabTraining
                   onPortal={() => nav("portal")}
