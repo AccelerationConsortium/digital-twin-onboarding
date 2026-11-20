@@ -57,6 +57,7 @@ STAND_INS = {
     "biotage_selekt": (("W_D_H", (0, 1, 2)), "tray", ("tray", "front")),
     "sciex_pa800": (("W_D_H", (0, 1, 2)), "sample_tray_inlet", ("sample_cover", "front")),
     "cem_libertyblue": (None, "reactor", ("reactor_cover", "top")),
+    "antonpaar_litesizerdls": (None, "cuvette", ("sample_lid", "top")),
     # The rest take samples through tubing or from a nest the contract does not place.
     "agilent_hplc1260": (None, None, None),
     "agilent_gc8890b": (None, None, None),
@@ -102,6 +103,7 @@ PARTS = {
     "agilent_hplc1260": (),
     "agilent_gc8890b": (),
     "antonpaar_hit300": ("load_head", "stage_x", "specimen"),
+    "antonpaar_litesizerdls": ("sample_lid", "cell_select", "cuvette"),
     "antonpaar_mcr503": ("head_lift", "rotor", "temperature_stage"),
     "azenta_automated_roll_heat_sealer_a4s": ("plate_carriage", "press_head", "film_roll"),
     "azenta_intellixcap_s1_46_0001": ("gripper", "sample_interface"),

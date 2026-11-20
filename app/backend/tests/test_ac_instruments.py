@@ -2,7 +2,7 @@
 
 import pytest
 from academy import ac_equipment, chemlab
-from academy.cloudlab import CLOUDLAB, CONTRACTS, LAYOUT
+from academy.cloudlab import CLOUDLAB, CONTRACTS
 from academy.cloudlab_anatomy import anatomy
 from academy.cloudlab_teaching import instruments
 
@@ -36,21 +36,13 @@ def test_an_ac_twin_names_only_what_the_reference_lists(key):
     assert "Other values are Academy teaching defaults" in assumptions
     # Every one holds a sample, so it can be practised step by step.
     assert "load" in asset["spec"]["operations"]
-    if isinstance(geometry, str) and geometry in chemlab.MODELS["models"]:
-        assert asset["slug"] == geometry and asset["mesh"]
-        assert "MBZUAI" in asset["attribution"]
-    else:
-        assert asset["slug"] is None and asset["mesh"] is None
+    # The closest ChemLab model stands in for every one, so each is drawn.
+    assert geometry in chemlab.MODELS["models"]
+    assert asset["slug"] == geometry and asset["mesh"]
+    assert "MBZUAI" in asset["attribution"]
 
 
-def test_the_dls_reader_reuses_the_comparable_datasheet():
-    reader = AC["ac-dls-reader"]
-    model, sourced = LAYOUT["dls-plate-reader"]
-    assert reader["layout_model"] == model
-    assert reader["geometry_basis"]["size"] == sourced["size"][1]
-
-
-@pytest.mark.parametrize("key", [k for k, a in AC.items() if a["slug"]])
+@pytest.mark.parametrize("key", list(AC))
 def test_every_drawn_ac_instrument_comes_apart(key):
     found = anatomy(key)
     assert found and 5 <= len(found["parts"]) <= 8
@@ -66,6 +58,8 @@ def test_new_stand_ins_carry_layout_from_their_pinned_contracts():
         assert CONTRACTS["stand_ins"][slug]["size"]["evidence"] == "manufacturer"
     lid = CONTRACTS["stand_ins"]["genevac_mivac2"]["joints"]["lid"]
     assert lid["type"] == "revolute" and lid["limits"] == [0.0, 1.45]
+    cuvette = CONTRACTS["stand_ins"]["antonpaar_litesizerdls"]["joints"]["cuvette"]
+    assert cuvette["type"] == "prismatic" and cuvette["limits"] == [0.0, 0.12]
     # A freely turning rotor has no range, so it is not posed.
     assert "rotor" not in CONTRACTS["stand_ins"]["antonpaar_mcr503"]["joints"]
     assert set(CONTRACTS["stand_ins"]["eppendorf_5910ri"]["nodes"]["chassis"]) >= {

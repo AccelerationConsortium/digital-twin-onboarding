@@ -5,9 +5,9 @@ Equipment sheet): its equipment IDs, the SDLs that run it, and the vendor, model
 documentation link the reference lists. The reference lists nothing else, so the
 operations, vessel, volume, slots and limits below are Academy teaching defaults.
 
-Geometry follows `cloudlab`: a comparable ChemLab-Assets model stands in where the dataset
-has one, and the twin takes what that model's pinned contract gives; otherwise the box is
-an Academy estimate. None of it is the AC instrument's own figure.
+Geometry follows `cloudlab`: the closest ChemLab-Assets model stands in for each one, even
+where the dataset has no model of the same kind, and the twin takes what that model's
+pinned contract gives. None of it is the AC instrument's own figure.
 
 Left out: the Opentrons Flex and OT-2 (they have their own studios), robot arms (UR3, UR5,
 UR7, xArm5, PF3400; arms belong to the workcell planner), and cameras, sensors, PLCs,
@@ -21,7 +21,7 @@ TIPS = [{"name": "Pipette tips", "used_by": "mix", "per_use": 1, "stock": 96}]
 WARM = "Academy twins hold 4–120 °C, so a higher working temperature is not modelled."
 
 # id: (name, equipment IDs, section, what the reference lists, twin defaults,
-#      ChemLab stand-in slug, a cloud lab LAYOUT key, or estimated (width, depth, height))
+#      ChemLab stand-in slug)
 INSTRUMENTS = {
     "ac-biomek-i5": (
         "Liquid handler (Biomek i5)",
@@ -142,7 +142,7 @@ INSTRUMENTS = {
         "Sample preparation",
         ("magnetic bead separator: Thermo KingFisher Duo Prime and a Presto 2", ""),
         {"operations": ["load", "mix", "wait"], "vessel": "plate", "volume": 2000, "slots": 1},
-        (0.4, 0.55, 0.5),
+        "biotek_405ts",
     ),
     "ac-centrifuge": (
         "Plate centrifuge (VSpin)",
@@ -184,7 +184,7 @@ INSTRUMENTS = {
             "microplate-stackers-incubators/biotek-biostack-microplate-stacker-1623222",
         ),
         {"operations": ["load", "wait"], "vessel": "plate", "volume": 2000, "slots": 30},
-        (0.3, 0.5, 0.8),
+        "eppendorf_cellxpertc170i",
     ),
     "ac-cytomat": (
         "Automated plate incubator (Cytomat 37)",
@@ -269,7 +269,7 @@ INSTRUMENTS = {
         "Plate readers and imaging",
         ("Wyatt plate reader, listed under Waters", ""),
         {"operations": ["load", "read", "wait"], "vessel": "plate", "volume": 300, "slots": 1},
-        "dls-plate-reader",
+        "antonpaar_litesizerdls",
     ),
     "ac-qpcr": (
         "Real-time PCR (QuantStudio 7 Pro)",
@@ -336,7 +336,7 @@ INSTRUMENTS = {
             "71500276704/71500276704rd.pdf",
         ),
         {"operations": ["load", "read", "wait"], "vessel": "tube", "volume": 15000, "slots": 48},
-        (0.7, 0.6, 0.9),
+        "biotage_selekt",
     ),
     "ac-photoreactor": (
         "Photoreactor",

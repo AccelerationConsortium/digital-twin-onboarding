@@ -652,6 +652,46 @@ ANATOMY = {
             FRONT,
         ),
     ],
+    "antonpaar_litesizerdls": [
+        (
+            "Sample lid",
+            "Shuts out room light over the cell.",
+            ("sample_lid", "lid_*", "hinge_*", "open_button"),
+            UP,
+        ),
+        (
+            "Measuring cell",
+            "A cuvette or an Omega cell holds the sample in the beam.",
+            (
+                "cuvette",
+                "cell_cap",
+                "cell_select",
+                "quartz_*",
+                "sample_well",
+                "sample_liquid",
+                "omega_*",
+            ),
+            UP,
+        ),
+        (
+            "Temperature block",
+            "Holds the cell at the set temperature.",
+            ("peltier", "thermal_jaw_*", "thermistor", "chamber_*", "purge_*"),
+            None,
+        ),
+        (
+            "Laser and detectors",
+            "Shine light through the sample and catch it scattered at three angles.",
+            ("laser", "optical_bench", "beam_dump", "lens_*", "apd_*"),
+            LEFT,
+        ),
+        (
+            "Electronics",
+            "Power the instrument and connect it to the computer.",
+            ("controller", "power_switch", "dc_in", "usb", "lamp_*", "rear_fan"),
+            BACK,
+        ),
+    ],
     "hepatochem_photoredoxbox": [
         ("Lid", "Keeps the light inside the box.", ("lid", "lid_*", "handle_recess"), UP),
         (

@@ -495,6 +495,205 @@
     ]
    }
   },
+  "antonpaar_litesizerdls": {
+   "access": {
+    "detail": "joint sample_lid (revolute)",
+    "evidence": "engineering_assumption",
+    "value": "top"
+   },
+   "components": [
+    "apd_15",
+    "apd_175",
+    "apd_90",
+    "beam_dump",
+    "cell_cap",
+    "cell_select",
+    "chamber_floor",
+    "chamber_left",
+    "controller",
+    "cuvette",
+    "dc_in",
+    "fan_grille_0",
+    "fan_grille_1",
+    "fan_grille_2",
+    "fan_grille_3",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "front_lip",
+    "front_seam",
+    "hinge_0",
+    "hinge_1",
+    "housing",
+    "lamp_power",
+    "lamp_status",
+    "laser",
+    "left_cheek",
+    "lens_15",
+    "lens_175",
+    "lens_90",
+    "lid_handle",
+    "lid_inner",
+    "lid_interlock",
+    "omega_body",
+    "omega_channel_0",
+    "omega_channel_1",
+    "omega_channel_bottom",
+    "omega_electrode_0",
+    "omega_electrode_1",
+    "omega_luer_0",
+    "omega_luer_1",
+    "omega_plug_0",
+    "omega_plug_1",
+    "open_button",
+    "optical_bench",
+    "peltier",
+    "power_mark",
+    "power_switch",
+    "purge_in",
+    "purge_out",
+    "quartz_back",
+    "quartz_bottom",
+    "quartz_left",
+    "quartz_right",
+    "rear_fan",
+    "rear_label",
+    "rear_vent_0",
+    "rear_vent_1",
+    "rear_vent_10",
+    "rear_vent_11",
+    "rear_vent_2",
+    "rear_vent_3",
+    "rear_vent_4",
+    "rear_vent_5",
+    "rear_vent_6",
+    "rear_vent_7",
+    "rear_vent_8",
+    "rear_vent_9",
+    "red_edge",
+    "right_front",
+    "right_rear",
+    "right_wall",
+    "sample_lid",
+    "sample_liquid",
+    "sample_well",
+    "screw_0",
+    "screw_1",
+    "screw_2",
+    "screw_3",
+    "screw_4",
+    "screw_5",
+    "side_vent_0",
+    "side_vent_1",
+    "side_vent_10",
+    "side_vent_11",
+    "side_vent_12",
+    "side_vent_13",
+    "side_vent_2",
+    "side_vent_3",
+    "side_vent_4",
+    "side_vent_5",
+    "side_vent_6",
+    "side_vent_7",
+    "side_vent_8",
+    "side_vent_9",
+    "thermal_jaw_0",
+    "thermal_jaw_1",
+    "thermal_jaw_2",
+    "thermal_jaw_3",
+    "thermistor",
+    "usb",
+    "white_shell"
+   ],
+   "joints": {
+    "cell_select": {
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.06
+     ],
+     "pivot": [
+      0.146,
+      0.119,
+      0.072
+     ],
+     "type": "prismatic"
+    },
+    "cuvette": {
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.12
+     ],
+     "pivot": [
+      0.146,
+      0.119,
+      0.072
+     ],
+     "type": "prismatic"
+    },
+    "sample_lid": {
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.7
+     ],
+     "pivot": [
+      0.149,
+      0.219,
+      0.126
+     ],
+     "type": "revolute"
+    }
+   },
+   "level_m": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": 0.117
+   },
+   "parts": [
+    "sample_lid",
+    "cell_select",
+    "cuvette"
+   ],
+   "port": "cuvette",
+   "site": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.146,
+     -0.1134
+    ]
+   },
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.452,
+     0.5115,
+     0.135
+    ]
+   }
+  },
   "antonpaar_mcr503": {
    "components": [
     "air_bearing_hub",

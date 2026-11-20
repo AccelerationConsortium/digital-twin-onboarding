@@ -488,9 +488,52 @@ MOTION |= {
         "ac-medchem-lcms": "lcms",
         "ac-cytomat": "cell-incubator",
         "ac-scila": "cell-incubator",
+        "ac-bead-separator": "plate-washer",
+        "ac-purification": "flash-chromatography",
     }.items()
 }
 MOTION |= {
+    "ac-plate-stacker": (
+        "eppendorf_cellxpertc170i",
+        {
+            "outer_door": ("Door", "Closes the stack off from the room."),
+            "shelf_rack": ("Shelves", "Hold the plates one above another."),
+        },
+        [
+            ("closed", "Closed", {}, "The door is shut; the plates wait in the stack.", "wait"),
+            (
+                "door-open",
+                "Door open",
+                {"outer_door": 1},
+                "The door swings open so a plate can go onto a shelf.",
+                "load",
+            ),
+        ],
+    ),
+    "ac-dls-reader": (
+        "antonpaar_litesizerdls",
+        {
+            "sample_lid": ("Sample lid", "Shuts out room light over the cell."),
+            "cuvette": ("Cuvette", "Holds the sample in the laser beam."),
+        },
+        [
+            ("closed", "Closed", {}, "The lid is down; the cell sits in the beam.", "read"),
+            (
+                "lid-open",
+                "Lid open",
+                {"sample_lid": 1},
+                "The lid swings up so the cell can be reached.",
+                "load",
+            ),
+            (
+                "cell-out",
+                "Cell lifted out",
+                {"sample_lid": 1, "cuvette": 1},
+                "The cuvette comes up out of the temperature block.",
+                "load",
+            ),
+        ],
+    ),
     "ac-shaker": (
         "ika_ks4000",
         {

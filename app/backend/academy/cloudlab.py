@@ -570,10 +570,6 @@ def entry(asset_id, name, experiment, section, published, spec, geometry, lab=EC
         capabilities = (
             f"The {lab['provider']} equipment reference lists {published} ({experiment})."
         )
-    layout_key = asset_id
-    if isinstance(geometry, str) and geometry in LAYOUT:
-        # A cloud lab instrument's comparable-model datasheet, reused for the same kind.
-        layout_key, geometry = geometry, LAYOUT[geometry][1]["size"][0]
     # Where a published figure lies outside what an Academy twin can hold, say how it is cut.
     spec = dict(spec)
     if note := spec.pop("note", None):
@@ -633,7 +629,7 @@ def entry(asset_id, name, experiment, section, published, spec, geometry, lab=EC
                 "loading, not this instrument's size."
             )
     else:
-        model, sourced = LAYOUT.get(layout_key, (None, {}))
+        model, sourced = LAYOUT.get(asset_id, (None, {}))
         if "size" in sourced:
             size, basis["size"] = sourced["size"]
         if "access" in sourced:
