@@ -130,7 +130,7 @@
       "license": "Project",
       "sources": [
         {
-          "repository": "SissiFeng/matterix-academy",
+          "repository": "AccelerationConsortium/digital-twin-onboarding",
           "commit": null,
           "paths": [
             "app/frontend/src/workcellCase/ot2Model.ts"
@@ -151,7 +151,7 @@
       "license": "Project",
       "sources": [
         {
-          "repository": "SissiFeng/matterix-academy",
+          "repository": "AccelerationConsortium/digital-twin-onboarding",
           "commit": null,
           "paths": [
             "app/frontend/src/workcellCase/balanceModel.ts"

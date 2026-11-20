@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "app/backend"))
 
 from academy.matterix_sync import MAX_METADATA_BYTES  # noqa: E402
 
-REPOSITORY = "SissiFeng/matterix-academy"
+REPOSITORY = "AccelerationConsortium/digital-twin-onboarding"
 API = f"repos/{REPOSITORY}"
 CANDIDATE_PATH = "ops/matterix-sync/candidate.json"
 REPORT_PATH = "docs/evidence/matterix-sync/latest.md"
