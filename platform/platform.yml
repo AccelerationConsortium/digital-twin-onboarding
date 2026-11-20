@@ -1,7 +1,7 @@
 # The Terraform for this stack lives in this directory rather than in
 # infrastructure-modules: it is a serverless stack no shared module covers.
 module:
-  repo: "github.com/SissiFeng/matterix-academy"
+  repo: "github.com/AccelerationConsortium/digital-twin-onboarding"
   path: "platform"
   ref: "main"
 

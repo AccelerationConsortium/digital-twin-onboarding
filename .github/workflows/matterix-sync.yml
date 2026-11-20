@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   intake:
-    if: github.repository == 'SissiFeng/matterix-academy'
+    if: github.repository == 'AccelerationConsortium/digital-twin-onboarding'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -129,8 +129,8 @@ jobs:
         with:
           app-id: ${{ vars.ACADEMY_SYNC_APP_ID }}
           private-key: ${{ secrets.ACADEMY_SYNC_APP_PRIVATE_KEY }}
-          owner: SissiFeng
-          repositories: matterix-academy
+          owner: AccelerationConsortium
+          repositories: digital-twin-onboarding
           permission-contents: write
           permission-pull-requests: write
       - name: Publish or reconcile the immutable draft candidate

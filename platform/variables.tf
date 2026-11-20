@@ -73,7 +73,7 @@ variable "lambda_zip" {
 }
 variable "github_repository" {
   type    = string
-  default = "SissiFeng/matterix-academy"
+  default = "AccelerationConsortium/digital-twin-onboarding"
 }
 variable "github_oidc_provider_arn" {
   type        = string
