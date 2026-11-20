@@ -8,7 +8,16 @@ import {
   type LearningLevel,
 } from "./learningLevels";
 import type { Course, Session } from "./types";
+import DeckTwin from "./labTwin/DeckTwin";
+import FloorTwin from "./labTwin/FloorTwin";
+import ChainTwin from "./labTwin/ChainTwin";
 import s from "./LearningPaths.module.css";
+
+const FOCUS = {
+  beginner: "Instruments",
+  intermediate: "Published labs",
+  advanced: "Connectors",
+} as const;
 
 type Props = {
   level: LearningLevel;
@@ -79,7 +88,7 @@ export default function LearningPaths({
         <p>Choose the level that fits your work. You can start at any level.</p>
       </header>
       <nav className={s.levels} aria-label="Learning levels">
-        {LEARNING_LEVELS.map((item) => (
+        {LEARNING_LEVELS.map((item, index) => (
           <a
             key={item.id}
             href={`/#/learn/${item.id}`}
@@ -96,7 +105,13 @@ export default function LearningPaths({
               onNavigate(`learn/${item.id}`);
             }}
           >
-            {item.title}
+            <span className={s.levelStep} aria-hidden="true">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span>
+              {item.title}
+              <small aria-hidden="true">{FOCUS[item.id]}</small>
+            </span>
           </a>
         ))}
       </nav>
@@ -105,6 +120,14 @@ export default function LearningPaths({
           <h2 id="learning-level-title">{selected.heading}</h2>
           <p>{selected.goal}</p>
         </div>
+        {level === "beginner" ? (
+          <DeckTwin onLesson={onFirstLesson} busy={busy} />
+        ) : level === "intermediate" ? (
+          <FloorTwin onNavigate={onNavigate} />
+        ) : (
+          <ChainTwin onNavigate={onNavigate} />
+        )}
+        <h3 className={s.lessonsTitle}>Guided lessons</h3>
         {level === "beginner" ? (
           <>
             <p className={s.scope}>
