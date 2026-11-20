@@ -271,11 +271,14 @@ function Studio({
     ([, state]) => state.location === item.id,
   );
   const stock = shown?.consumables[item.id];
+  // Until the first check answers there is no trace to play, so the run waits for it.
   const blocked = !steps.length
     ? "Add a step to run it."
-    : check?.error
-      ? `Change step ${check.error.step ?? ""} first.`
-      : "";
+    : !check
+      ? "Checking the steps…"
+      : check.error
+        ? `Change step ${check.error.step ?? ""} first.`
+        : "";
   const done = trace.length > 0 && cursor >= trace.length;
 
   return (
@@ -315,9 +318,11 @@ function Studio({
             >
               {!steps.length
                 ? "Empty"
-                : check?.error
-                  ? `Step ${check.error.step ?? "?"} breaks a rule`
-                  : "Every step fits"}
+                : !check
+                  ? "Checking"
+                  : check.error
+                    ? `Step ${check.error.step ?? "?"} breaks a rule`
+                    : "Every step fits"}
             </span>
             <button
               className={s.textButton}

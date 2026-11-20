@@ -130,3 +130,34 @@ test("each cloud lab instrument opens its own studio", async ({ page }) => {
     page.getByRole("region", { name: "In a cloud lab" }),
   ).toBeVisible();
 });
+
+test("a run waits for the first check of its steps", async ({ page }) => {
+  // Hold the first check so the studio is open before its trace exists.
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/api/cloudlab/instruments/*/check", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page.getByRole("button", { name: "Enter the learning lab" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.goto("/#/instruments/plate-washer");
+
+  const steps = page.getByRole("region", { name: "Steps" });
+  const run = page.getByRole("region", {
+    name: "Teaching simulation controls",
+  });
+  const start = run.getByRole("button", { name: "Run teaching simulation" });
+  await expect(steps.getByText("Checking")).toBeVisible();
+  await expect(run).toContainText("Checking the steps…");
+  await expect(start).toBeDisabled();
+
+  release();
+  await expect(steps.getByText("Every step fits")).toBeVisible();
+  await start.click();
+  await expect(run).toContainText("Run finished.", { timeout: 20_000 });
+});
