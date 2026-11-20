@@ -141,7 +141,7 @@ class FakeGitHub:
         self.pr = {
             "head": {"ref": branch, "sha": COMMIT, "repo": {"full_name": self.module.REPOSITORY}},
             "base": {"ref": "main", "repo": {"full_name": self.module.REPOSITORY}},
-            "html_url": "https://github.com/SissiFeng/matterix-academy/pull/123",
+            "html_url": "https://github.com/AccelerationConsortium/digital-twin-onboarding/pull/123",
             "state": "open",
             "draft": True,
         }
@@ -325,7 +325,7 @@ def test_pr_uses_body_file_and_never_embeds_report_in_shell(monkeypatch):
         return SimpleNamespace(
             returncode=0,
             stderr="",
-            stdout="https://github.com/SissiFeng/matterix-academy/pull/123\n",
+            stdout="https://github.com/AccelerationConsortium/digital-twin-onboarding/pull/123\n",
         )
 
     monkeypatch.setattr(module.subprocess, "run", run)

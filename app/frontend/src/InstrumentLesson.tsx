@@ -5,7 +5,6 @@ import {
   ArrowUp,
   Box,
   Copy,
-  ExternalLink,
   Layers3,
   Pause,
   Play,
@@ -30,6 +29,7 @@ import {
   type Overview,
 } from "./cloudlabFacts";
 import type { Operation } from "./instrumentTypes";
+import LabProvenance from "./LabProvenance";
 import TwinAnatomy from "./TwinAnatomy";
 import TwinExplorer, { useTwin } from "./TwinExplorer";
 import s from "./WorkflowStudio.module.css";
@@ -152,7 +152,7 @@ export default function InstrumentLesson({
   if (at < 0)
     return (
       <p className={l.failed}>
-        There is no cloud lab instrument here.{" "}
+        There is no instrument here.{" "}
         <button onClick={onBack}>Meet the instruments</button>
       </p>
     );
@@ -162,12 +162,20 @@ export default function InstrumentLesson({
       key={id}
       item={overview.instruments[at]}
       overview={overview}
-      next={overview.instruments[(at + 1) % overview.instruments.length]}
+      next={next(overview, at)}
       onOpen={onOpen}
       onBack={onBack}
       onWorkflow={onWorkflow}
     />
   );
+}
+
+/** The instrument after this one in the same lab, wrapping round. */
+function next(overview: Overview, at: number) {
+  const same = overview.instruments.filter(
+    (i) => i.lab === overview.instruments[at].lab,
+  );
+  return same[(same.indexOf(overview.instruments[at]) + 1) % same.length];
 }
 
 function Studio({
@@ -186,6 +194,7 @@ function Studio({
   onWorkflow: () => void;
 }) {
   const twin = useTwin(item.motion);
+  const lab = overview.labs.find((found) => found.id === item.lab)!;
   const actions = item.operations.filter(
     (op): op is Action => op !== "transfer",
   );
@@ -279,7 +288,9 @@ function Studio({
           <i /> Synthetic teaching model
         </span>
       </div>
-      <p className={s.eyebrow}>Cloud lab · {item.section}</p>
+      <p className={s.eyebrow}>
+        {lab.name} · {item.section}
+      </p>
       <header className={s.heading}>
         <div>
           <h1>
@@ -603,7 +614,10 @@ function Studio({
 
           <details className={c.about}>
             <summary>About this instrument</summary>
-            <p>{item.published}.</p>
+            <p>
+              {item.published}
+              {item.lab === "ac" && ` (${item.experiment})`}.
+            </p>
             {item.narrowed && <p>{item.narrowed}</p>}
             <dl className={l.facts}>
               {item.operations.includes("heat") && (
@@ -684,11 +698,7 @@ function Studio({
         <p className={l.fine}>
           Synthetic teaching twin, not this instrument's specification.{" "}
           {item.stand_in && `${item.attribution}. `}
-          <a href={overview.source} target="_blank" rel="noreferrer">
-            {overview.provider} instrumentation{" "}
-            <ExternalLink size={12} aria-hidden="true" />
-          </a>{" "}
-          · read {overview.retrieved}
+          <LabProvenance lab={lab} item={item} />
         </p>
         <div className={l.onward}>
           {item.in_workflow && (

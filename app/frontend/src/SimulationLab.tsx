@@ -20,6 +20,7 @@ import {
   type TwinRun,
 } from "./simulationTypes";
 import PageStory from "./PageStory";
+import { MoreTwins, SimGuide } from "./SimGuide";
 import s from "./SimulationLab.module.css";
 
 const amount = (value: number | null | undefined) =>
@@ -67,8 +68,10 @@ const remember = (id: string, engine: string) => {
 
 export default function SimulationLab({
   onOpenInstruments,
+  onNavigate,
 }: {
   onOpenInstruments: () => void;
+  onNavigate: (target: string) => void;
 }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [session, setSession] = useState<SimulationSession | null>(null);
@@ -493,6 +496,18 @@ export default function SimulationLab({
           <small>seed 42 · 4 fresh tips</small>
         </div>
       </header>
+      <SimGuide
+        steps={total}
+        running={tone === "live"}
+        observed={
+          (native ? run?.status === "completed" : !!result && !replaying)
+            ? {
+                a1: a1 == null ? undefined : Number(a1.toFixed(2)),
+                tips: observed?.tips_used.length,
+              }
+            : null
+        }
+      />
       {native && session && (
         <GpuRequestPanel key={session.id} session={session} />
       )}
@@ -812,6 +827,7 @@ export default function SimulationLab({
           ))}
         </section>
       )}
+      <MoreTwins onNavigate={onNavigate} />
     </div>
   );
 }

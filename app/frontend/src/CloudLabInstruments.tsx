@@ -1,4 +1,4 @@
-import { ArrowRight, Box, ExternalLink, X } from "lucide-react";
+import { ArrowRight, Box, X } from "lucide-react";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import {
@@ -10,18 +10,46 @@ import {
   sourceUrl,
   volume,
   type Instrument,
+  type LabId,
   type Overview,
 } from "./cloudlabFacts";
+import LabProvenance from "./LabProvenance";
 import { Thumbnail } from "./ModelLibrary";
 import TwinExplorer, { useTwin } from "./TwinExplorer";
 import s from "./CloudLabInstruments.module.css";
 
-/** The instruments a cloud lab lists, as teaching twins a learner can look at. */
+const COPY: Record<
+  LabId,
+  {
+    title: string;
+    intro: (n: number, provider: string) => string;
+    facts: string;
+  }
+> = {
+  ecl: {
+    title: "In a cloud lab",
+    intro: (n, provider) =>
+      `${n} instruments ${provider} lists for remote experiments, as teaching twins.`,
+    facts: "What the cloud lab publishes",
+  },
+  ac: {
+    title: "At the Acceleration Consortium",
+    intro: (n) =>
+      `${n} instruments the Acceleration Consortium's self-driving labs run, as teaching twins.`,
+    facts: "What the equipment reference lists",
+  },
+};
+
+/** The instruments a lab lists, as teaching twins a learner can look at. */
 export default function CloudLabInstruments({
+  lab: labId = "ecl",
   onTeach,
 }: {
+  lab?: LabId;
   onTeach: (id: string) => void;
 }) {
+  const copy = COPY[labId];
+  const heading = `${labId}-instruments`;
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hidden, setHidden] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -54,32 +82,31 @@ export default function CloudLabInstruments({
   if (hidden) return null;
   if (failed)
     return (
-      <section className={s.section} aria-labelledby="cloudlab-instruments">
-        <h2 id="cloudlab-instruments" className={s.title}>
-          In a cloud lab
+      <section className={s.section} aria-labelledby={heading}>
+        <h2 id={heading} className={s.title}>
+          {copy.title}
         </h2>
         <p className={s.failed}>
-          The cloud lab instruments could not be loaded.{" "}
+          These instruments could not be loaded.{" "}
           <button onClick={() => setAttempt((n) => n + 1)}>Try again</button>
         </p>
       </section>
     );
   if (!overview) return <section className={s.section} aria-busy="true" />;
-  const shown = overview.instruments.filter(
+  const lab = overview.labs.find((l) => l.id === labId)!;
+  const listed = overview.instruments.filter((i) => i.lab === labId);
+  const shown = listed.filter(
     (i) => section === "All" || i.section === section,
   );
 
   return (
-    <section className={s.section} aria-labelledby="cloudlab-instruments">
+    <section className={s.section} aria-labelledby={heading}>
       <header className={s.header}>
-        <h2 id="cloudlab-instruments">In a cloud lab</h2>
-        <p>
-          {overview.instruments.length} instruments {overview.provider} lists
-          for remote experiments, as teaching twins.
-        </p>
+        <h2 id={heading}>{copy.title}</h2>
+        <p>{copy.intro(listed.length, lab.provider)}</p>
       </header>
       <div className={s.filters} role="group" aria-label="Instrument type">
-        {["All", ...overview.sections].map((name) => (
+        {["All", ...lab.sections].map((name) => (
           <button
             key={name}
             aria-pressed={section === name}
@@ -120,11 +147,11 @@ export default function CloudLabInstruments({
         <article
           ref={detail}
           className={s.detail}
-          aria-labelledby="cloudlab-detail"
+          aria-labelledby={`${labId}-detail`}
         >
           <header>
             <div>
-              <h3 id="cloudlab-detail">{open.name}</h3>
+              <h3 id={`${labId}-detail`}>{open.name}</h3>
               <small>
                 {open.section} · <code>{open.experiment}</code>
               </small>
@@ -152,7 +179,7 @@ export default function CloudLabInstruments({
               </div>
             )}
             <div className={s.facts}>
-              <h4>What the cloud lab publishes</h4>
+              <h4>{copy.facts}</h4>
               <p>{open.published}.</p>
               <h4>What the teaching twin models</h4>
               <ul className={s.can}>
@@ -243,11 +270,7 @@ export default function CloudLabInstruments({
               <p className={s.fine}>
                 Synthetic teaching twin, not this instrument's specification.{" "}
                 {open.stand_in && `${open.attribution}. `}
-                <a href={overview.source} target="_blank" rel="noreferrer">
-                  {overview.provider} instrumentation{" "}
-                  <ExternalLink size={12} aria-hidden="true" />
-                </a>{" "}
-                · read {overview.retrieved}
+                <LabProvenance lab={lab} item={open} />
               </p>
             </div>
           </div>

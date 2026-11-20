@@ -16,12 +16,16 @@ datasheet figures, or an Academy estimate with the reason.
 Every value carries its basis, and a value no source gives stays unset. These are a
 comparable model's figures, never the cloud lab's own, so a twin is only as good as its
 weakest value until the learner checks it against the real instrument.
+
+The Acceleration Consortium's self-driving lab equipment (`ac_equipment`) is built the same
+way and kept in the same registry, so its twins are met, practised and taken apart on the
+same pages; `lab` says which facility an instrument belongs to.
 """
 
 import json
 from pathlib import Path
 
-from . import chemlab
+from . import ac_equipment, chemlab
 from .simple_twins import TwinSpec
 from .simready import footprint_spec
 
@@ -539,9 +543,33 @@ FEATURED = {"robotic-sample-preparation", "acoustic-liquid-handler", "thermocycl
 COLORS = ["#d9dcde", "#c9ced1", "#466e7d", "#365445", "#5a6470"]
 
 
-def entry(asset_id, name, experiment, section, published, spec, geometry):
+ECL = {
+    "id": "ecl",
+    "name": "Cloud lab",
+    "provider": PROVIDER,
+    "source": SOURCE,
+    "retrieved": RETRIEVED,
+}
+AC = {
+    "id": "ac",
+    "name": "Acceleration Consortium",
+    "provider": ac_equipment.PROVIDER,
+    "source": ac_equipment.SOURCE,
+    "retrieved": ac_equipment.RETRIEVED,
+}
+
+
+def entry(asset_id, name, experiment, section, published, spec, geometry, lab=ECL):
     color = COLORS[sum(map(ord, asset_id)) % len(COLORS)]
-    capabilities = f"{PROVIDER} lists this instrument for {experiment}: {published}."
+    url = lab["source"]
+    if lab is ECL:
+        capabilities = f"{PROVIDER} lists this instrument for {experiment}: {published}."
+    else:
+        # The AC reference names the instrument only; `experiment` is its equipment IDs.
+        published, url = published
+        capabilities = (
+            f"The {lab['provider']} equipment reference lists {published} ({experiment})."
+        )
     # Where a published figure lies outside what an Academy twin can hold, say how it is cut.
     spec = dict(spec)
     if note := spec.pop("note", None):
@@ -569,7 +597,9 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
         shape = "Geometry is one box with an Academy estimate of the size."
         source = {
             "license": "Academy estimate",
-            "attribution": f"Capabilities from {PROVIDER}'s instrumentation page",
+            "attribution": f"Capabilities from {PROVIDER}'s instrumentation page"
+            if lab is ECL
+            else f"Listed in the {lab['provider']} equipment reference",
             "repo": "",
             "revision": RETRIEVED,
             "path": "",
@@ -641,16 +671,17 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
     )
     twin = TwinSpec.model_validate({**twin, **extra}).model_dump(mode="json")
     return {
-        "label": f"{PROVIDER} {name}",
-        "provider": PROVIDER,
-        "domain": f"Cloud lab · {section}",
+        "label": f"{lab['provider']} {name}",
+        "provider": lab["provider"],
+        "lab": lab["id"],
+        "domain": f"{lab['name']} · {section}",
         "section": section,
         "experiment": experiment,
         "published": published,
         "narrowed": note,
         "featured": asset_id in FEATURED,
-        "url": SOURCE,
-        "retrieved": RETRIEVED,
+        "url": url,
+        "retrieved": lab["retrieved"],
         **source,
         "layout_model": model,
         "geometry_basis": basis,
@@ -660,7 +691,11 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
     }
 
 
-CLOUDLAB = {key: entry(key, *row) for key, row in INSTRUMENTS.items()}
+CLOUDLAB = {
+    **{key: entry(key, *row) for key, row in INSTRUMENTS.items()},
+    **{key: entry(key, *row, lab=AC) for key, row in ac_equipment.INSTRUMENTS.items()},
+}
+LABS = {lab["id"]: lab for lab in (ECL, AC)}
 
 
 def overview():
@@ -672,6 +707,8 @@ def overview():
         found.append(
             {
                 "id": key,
+                "lab": asset["lab"],
+                "url": asset["url"],
                 "name": spec["name"],
                 "section": asset["section"],
                 "experiment": asset["experiment"],
@@ -702,7 +739,14 @@ def overview():
         "provider": PROVIDER,
         "source": SOURCE,
         "retrieved": RETRIEVED,
-        "sections": list(dict.fromkeys(i["section"] for i in found)),
+        "sections": list(dict.fromkeys(i["section"] for i in found if i["lab"] == "ecl")),
+        "labs": [
+            {
+                **lab,
+                "sections": list(dict.fromkeys(i["section"] for i in found if i["lab"] == key)),
+            }
+            for key, lab in LABS.items()
+        ],
         "instruments": found,
         "evidence": "synthetic",
     }
