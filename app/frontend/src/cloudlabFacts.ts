@@ -1,10 +1,22 @@
-// What Meet the instruments and the teaching pages show of a cloud lab twin.
+// What Meet the instruments and the teaching pages show of a cloud lab or AC twin.
 import type { Mesh, Operation } from "./instrumentTypes";
 import type { Anatomy } from "./TwinAnatomy";
 import type { Motion } from "./twinMotion";
 
+export type LabId = "ecl" | "ac";
+export type Lab = {
+  id: LabId;
+  name: string;
+  provider: string;
+  source: string;
+  retrieved: string;
+  sections: string[];
+};
 export type Instrument = {
   id: string;
+  lab: LabId;
+  /** The provider's page for this instrument: the cloud lab's list, or its documentation. */
+  url: string;
   name: string;
   section: string;
   experiment: string;
@@ -54,6 +66,7 @@ export type Overview = {
   source: string;
   retrieved: string;
   sections: string[];
+  labs: Lab[];
   instruments: Instrument[];
 };
 

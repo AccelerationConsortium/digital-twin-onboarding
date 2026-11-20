@@ -1062,6 +1062,10 @@ export default function App() {
                     <CloudLabInstruments
                       onTeach={(id) => nav(`instruments/${id}`)}
                     />
+                    <CloudLabInstruments
+                      lab="ac"
+                      onTeach={(id) => nav(`instruments/${id}`)}
+                    />
                   </Suspense>
                   <button
                     className={s.planLink}

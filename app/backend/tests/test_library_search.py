@@ -57,7 +57,10 @@ def test_a_whole_word_outranks_a_fragment_of_another():
 
 
 def test_pipetting_finds_both_liquid_handlers():
-    assert set(top("pipette", 2)) == {"opentrons_flex_single_5_1000ul", "opentrons-ot2"}
+    # The Flex and OT-2 come first among the liquid handlers, the AC's included.
+    found = top("pipette", 5)
+    assert {"opentrons_flex_single_5_1000ul", "opentrons-ot2"} <= set(found)
+    assert {"ac-biomek-i5", "ac-starlet", "ac-tecan"} <= set(found)
 
 
 def test_the_models_page_ranks_a_query_and_lists_all_without_one():

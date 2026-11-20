@@ -11,6 +11,8 @@ export type Anatomy = {
     label: string;
     about: string;
     components: string[];
+    /** The model's own node names, where it names them after neither slug nor component. */
+    nodes?: string[];
     toward: [number, number, number] | null;
   }[];
 };
@@ -260,8 +262,9 @@ function draw(
   const owner = new Map<THREE.Object3D, number>();
   const wanted = new Map<string, number>();
   for (const part of anatomy.parts)
-    for (const c of part.components)
-      wanted.set(anatomy.node_prefix + c, part.n);
+    for (const name of part.nodes ??
+      part.components.map((c) => anatomy.node_prefix + c))
+      wanted.set(name, part.n);
   root.traverse((o) => {
     const n = wanted.get(o.name);
     if (n !== undefined) owner.set(o, n);

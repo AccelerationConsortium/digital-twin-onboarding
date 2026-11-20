@@ -432,6 +432,230 @@ MOTION = {
     ),
 }
 
+# Acceleration Consortium instruments: what each is for, and how its stand-in moves.
+DOES |= {
+    "ac-biomek-i5": "Pipettes liquids between plates on its deck, column by column or one well "
+    "at a time.",
+    "ac-starlet": "Pipettes liquids between plates and tubes on a deck of carriers.",
+    "ac-tecan": "Pipettes liquids between labware on its deck and hands plates to the next "
+    "instrument.",
+    "ac-balance": "Weighs a sample behind glass, so air currents do not move the reading.",
+    "ac-capper": "Takes the caps off a rack of tubes, or screws them back on, all at once.",
+    "ac-homogenizer": "Spins a rotor inside a stator to break a sample up and mix it evenly.",
+    "ac-shaker": "Shakes plates in small circles while keeping them warm.",
+    "ac-evaporator": "Spins plates under vacuum and gentle heat until the solvent is gone.",
+    "ac-filtration": "Pushes samples through a filter plate with air pressure and collects "
+    "what passes.",
+    "ac-bead-separator": "Pulls magnetic beads out of each well so the liquid around them can "
+    "be changed.",
+    "ac-centrifuge": "Spins plates so solids settle and liquids collect at the bottom of each "
+    "well.",
+    "ac-plate-sealer": "Presses a heated film onto a plate to seal every well.",
+    "ac-plate-stacker": "Holds a column of plates and hands them to the next instrument one by "
+    "one.",
+    "ac-cytomat": "Stores plates at a set temperature and CO2 and hands one out when asked.",
+    "ac-scila": "Keeps a few plates warm in their own drawers between steps.",
+    "ac-cytation-5": "Reads each well's light and takes microscope images of the cells in it.",
+    "ac-cytation-c10": "Images each well through a confocal microscope and reads its light.",
+    "ac-synergy-neo2": "Shines light through each well and measures what comes back, fast.",
+    "ac-dls-reader": "Shines a laser into each well and reads how particles scatter it, to "
+    "size them.",
+    "ac-qpcr": "Cycles a PCR plate and reads how much DNA there is after each cycle.",
+    "ac-hplc": "Pushes a sample through a column and detects each compound as it comes out.",
+    "ac-uplc-ms": "Separates a sample on a column at high pressure, then weighs the molecules.",
+    "ac-orbitrap-lcms": "Separates a sample on a column, then weighs its molecules very precisely.",
+    "ac-medchem-lcms": "Separates a sample on a column and weighs what comes out, to check a "
+    "compound.",
+    "ac-purification": "Collects each compound from a separation into its own tube by its mass.",
+    "ac-photoreactor": "Lights a set of stirred vials evenly to drive a reaction with light.",
+    "ac-flow-reactor": "Pumps reagents through a heated channel and collects the product in "
+    "fractions.",
+    "ac-potentiostat": "Sets a voltage on an electrochemical cell and measures the current.",
+    "ac-viscometer": "Turns a sample between plates and measures how hard it resists flowing.",
+    "ac-dsc": "Heats a sample and an empty pan side by side and measures the heat difference.",
+    "ac-indenter": "Presses a fine tip into a material and measures how far it goes in.",
+}
+# Where an AC instrument shares its stand-in with a cloud lab one, it moves the same way.
+MOTION |= {
+    ac: MOTION[same]
+    for ac, same in {
+        "ac-cytation-5": "plate-reader",
+        "ac-cytation-c10": "plate-reader",
+        "ac-synergy-neo2": "plate-reader",
+        "ac-qpcr": "qpcr",
+        "ac-uplc-ms": "lcms",
+        "ac-orbitrap-lcms": "lcms",
+        "ac-medchem-lcms": "lcms",
+        "ac-cytomat": "cell-incubator",
+        "ac-scila": "cell-incubator",
+    }.items()
+}
+MOTION |= {
+    "ac-shaker": (
+        "ika_ks4000",
+        {
+            "hood": ("Hood", "Closes the warm chamber over the plates."),
+            "platform": ("Platform", "Carries the plates round in small circles."),
+        },
+        [
+            ("closed", "Closed", {}, "The hood is down; the plates are kept warm.", "heat"),
+            (
+                "hood-open",
+                "Hood open",
+                {"hood": 1},
+                "The hood swings up so plates can go onto the platform.",
+                "load",
+            ),
+            (
+                "shaking",
+                "Shaking",
+                {"hood": 0, "platform": 1},
+                "The platform orbits to mix the wells.",
+                "mix",
+            ),
+        ],
+    ),
+    "ac-evaporator": (
+        "genevac_mivac2",
+        {
+            "lid": ("Lid", "Seals the chamber so it can be pumped down."),
+            "rotor": ("Rotor", "Spins the plates while the solvent boils off."),
+            "basket_left": ("Baskets", "Swing out with the plates as the rotor turns."),
+        },
+        [
+            ("closed", "Closed", {}, "The lid is shut and the chamber is under vacuum.", "heat"),
+            (
+                "lid-open",
+                "Lid open",
+                {"lid": 1},
+                "The lid opens so plates can go into the baskets.",
+                "load",
+            ),
+            (
+                "spinning",
+                "Spinning",
+                {"rotor": 0.5, "basket_left": 1, "basket_right": 1},
+                "The rotor turns and the baskets swing out level.",
+                "wait",
+            ),
+        ],
+    ),
+    "ac-homogenizer": (
+        "ika_t25",
+        {
+            "drive": ("Drive", "Carries the dispersing tool down into the vessel."),
+            "rotor": ("Rotor", "Spins inside the stator to shear the sample."),
+            "vessel": ("Vessel", "Holds the sample under the tool."),
+        },
+        [
+            ("down", "Tool in", {}, "The tool sits in the sample and the rotor shears it.", "mix"),
+            (
+                "raised",
+                "Tool raised",
+                {"drive": 1},
+                "The drive rises so the vessel can be changed.",
+                "load",
+            ),
+        ],
+    ),
+    "ac-photoreactor": (
+        "hepatochem_photoredoxbox",
+        {
+            "lid": ("Lid", "Keeps the light inside the box."),
+            "sample_rack": ("Vial rack", "Holds each vial the same distance from the lamps."),
+        },
+        [
+            ("closed", "Closed", {}, "The lid is on and the lamps light the stirred vials.", "mix"),
+            (
+                "lid-open",
+                "Lid open",
+                {"lid": 1},
+                "The lid lifts so vials can go into the rack.",
+                "load",
+            ),
+        ],
+    ),
+    "ac-flow-reactor": (
+        "syrris_asiadiscovery",
+        {
+            "chip_clamp": ("Chip clamp", "Holds the reactor chip against its heater."),
+            "collector_x": ("Fraction collector", "Moves the nozzle along the rack of vials."),
+        },
+        [
+            ("running", "Running", {}, "Reagents flow through the heated chip.", "heat"),
+            (
+                "collecting",
+                "Collecting",
+                {"collector_x": 1},
+                "The nozzle moves along to fill the next vial.",
+                "wait",
+            ),
+            (
+                "chip-out",
+                "Clamp open",
+                {"chip_clamp": 1},
+                "The clamp opens to change the chip.",
+                None,
+            ),
+        ],
+    ),
+    "ac-viscometer": (
+        "antonpaar_mcr503",
+        {"head_lift": ("Measuring head", "Lowers onto the sample to measure it.")},
+        [
+            ("measuring", "Measuring", {}, "The head sits on the sample and turns it.", "read"),
+            (
+                "head-up",
+                "Head up",
+                {"head_lift": 1},
+                "The head rises so a sample can go onto the stage.",
+                "load",
+            ),
+        ],
+    ),
+    "ac-dsc": (
+        "ta_dsc2500",
+        {
+            "lid": ("Cell lid", "Closes over the furnace during a run."),
+            "sampler_x": ("Autosampler", "Carries pans between the trays and the cell."),
+        },
+        [
+            ("closed", "Running", {}, "The lid is shut and the furnace heats both pans.", "heat"),
+            (
+                "loading",
+                "Loading a pan",
+                {"lid": 1, "sampler_x": 1},
+                "The lid lifts and the autosampler sets a pan in the cell.",
+                "load",
+            ),
+        ],
+    ),
+    "ac-indenter": (
+        "antonpaar_hit300",
+        {
+            "load_head": ("Indentation head", "Lowers the tip into the specimen."),
+            "stage_x": ("Stage", "Moves the specimen under the tip."),
+        },
+        [
+            ("raised", "Head up", {}, "The tip is clear of the specimen.", "load"),
+            (
+                "indenting",
+                "Indenting",
+                {"load_head": 1},
+                "The head comes down and the tip presses in.",
+                "read",
+            ),
+            (
+                "next-spot",
+                "Next spot",
+                {"stage_x": 1},
+                "The stage moves the specimen to the next spot.",
+                None,
+            ),
+        ],
+    ),
+}
+
 VERB = {
     "load": "Load",
     "transfer": "Move in",
