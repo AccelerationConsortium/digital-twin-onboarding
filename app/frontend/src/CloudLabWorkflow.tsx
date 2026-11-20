@@ -404,7 +404,9 @@ export default function CloudLabWorkflow({
             ? "Empty"
             : check?.error
               ? `Step ${check.error.step ?? "?"} breaks a rule`
-              : "Every step fits"}
+              : check
+                ? "Every step fits"
+                : "Checking…"}
         </span>
       </div>
       <div className={s.columns}>

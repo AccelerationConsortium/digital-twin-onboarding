@@ -224,14 +224,15 @@ function Studio({
 
   const trace = check?.ok ? check.trace : [];
   useEffect(() => {
-    if (!playing) return;
+    // A run asked for before the first answer is in starts when it arrives.
+    if (!playing || !check) return;
     if (cursor >= trace.length) {
       setPlaying(false);
       return;
     }
     const timer = window.setTimeout(() => setCursor((n) => n + 1), PACE_MS);
     return () => window.clearTimeout(timer);
-  }, [playing, cursor, trace.length]);
+  }, [playing, cursor, trace.length, check]);
   // The model shows the step that just ran, where one of its states shows that action.
   const { press, motion } = twin;
   useEffect(() => {
@@ -317,7 +318,9 @@ function Studio({
                 ? "Empty"
                 : check?.error
                   ? `Step ${check.error.step ?? "?"} breaks a rule`
-                  : "Every step fits"}
+                  : check
+                    ? "Every step fits"
+                    : "Checking…"}
             </span>
             <button
               className={s.textButton}

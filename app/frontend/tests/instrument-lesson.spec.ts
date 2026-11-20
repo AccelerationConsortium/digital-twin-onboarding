@@ -130,3 +130,29 @@ test("each cloud lab instrument opens its own studio", async ({ page }) => {
     page.getByRole("region", { name: "In a cloud lab" }),
   ).toBeVisible();
 });
+
+test("a run asked for before the steps are checked starts once they are", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page.getByRole("button", { name: "Enter the learning lab" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  // The twin's answer is slow, as on a busy server.
+  await page.route("**/api/cloudlab/instruments/*/check", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await route.continue();
+  });
+  await page.goto("/#/instruments/plate-washer");
+
+  const steps = page.getByRole("region", { name: "Steps" });
+  await expect(steps.getByText("Checking…")).toBeVisible();
+  const run = page.getByRole("region", {
+    name: "Teaching simulation controls",
+  });
+  await run.getByRole("button", { name: "Run teaching simulation" }).click();
+  await expect(steps.getByText("Every step fits")).toBeVisible();
+  await expect(run).toContainText("Run finished.", { timeout: 20_000 });
+});
