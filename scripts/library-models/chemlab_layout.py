@@ -14,6 +14,7 @@ folder), and writes app/backend/academy/chemlab_layout.json. For each stand-in:
   extends_m how far a drawer moves out of the front, to keep clear
   parts     the components a learner can point at in the 3D view
   joints    of those, the ones that move: type, axis, limits and pivot in the asset frame
+  mass_kg   the whole instrument's mass, and the range the documents give where they do
   components every component the model names, which the anatomy view may group
   nodes     each component's node names in model.glb, for the stand-ins in OWN_NODES
 
@@ -208,6 +209,26 @@ def size(manifest, spec):
     return field([width, depth, height], "manufacturer_dimensions_m")
 
 
+def mass(manifest):
+    """The whole stand-in's documented mass; one made up only for simulation is left out."""
+    value, label = manifest.get("total_mass_kg"), manifest.get("mass_evidence")
+    if value is None and manifest.get("manufacturer_instrument_mass_kg") is not None:
+        value, label = (
+            manifest["manufacturer_instrument_mass_kg"],
+            "manufacturer_instrument_mass_kg",
+        )
+    if value is None:
+        return {}
+    found = {"value": value, **evidence(label)}
+    # Some labels name a manufacturer document without starting with it.
+    if "manufacturer" in label and "engineering" not in label:
+        found["evidence"] = "manufacturer"
+    span = manifest.get("documented_mass_range_kg") or manifest.get("mass_uncertainty_kg")
+    if span:
+        found["range"] = span
+    return {"mass_kg": found}
+
+
 def derive(manifest, slug):
     dims, port, joint = STAND_INS[slug]
     found = size(manifest, dims)
@@ -301,6 +322,7 @@ def main():
         manifest = json.loads((cache / f"{rev}__{slug}__geometry_manifest.json").read_text())
         result[slug] = {
             **derive(manifest, slug),
+            **mass(manifest),
             **motion(manifest, slug),
             "components": sorted(components(manifest)),
         }

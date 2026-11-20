@@ -197,3 +197,42 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.marks {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.measure,
+.readout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-0);
+  color: var(--anatomy-ink);
+  font:
+    600 11px "JetBrains Mono",
+    ui-monospace,
+    monospace;
+  white-space: nowrap;
+}
+/* A scale's display: dark glass, light figures. */
+.readout {
+  padding: 3px 8px;
+  border: 1.2px solid var(--anatomy-ink);
+  background: var(--anatomy-ink);
+  color: var(--anatomy-paper);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
