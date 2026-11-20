@@ -92,6 +92,9 @@ test("each cloud lab instrument opens its own studio", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByText(/MBZUAI, CC-BY-NC-4\.0/)).toBeVisible();
   await expect(
+    page.getByText("16.5 kg · manufacturer figure for a comparable"),
+  ).toBeVisible();
+  await expect(
     page.getByText(/not this instrument's specification/),
   ).toBeVisible();
 

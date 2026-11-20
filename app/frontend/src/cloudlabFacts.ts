@@ -1,6 +1,6 @@
 // What Meet the instruments and the teaching pages show of a cloud lab twin.
 import type { Mesh, Operation } from "./instrumentTypes";
-import type { Anatomy } from "./TwinAnatomy";
+import type { Anatomy, Mass } from "./TwinAnatomy";
 import type { Motion } from "./twinMotion";
 
 export type Instrument = {
@@ -25,6 +25,8 @@ export type Instrument = {
   } | null;
   drawer_m: number | null;
   model_size_m: [number, number, number] | null;
+  /** The drawn stand-in's documented mass; `basis` says where it comes from. */
+  mass_kg: (Mass & { basis: string }) | null;
   layout_model: string | null;
   geometry_basis: Record<string, string>;
   stand_in: string | null;
@@ -95,6 +97,8 @@ export const own = (key: string, item: Instrument) => {
     ? ""
     : ` (${label})`;
 };
+export const kilograms = (m: Mass) =>
+  `${m.range ? `${m.range[0]}–${m.range[1]}` : m.value} kg`;
 export const metres = (v: number[]) =>
   `${v.map((x) => x.toFixed(2)).join(" × ")} m`;
 /** Where along the front a plate goes in, from the open part of that face. */

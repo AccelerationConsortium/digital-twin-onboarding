@@ -577,12 +577,22 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
             "stand_in": None,
             "slug": None,
         }
-    stand_in, extra = source["stand_in"], {}
+    stand_in, extra, mass = source["stand_in"], {}, None
     basis = {"size": f"footprint: ChemLab-Assets {stand_in}" if stand_in else ESTIMATE}
     if stand_in:
         model = stand_in
         fields, found = contract(geometry, stand_in, spec.get("slots", 0))
         size = fields.pop("size", size)
+        # Weight is not geometry, so it stays out of the basis that grades a twin's size.
+        if weighed := CONTRACTS["stand_ins"][geometry].get("mass_kg"):
+            mass = {
+                "value": weighed["value"],
+                "range": weighed.get("range"),
+                "basis": (
+                    f"{weighed['evidence']}: {EVIDENCE[weighed['evidence']]} in the "
+                    f"ChemLab-Assets {stand_in} contract ({weighed['detail']})"
+                ),
+            }
         for key, twin_key in (("access", "access"), ("level_m", "level_m")):
             if key in fields:
                 spec[twin_key] = fields[key]
@@ -644,6 +654,8 @@ def entry(asset_id, name, experiment, section, published, spec, geometry):
         **source,
         "layout_model": model,
         "geometry_basis": basis,
+        # The drawn stand-in's documented mass, with the range its documents give.
+        "mass_kg": mass,
         "spec": twin,
     }
 
@@ -677,6 +689,7 @@ def overview():
                 "drawer_m": spec.get("drawer_m"),
                 # The drawn stand-in model's own bounding box, when it differs from the twin.
                 "model_size_m": ROWS[asset["slug"]]["size_m"] if asset["slug"] else None,
+                "mass_kg": asset["mass_kg"],
                 "layout_model": asset["layout_model"],
                 "geometry_basis": asset["geometry_basis"],
                 "stand_in": asset["stand_in"],

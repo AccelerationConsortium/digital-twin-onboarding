@@ -1,3 +1,4 @@
+import { Weight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Mesh } from "./instrumentTypes";
@@ -15,23 +16,33 @@ export type Anatomy = {
   }[];
 };
 
+export type Mass = { value: number; range: [number, number] | null };
+type Mark = "width" | "depth" | "height" | "weight";
+
 const OPEN_MS = 1400;
 // How far a part moves out, as a share of the model's largest side.
 const REACH = 0.36;
 
 /**
  * An instrument drawn as an exploded line drawing: its housing fades, the numbered parts
- * inside move out of it, and each number matches a row in the key beside it.
+ * inside move out of it, and each number matches a row in the key beside it. Its outside
+ * size is dimensioned on the bench, and where its weight is known it stands on a scale.
  */
 export default function TwinAnatomy({
   mesh,
   anatomy,
+  size,
+  mass,
 }: {
   mesh: Mesh;
   anatomy: Anatomy;
+  /** Width, depth and height in metres. */
+  size: [number, number, number];
+  mass: Mass | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const tags = useRef(new Map<number, HTMLButtonElement>());
+  const marks = useRef(new Map<Mark, HTMLSpanElement>());
   const leaders = useRef(new Map<number, SVGLineElement>());
   const [view, setView] = useState<"loading" | "ready" | "failed">("loading");
   const [apart, setApart] = useState(0);
@@ -90,7 +101,7 @@ export default function TwinAnatomy({
         st.scene.traverse((o) => {
           if (o instanceof THREE.GridHelper) o.visible = false;
         });
-        drawing = draw(st.model, anatomy, made);
+        drawing = draw(st.model, anatomy, made, mass !== null);
         // Framed again now that the unseen box round the parts taken apart is there.
         st.fit();
         el.addEventListener("pointermove", onMove);
@@ -116,6 +127,21 @@ export default function TwinAnatomy({
         const middle = drawing.middle().project(st.camera);
         const mx = ((middle.x + 1) / 2) * box.width;
         const my = ((1 - middle.y) / 2) * box.height;
+        // The measurements go first; the numbers keep clear of them.
+        const measured: { x: number; y: number; half: number }[] = [];
+        for (const [name, at] of Object.entries(drawing.marks)) {
+          const label = marks.current.get(name as Mark);
+          if (!label) continue;
+          const seen = drawing.root.localToWorld(at.clone()).project(st.camera);
+          let x = ((seen.x + 1) / 2) * box.width;
+          const y = ((1 - seen.y) / 2) * box.height;
+          const half = label.offsetWidth / 2;
+          // The scale's display stands out to the right of its front corner.
+          if (name === "weight") x += 10 + half;
+          x = Math.min(box.width - half - 4, Math.max(half + 4, x));
+          measured.push({ x, y, half });
+          label.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+        }
         const placed: { x: number; y: number }[] = [];
         for (const part of anatomy.parts) {
           const tag = tags.current.get(part.n);
@@ -134,6 +160,12 @@ export default function TwinAnatomy({
           let y = ay + ((ay - my) / away) * 34;
           for (const other of placed)
             if (Math.hypot(other.x - x, other.y - y) < 26) y = other.y + 26;
+          for (const other of measured)
+            if (
+              Math.abs(other.x - x) < other.half + 13 &&
+              Math.abs(other.y - y) < 22
+            )
+              y = other.y + 24;
           x = Math.min(box.width - 14, Math.max(14, x));
           y = Math.min(box.height - 14, Math.max(14, y));
           placed.push({ x, y });
@@ -158,6 +190,11 @@ export default function TwinAnatomy({
   }, [mesh.url ?? mesh.kind]);
 
   const chosen = anatomy.parts.find((p) => p.n === picked);
+  const mark = (name: Mark) => (label: HTMLSpanElement | null) => {
+    if (label) marks.current.set(name, label);
+    else marks.current.delete(name);
+  };
+  const [width, depth, height] = size.map((v) => `${v.toFixed(2)} m`);
   return (
     <div className={s.anatomy}>
       <div className={s.drawing} data-state={view}>
@@ -176,6 +213,30 @@ export default function TwinAnatomy({
                 />
               ))}
             </svg>
+            <div className={s.marks}>
+              <span ref={mark("width")} className={s.measure}>
+                <span className={s.srOnly}>Width </span>
+                {width}
+              </span>
+              <span ref={mark("depth")} className={s.measure}>
+                <span className={s.srOnly}>Depth </span>
+                {depth}
+              </span>
+              <span ref={mark("height")} className={s.measure}>
+                <span className={s.srOnly}>Height </span>
+                {height}
+              </span>
+              {mass && (
+                <span ref={mark("weight")} className={s.readout}>
+                  <Weight size={12} aria-hidden="true" />
+                  <span className={s.srOnly}>Weight </span>
+                  {mass.range
+                    ? `${mass.range[0]}–${mass.range[1]}`
+                    : mass.value}{" "}
+                  kg
+                </span>
+              )}
+            </div>
             <div className={s.tags}>
               {anatomy.parts.map((p) => (
                 <button
@@ -253,6 +314,7 @@ function draw(
   root: THREE.Object3D,
   anatomy: Anatomy,
   made: { dispose(): void }[],
+  weighed: boolean,
 ) {
   root.updateMatrixWorld(true);
   const toRoot = root.matrixWorld.clone().invert();
@@ -386,6 +448,78 @@ function draw(
     mesh.add(lines);
   }
 
+  // Dimension lines on the bench: extension lines out from the model's bottom edges (and
+  // its top front corner for the height), the measured line, and a slash at either end.
+  const [x0, y0, z0] = whole.min.toArray();
+  const [x1, y1, z1] = whole.max.toArray();
+  const margin = side * 0.05;
+  const gap = side * 0.09;
+  const tick = side * 0.016;
+  const yw = y0 - margin - gap;
+  const xd = x1 + margin + gap;
+  const xh = x0 - margin - gap;
+  const ends: number[] = [];
+  const line = (a: number[], b: number[]) => ends.push(...a, ...b);
+  const slash = (p: number[], d: number[]) =>
+    line(
+      p.map((v, i) => v - d[i] * tick),
+      p.map((v, i) => v + d[i] * tick),
+    );
+  line([x0, y0, z0], [x0, yw - tick, z0]);
+  line([x1, y0, z0], [x1, yw - tick, z0]);
+  line([x0, yw, z0], [x1, yw, z0]);
+  slash([x0, yw, z0], [1, 1, 0]);
+  slash([x1, yw, z0], [1, 1, 0]);
+  line([x1, y0, z0], [xd + tick, y0, z0]);
+  line([x1, y1, z0], [xd + tick, y1, z0]);
+  line([xd, y0, z0], [xd, y1, z0]);
+  slash([xd, y0, z0], [1, 1, 0]);
+  slash([xd, y1, z0], [1, 1, 0]);
+  line([x0, y0, z0], [xh - tick, y0, z0]);
+  line([x0, y0, z1], [xh - tick, y0, z1]);
+  line([xh, y0, z0], [xh, y0, z1]);
+  slash([xh, y0, z0], [1, 0, 1]);
+  slash([xh, y0, z1], [1, 0, 1]);
+  const dims = new THREE.BufferGeometry();
+  dims.setAttribute("position", new THREE.Float32BufferAttribute(ends, 3));
+  const rule = new THREE.LineBasicMaterial({
+    transparent: true,
+    opacity: 0.75,
+  });
+  const rules = new THREE.LineSegments(dims, rule);
+  rules.raycast = () => {};
+  root.add(rules);
+  made.push(dims, rule);
+  const cx = (x0 + x1) / 2;
+  const marks: Partial<Record<Mark, THREE.Vector3>> = {
+    width: new THREE.Vector3(cx, yw, z0),
+    depth: new THREE.Vector3(xd, (y0 + y1) / 2, z0),
+    height: new THREE.Vector3(xh, y0, (z0 + z1) / 2),
+  };
+  // The bench under the model as a scale, read off its front.
+  const plate = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
+  if (weighed) {
+    const thick = side * 0.03;
+    const slab = new THREE.BoxGeometry(
+      x1 - x0 + margin * 2,
+      y1 - y0 + margin * 2,
+      thick,
+    );
+    const scale = new THREE.Mesh(slab, plate);
+    // Just under the model, so the extension lines on it do not flicker.
+    const top = z0 - side * 0.003;
+    scale.position.set(cx, (y0 + y1) / 2, top - thick / 2);
+    scale.raycast = () => {};
+    const edges = new THREE.EdgesGeometry(slab);
+    const outline = new THREE.LineSegments(edges, rule);
+    outline.raycast = () => {};
+    scale.add(outline);
+    root.add(scale);
+    made.push(slab, edges, plate);
+    // Its front right corner, clear of the width beneath the middle.
+    marks.weight = new THREE.Vector3(x1 + margin, y0 - margin, top - thick / 2);
+  }
+
   const colour = new THREE.Color();
   const sheet = new THREE.Color();
   const T = new THREE.Matrix4();
@@ -399,6 +533,8 @@ function draw(
   return {
     root,
     partOf,
+    /** Where each measurement's label sits, in the model's frame. */
+    marks,
     set(
       f: number,
       picked: number | null,
@@ -422,6 +558,8 @@ function draw(
       const key = `${f}|${picked}|${hovered}|${paper}|${pen}|${accent}`;
       if (key === painted || !paper || !pen || !accent) return;
       painted = key;
+      rule.color.set(pen);
+      plate.color.set(paper);
       for (const [n, m] of fills) {
         const lit = n !== null && (n === picked || n === hovered);
         sheet.set(paper);

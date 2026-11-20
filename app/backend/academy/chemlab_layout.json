@@ -166,6 +166,11 @@
     "evidence": "engineering_assumption",
     "value": 0.3972
    },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 93.3
+   },
    "opening": {
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
@@ -342,6 +347,11 @@
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
     "value": 0.2065
+   },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 22.0
    },
    "parts": [
     "lid",
@@ -660,6 +670,15 @@
     "evidence": "engineering_assumption",
     "value": 0.037
    },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "range": [
+     23,
+     25
+    ],
+    "value": 23.0
+   },
    "opening": {
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
@@ -771,6 +790,11 @@
     "evidence": "manufacturer",
     "value": 0.082
    },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 16.5
+   },
    "parts": [
     "plate_carrier",
     "manifold"
@@ -879,6 +903,11 @@
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
     "value": 0.074
+   },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 32.0
    },
    "opening": {
     "detail": "photo_estimate",
@@ -1086,6 +1115,11 @@
     "evidence": "engineering_assumption",
     "value": 0.3
    },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 71.0
+   },
    "parts": [
     "reactor_cover",
     "reactor_clamp",
@@ -1285,6 +1319,11 @@
      "type": "revolute"
     }
    },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 64.0
+   },
    "parts": [
     "column_clamp",
     "column_valve",
@@ -1391,6 +1430,15 @@
     "detail": "manufacturer_datasheet",
     "evidence": "manufacturer",
     "value": 0.265
+   },
+   "mass_kg": {
+    "detail": "engineering_choice_within_documented_range",
+    "evidence": "engineering_assumption",
+    "range": [
+     107.0,
+     113.0
+    ],
+    "value": 110.0
    },
    "parts": [
     "outer_door",
@@ -1520,6 +1568,11 @@
     "detail": "photo_estimate",
     "evidence": "engineering_assumption",
     "value": 0.329
+   },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 85.3
    },
    "parts": [
     "sample_cover",
@@ -1701,6 +1754,11 @@
      "type": "revolute"
     }
    },
+   "mass_kg": {
+    "detail": "specified_manufacturer_guide_145kg_brochure_140kg_conflict_retained",
+    "evidence": "manufacturer",
+    "value": 145.0
+   },
    "parts": [
     "plasma_cover",
     "torch",
@@ -1811,6 +1869,11 @@
      ],
      "type": "revolute"
     }
+   },
+   "mass_kg": {
+    "detail": "manufacturer_datasheet",
+    "evidence": "manufacturer",
+    "value": 41.0
    },
    "parts": [
     "main_door",
@@ -1972,6 +2035,11 @@
      ],
      "type": "prismatic"
     }
+   },
+   "mass_kg": {
+    "detail": "manufacturer_instrument_mass_kg",
+    "evidence": "manufacturer",
+    "value": 120.0
    },
    "parts": [
     "source_housing"

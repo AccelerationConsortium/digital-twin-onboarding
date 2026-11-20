@@ -21,6 +21,7 @@ import { api, json } from "./api";
 import {
   BASIS_NAMES,
   basisLabel,
+  kilograms,
   metres,
   part,
   sourceUrl,
@@ -628,6 +629,15 @@ function Studio({
                 {metres(item.size_m)} ·{" "}
                 {basisLabel(item.geometry_basis.size, item)}
               </dd>
+              {item.mass_kg && (
+                <>
+                  <dt>Weight</dt>
+                  <dd>
+                    {kilograms(item.mass_kg)} ·{" "}
+                    {basisLabel(item.mass_kg.basis, item)}
+                  </dd>
+                </>
+              )}
             </dl>
             <ul>
               {Object.entries(item.geometry_basis).map(([key, basis]) => {
@@ -645,6 +655,11 @@ function Studio({
                   </li>
                 );
               })}
+              {item.mass_kg && (
+                <li>
+                  <strong>Weight</strong> {item.mass_kg.basis}
+                </li>
+              )}
             </ul>
             <p>{check?.statement}</p>
           </details>
@@ -656,7 +671,12 @@ function Studio({
           <div className={s.sectionHeading}>
             <h2>Inside</h2>
           </div>
-          <TwinAnatomy mesh={item.mesh} anatomy={item.anatomy} />
+          <TwinAnatomy
+            mesh={item.mesh}
+            anatomy={item.anatomy}
+            size={item.size_m}
+            mass={item.mass_kg}
+          />
         </section>
       )}
 

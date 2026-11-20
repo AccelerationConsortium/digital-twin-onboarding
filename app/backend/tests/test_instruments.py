@@ -9,6 +9,7 @@ from uuid import uuid4
 import pytest
 from academy.chemlab import CHEMLAB
 from academy.cloudlab import CLOUDLAB, CONTRACTS, INSTRUMENTS, LAYOUT
+from academy.cloudlab_teaching import instruments
 from academy.simple_twins import SIZE_BASES, TEMPLATES, TwinSpec, usda
 from academy.simready import SIMREADY
 from academy.workcell_models import catalog as workcell_catalog
@@ -503,7 +504,7 @@ def test_stand_in_twins_take_their_contract_values_and_evidence():
 
 def test_pinned_contract_values_carry_no_dataset_text():
     allowed = {"size", "access", "level_m", "opening", "site", "extends_m", "port"}
-    allowed |= {"parts", "joints", "components"}
+    allowed |= {"parts", "joints", "components", "mass_kg"}
     for slug, found in CONTRACTS["stand_ins"].items():
         assert found.keys() <= allowed, slug
         for key, item in found.items():
@@ -526,6 +527,23 @@ def test_pinned_contract_values_carry_no_dataset_text():
             assert item["evidence"] in {"manufacturer", "engineering_assumption"}
             assert re.fullmatch(r"[a-z0-9_ ()]+", item["detail"]), (slug, item["detail"])
     assert CONTRACTS["license"] == "CC-BY-NC-4.0" and CONTRACTS["repo"] == "MBZUAI/ChemLab-Assets"
+
+
+def test_a_drawn_stand_ins_documented_weight_reaches_the_overview_but_not_its_size_basis():
+    found = {i["id"]: i for i in instruments()["instruments"]}
+    washer = found["plate-washer"]["mass_kg"]
+    assert washer["value"] == 16.5 and washer["range"] is None
+    assert washer["basis"].startswith("manufacturer: ") and "BioTek 405 TS" in washer["basis"]
+    # Where the documents give a range, the range is kept beside the value simulated.
+    incubator = found["cell-incubator"]["mass_kg"]
+    assert incubator["range"] == [107.0, 113.0]
+    assert incubator["basis"].startswith("engineering_assumption: ")
+    # A mass the dataset only assumed for simulation is not shown as the instrument's.
+    assert CONTRACTS["stand_ins"]["agilent_gc8890b"].get("mass_kg") is None
+    for item in found.values():
+        assert "mass" not in item["geometry_basis"]
+        if not item["stand_in"]:
+            assert item["mass_kg"] is None
 
 
 def test_contract_derivation_turns_the_asset_frame_into_the_twin_frame():
