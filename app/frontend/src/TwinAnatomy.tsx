@@ -46,6 +46,7 @@ export default function TwinAnatomy({
   const tags = useRef(new Map<number, HTMLButtonElement>());
   const marks = useRef(new Map<Mark, HTMLSpanElement>());
   const leaders = useRef(new Map<number, SVGLineElement>());
+  const slider = useRef<HTMLLabelElement>(null);
   const [view, setView] = useState<"loading" | "ready" | "failed">("loading");
   const [apart, setApart] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
@@ -131,16 +132,20 @@ export default function TwinAnatomy({
         const my = ((1 - middle.y) / 2) * box.height;
         // The measurements go first; the numbers keep clear of them.
         const measured: { x: number; y: number; half: number }[] = [];
+        // Nor do they slip under the take-apart slider.
+        const pill = slider.current?.getBoundingClientRect();
         for (const [name, at] of Object.entries(drawing.marks)) {
           const label = marks.current.get(name as Mark);
           if (!label) continue;
           const seen = drawing.root.localToWorld(at.clone()).project(st.camera);
           let x = ((seen.x + 1) / 2) * box.width;
-          const y = ((1 - seen.y) / 2) * box.height;
+          let y = ((1 - seen.y) / 2) * box.height;
           const half = label.offsetWidth / 2;
           // The scale's display stands out to the right of its front corner.
           if (name === "weight") x += 10 + half;
           x = Math.min(box.width - half - 4, Math.max(half + 4, x));
+          if (pill && x - half < pill.right - box.left + 4)
+            y = Math.min(y, pill.top - box.top - label.offsetHeight / 2 - 6);
           measured.push({ x, y, half });
           label.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
         }
@@ -264,7 +269,7 @@ export default function TwinAnatomy({
             The 3D model could not be loaded.
           </span>
         )}
-        <label className={s.apart}>
+        <label ref={slider} className={s.apart}>
           <span>Assembled</span>
           <input
             type="range"
