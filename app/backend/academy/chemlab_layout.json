@@ -281,6 +281,749 @@
     "status_display"
    ]
   },
+  "antonpaar_hit300": {
+   "components": [
+    "antivibration_platform",
+    "cable_gland_0",
+    "cable_gland_1",
+    "carry_grip_0",
+    "carry_grip_1",
+    "clamp_fixed",
+    "clamp_jaw",
+    "clamp_knob_0",
+    "clamp_knob_1",
+    "clamp_screw_0",
+    "clamp_screw_1",
+    "column",
+    "column_foot",
+    "controller",
+    "controller_standoff_0",
+    "controller_standoff_1",
+    "controller_standoff_2",
+    "controller_standoff_3",
+    "corner_wall_0",
+    "corner_wall_1",
+    "corner_wall_2",
+    "corner_wall_3",
+    "data_back",
+    "data_port",
+    "data_tongue",
+    "depth_sensor",
+    "diamond_tip",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "front_wall",
+    "handwheel",
+    "handwheel_hub",
+    "handwheel_mount",
+    "handwheel_rib_0",
+    "handwheel_rib_1",
+    "handwheel_rib_10",
+    "handwheel_rib_11",
+    "handwheel_rib_12",
+    "handwheel_rib_13",
+    "handwheel_rib_14",
+    "handwheel_rib_15",
+    "handwheel_rib_16",
+    "handwheel_rib_17",
+    "handwheel_rib_18",
+    "handwheel_rib_19",
+    "handwheel_rib_2",
+    "handwheel_rib_20",
+    "handwheel_rib_21",
+    "handwheel_rib_22",
+    "handwheel_rib_23",
+    "handwheel_rib_24",
+    "handwheel_rib_25",
+    "handwheel_rib_26",
+    "handwheel_rib_27",
+    "handwheel_rib_28",
+    "handwheel_rib_29",
+    "handwheel_rib_3",
+    "handwheel_rib_30",
+    "handwheel_rib_31",
+    "handwheel_rib_32",
+    "handwheel_rib_33",
+    "handwheel_rib_34",
+    "handwheel_rib_35",
+    "handwheel_rib_4",
+    "handwheel_rib_5",
+    "handwheel_rib_6",
+    "handwheel_rib_7",
+    "handwheel_rib_8",
+    "handwheel_rib_9",
+    "handwheel_shaft",
+    "handwheel_spoke_0",
+    "handwheel_spoke_1",
+    "handwheel_spoke_2",
+    "head_bridge",
+    "head_cable_0",
+    "head_cable_1",
+    "head_chin",
+    "head_core",
+    "head_top",
+    "head_white",
+    "holder_bolt_0",
+    "holder_bolt_1",
+    "holder_bolt_2",
+    "holder_bolt_3",
+    "housing",
+    "isolator_0",
+    "isolator_1",
+    "isolator_2",
+    "isolator_3",
+    "isolator_foot_0",
+    "isolator_foot_1",
+    "isolator_foot_2",
+    "isolator_foot_3",
+    "laser_projection_x",
+    "laser_projection_y",
+    "laser_x",
+    "laser_x_lens",
+    "laser_x_mount",
+    "laser_y",
+    "laser_y_lens",
+    "laser_y_mount",
+    "load_head",
+    "power_back",
+    "power_bezel",
+    "power_contact_0",
+    "power_contact_1",
+    "power_in",
+    "power_pivot",
+    "power_switch",
+    "rear_wall",
+    "red_seam",
+    "reference_ring",
+    "reference_shoulder",
+    "sample_holder",
+    "side_trim_0",
+    "side_trim_1",
+    "side_wall_left",
+    "side_wall_right",
+    "specimen",
+    "stage_x",
+    "stage_y",
+    "stylus",
+    "stylus_holder",
+    "upper_shell",
+    "x_base",
+    "x_bearing_0",
+    "x_bearing_1",
+    "x_motor",
+    "x_rail_0",
+    "x_rail_1",
+    "x_seat_0_left",
+    "x_seat_0_right",
+    "x_seat_1_left",
+    "x_seat_1_right",
+    "y_base",
+    "y_bearing_0",
+    "y_bearing_1",
+    "y_micrometer_band",
+    "y_micrometer_knob",
+    "y_micrometer_shaft",
+    "y_rail_0",
+    "y_rail_1",
+    "y_seat_0_front",
+    "y_seat_0_rear",
+    "y_seat_1_front",
+    "y_seat_1_rear",
+    "z_bearing_0",
+    "z_bearing_1",
+    "z_rail_0",
+    "z_rail_1",
+    "z_seat_0_lower",
+    "z_seat_0_upper",
+    "z_seat_1_lower",
+    "z_seat_1_upper"
+   ],
+   "joints": {
+    "load_head": {
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "detail": "manufacturer_datasheet",
+     "evidence": "manufacturer",
+     "limits": [
+      0.0,
+      0.09
+     ],
+     "pivot": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "type": "prismatic"
+    },
+    "stage_x": {
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "detail": "manufacturer_datasheet",
+     "evidence": "manufacturer",
+     "limits": [
+      0.0,
+      0.04
+     ],
+     "pivot": [
+      -0.02,
+      -0.02,
+      0.0
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "load_head",
+    "stage_x",
+    "specimen"
+   ],
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.269,
+     0.259,
+     0.42
+    ]
+   }
+  },
+  "antonpaar_litesizerdls": {
+   "access": {
+    "detail": "joint sample_lid (revolute)",
+    "evidence": "engineering_assumption",
+    "value": "top"
+   },
+   "components": [
+    "apd_15",
+    "apd_175",
+    "apd_90",
+    "beam_dump",
+    "cell_cap",
+    "cell_select",
+    "chamber_floor",
+    "chamber_left",
+    "controller",
+    "cuvette",
+    "dc_in",
+    "fan_grille_0",
+    "fan_grille_1",
+    "fan_grille_2",
+    "fan_grille_3",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "front_lip",
+    "front_seam",
+    "hinge_0",
+    "hinge_1",
+    "housing",
+    "lamp_power",
+    "lamp_status",
+    "laser",
+    "left_cheek",
+    "lens_15",
+    "lens_175",
+    "lens_90",
+    "lid_handle",
+    "lid_inner",
+    "lid_interlock",
+    "omega_body",
+    "omega_channel_0",
+    "omega_channel_1",
+    "omega_channel_bottom",
+    "omega_electrode_0",
+    "omega_electrode_1",
+    "omega_luer_0",
+    "omega_luer_1",
+    "omega_plug_0",
+    "omega_plug_1",
+    "open_button",
+    "optical_bench",
+    "peltier",
+    "power_mark",
+    "power_switch",
+    "purge_in",
+    "purge_out",
+    "quartz_back",
+    "quartz_bottom",
+    "quartz_left",
+    "quartz_right",
+    "rear_fan",
+    "rear_label",
+    "rear_vent_0",
+    "rear_vent_1",
+    "rear_vent_10",
+    "rear_vent_11",
+    "rear_vent_2",
+    "rear_vent_3",
+    "rear_vent_4",
+    "rear_vent_5",
+    "rear_vent_6",
+    "rear_vent_7",
+    "rear_vent_8",
+    "rear_vent_9",
+    "red_edge",
+    "right_front",
+    "right_rear",
+    "right_wall",
+    "sample_lid",
+    "sample_liquid",
+    "sample_well",
+    "screw_0",
+    "screw_1",
+    "screw_2",
+    "screw_3",
+    "screw_4",
+    "screw_5",
+    "side_vent_0",
+    "side_vent_1",
+    "side_vent_10",
+    "side_vent_11",
+    "side_vent_12",
+    "side_vent_13",
+    "side_vent_2",
+    "side_vent_3",
+    "side_vent_4",
+    "side_vent_5",
+    "side_vent_6",
+    "side_vent_7",
+    "side_vent_8",
+    "side_vent_9",
+    "thermal_jaw_0",
+    "thermal_jaw_1",
+    "thermal_jaw_2",
+    "thermal_jaw_3",
+    "thermistor",
+    "usb",
+    "white_shell"
+   ],
+   "joints": {
+    "cell_select": {
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.06
+     ],
+     "pivot": [
+      0.146,
+      0.119,
+      0.072
+     ],
+     "type": "prismatic"
+    },
+    "cuvette": {
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.12
+     ],
+     "pivot": [
+      0.146,
+      0.119,
+      0.072
+     ],
+     "type": "prismatic"
+    },
+    "sample_lid": {
+     "axis": [
+      -1,
+      0,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.7
+     ],
+     "pivot": [
+      0.149,
+      0.219,
+      0.126
+     ],
+     "type": "revolute"
+    }
+   },
+   "level_m": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": 0.117
+   },
+   "parts": [
+    "sample_lid",
+    "cell_select",
+    "cuvette"
+   ],
+   "port": "cuvette",
+   "site": {
+    "detail": "photo_estimate",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.146,
+     -0.1134
+    ]
+   },
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.452,
+     0.5115,
+     0.135
+    ]
+   }
+  },
+  "antonpaar_mcr503": {
+   "components": [
+    "air_bearing_hub",
+    "air_inlet",
+    "column",
+    "column_cap",
+    "column_front_insert",
+    "controller",
+    "coolant_inlet",
+    "coolant_outlet",
+    "display_digits",
+    "display_gap",
+    "display_glass",
+    "display_header",
+    "display_sidebar",
+    "foot_lb",
+    "foot_lf",
+    "foot_pad_lb",
+    "foot_pad_lf",
+    "foot_pad_rb",
+    "foot_pad_rf",
+    "foot_rb",
+    "foot_rf",
+    "guide_left",
+    "guide_right",
+    "head_carriage",
+    "head_lift",
+    "host_port",
+    "housing",
+    "motor_front_nose",
+    "motor_lower_cover",
+    "panel_red_trim",
+    "power_inlet",
+    "power_switch",
+    "quickconnect_collar",
+    "rear_panel",
+    "red_trim_left",
+    "red_trim_right",
+    "rotor",
+    "rotor_index_mark",
+    "sample_plate",
+    "stage_dark_ring",
+    "stage_screw_079",
+    "stage_screw_236",
+    "stage_screw_393",
+    "stage_screw_55",
+    "stage_top_ring",
+    "temperature_stage",
+    "trimming_mirror",
+    "upper_deck",
+    "upper_plate",
+    "vent_left",
+    "vent_right"
+   ],
+   "joints": {
+    "head_lift": {
+     "axis": [
+      0,
+      0,
+      1
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0,
+      0.08
+     ],
+     "pivot": [
+      0.0,
+      -0.115,
+      0.275
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "head_lift",
+    "rotor",
+    "temperature_stage"
+   ],
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.453,
+     0.673,
+     0.775
+    ]
+   }
+  },
+  "azenta_automated_roll_heat_sealer_a4s": {
+   "components": [
+    "base",
+    "body",
+    "cutter",
+    "external_plate",
+    "feed_rollers",
+    "feet",
+    "film_path",
+    "film_roll",
+    "front_fascia",
+    "guide_rails",
+    "plate_adapter",
+    "plate_carriage",
+    "power_data_panel",
+    "press_head",
+    "roll_support",
+    "status_display"
+   ],
+   "joints": {},
+   "nodes": {
+    "base": [
+     "ahs__base__00"
+    ],
+    "body": [
+     "ahs__body__00",
+     "ahs__body__01",
+     "ahs__body__02",
+     "ahs__body__03",
+     "ahs__body__04",
+     "ahs__body__05",
+     "ahs__body__06",
+     "ahs__body__07",
+     "ahs__body__08",
+     "ahs__body__09",
+     "ahs__body__10",
+     "ahs__body__11",
+     "ahs__body__12",
+     "ahs__body__13",
+     "ahs__body__14",
+     "ahs__body__15",
+     "ahs__body__16",
+     "ahs__body__17",
+     "ahs__body__18",
+     "ahs__body__19",
+     "ahs__body__20",
+     "ahs__body__21",
+     "ahs__body__22",
+     "ahs__body__23",
+     "ahs__body__24",
+     "ahs__body__25"
+    ],
+    "cutter": [
+     "ahs__cutter__00"
+    ],
+    "external_plate": [
+     "ahs__external_plate__00",
+     "ahs__external_plate__01",
+     "ahs__external_plate__02",
+     "ahs__external_plate__03",
+     "ahs__external_plate__04",
+     "ahs__external_plate__05",
+     "ahs__external_plate__06",
+     "ahs__external_plate__07",
+     "ahs__external_plate__08",
+     "ahs__external_plate__09",
+     "ahs__external_plate__10",
+     "ahs__external_plate__11",
+     "ahs__external_plate__12",
+     "ahs__external_plate__13",
+     "ahs__external_plate__14",
+     "ahs__external_plate__15",
+     "ahs__external_plate__16",
+     "ahs__external_plate__17",
+     "ahs__external_plate__18",
+     "ahs__external_plate__19",
+     "ahs__external_plate__20",
+     "ahs__external_plate__21",
+     "ahs__external_plate__22",
+     "ahs__external_plate__23",
+     "ahs__external_plate__24",
+     "ahs__external_plate__25",
+     "ahs__external_plate__26",
+     "ahs__external_plate__27",
+     "ahs__external_plate__28",
+     "ahs__external_plate__29",
+     "ahs__external_plate__30",
+     "ahs__external_plate__31",
+     "ahs__external_plate__32",
+     "ahs__external_plate__33",
+     "ahs__external_plate__34",
+     "ahs__external_plate__35",
+     "ahs__external_plate__36",
+     "ahs__external_plate__37",
+     "ahs__external_plate__38",
+     "ahs__external_plate__39",
+     "ahs__external_plate__40",
+     "ahs__external_plate__41",
+     "ahs__external_plate__42",
+     "ahs__external_plate__43",
+     "ahs__external_plate__44",
+     "ahs__external_plate__45",
+     "ahs__external_plate__46",
+     "ahs__external_plate__47",
+     "ahs__external_plate__48",
+     "ahs__external_plate__49",
+     "ahs__external_plate__50",
+     "ahs__external_plate__51",
+     "ahs__external_plate__52",
+     "ahs__external_plate__53",
+     "ahs__external_plate__54",
+     "ahs__external_plate__55",
+     "ahs__external_plate__56",
+     "ahs__external_plate__57",
+     "ahs__external_plate__58",
+     "ahs__external_plate__59",
+     "ahs__external_plate__60",
+     "ahs__external_plate__61",
+     "ahs__external_plate__62",
+     "ahs__external_plate__63",
+     "ahs__external_plate__64",
+     "ahs__external_plate__65",
+     "ahs__external_plate__66",
+     "ahs__external_plate__67",
+     "ahs__external_plate__68",
+     "ahs__external_plate__69",
+     "ahs__external_plate__70",
+     "ahs__external_plate__71",
+     "ahs__external_plate__72",
+     "ahs__external_plate__73",
+     "ahs__external_plate__74",
+     "ahs__external_plate__75",
+     "ahs__external_plate__76",
+     "ahs__external_plate__77",
+     "ahs__external_plate__78",
+     "ahs__external_plate__79",
+     "ahs__external_plate__80",
+     "ahs__external_plate__81",
+     "ahs__external_plate__82",
+     "ahs__external_plate__83",
+     "ahs__external_plate__84",
+     "ahs__external_plate__85",
+     "ahs__external_plate__86",
+     "ahs__external_plate__87",
+     "ahs__external_plate__88",
+     "ahs__external_plate__89",
+     "ahs__external_plate__90",
+     "ahs__external_plate__91",
+     "ahs__external_plate__92",
+     "ahs__external_plate__93",
+     "ahs__external_plate__94",
+     "ahs__external_plate__95",
+     "ahs__external_plate__96"
+    ],
+    "feed_rollers": [
+     "ahs__feed_rollers__00"
+    ],
+    "feet": [
+     "ahs__feet__00",
+     "ahs__feet__01",
+     "ahs__feet__02",
+     "ahs__feet__03"
+    ],
+    "film_path": [
+     "ahs__film_path__00"
+    ],
+    "film_roll": [
+     "ahs__film_roll__00",
+     "ahs__film_roll__01",
+     "ahs__film_roll__02"
+    ],
+    "front_fascia": [
+     "ahs__front_fascia__00",
+     "ahs__front_fascia__01",
+     "ahs__front_fascia__02",
+     "ahs__front_fascia__03"
+    ],
+    "guide_rails": [
+     "ahs__guide_rails__00",
+     "ahs__guide_rails__01"
+    ],
+    "plate_adapter": [
+     "ahs__plate_adapter__00"
+    ],
+    "plate_carriage": [
+     "ahs__plate_carriage__00"
+    ],
+    "power_data_panel": [
+     "ahs__power_data_panel__00",
+     "ahs__power_data_panel__01",
+     "ahs__power_data_panel__02",
+     "ahs__power_data_panel__03",
+     "ahs__power_data_panel__04"
+    ],
+    "press_head": [
+     "ahs__press_head__00",
+     "ahs__press_head__01",
+     "ahs__press_head__02",
+     "ahs__press_head__03"
+    ],
+    "roll_support": [
+     "ahs__roll_support__00",
+     "ahs__roll_support__01",
+     "ahs__roll_support__02"
+    ],
+    "status_display": [
+     "ahs__status_display__00",
+     "ahs__status_display__01",
+     "ahs__status_display__02",
+     "ahs__status_display__03",
+     "ahs__status_display__04",
+     "ahs__status_display__05"
+    ]
+   },
+   "parts": [
+    "plate_carriage",
+    "press_head",
+    "film_roll"
+   ]
+  },
+  "azenta_intellixcap_s1_46_0001": {
+   "components": [
+    "controller",
+    "feet",
+    "gripper",
+    "housing",
+    "jaw_left",
+    "jaw_right",
+    "power_inlet",
+    "power_selection_button",
+    "sample_interface",
+    "spindle",
+    "trigger_disc"
+   ],
+   "joints": {},
+   "parts": [
+    "gripper",
+    "sample_interface"
+   ]
+  },
   "biorad_cfxopus": {
    "access": {
     "detail": "joint lid (prismatic)",
@@ -363,6 +1106,51 @@
      0.33,
      0.56,
      0.36
+    ]
+   }
+  },
+  "biotage_extrahera_classic": {
+   "components": [
+    "collection_carousel",
+    "collection_plate",
+    "deck_slots",
+    "feet",
+    "gantry_frame",
+    "gantry_x",
+    "gantry_y",
+    "housing",
+    "mains_switch",
+    "pipette_head",
+    "pipette_z",
+    "plate_48",
+    "plate_96",
+    "power_entry",
+    "pressure_manifold",
+    "rack_24_1ml",
+    "rack_24_3ml",
+    "rack_24_6ml",
+    "rear_ports",
+    "safety_shield",
+    "shield_handle",
+    "solvent_reservoirs",
+    "tip_rack",
+    "touchscreen",
+    "waste_tray",
+    "work_deck"
+   ],
+   "joints": {},
+   "parts": [
+    "safety_shield",
+    "pipette_head",
+    "pressure_manifold"
+   ],
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.86,
+     0.57,
+     0.73
     ]
    }
   },
@@ -1300,6 +2088,151 @@
     ]
    }
   },
+  "eppendorf_5910ri": {
+   "components": [
+    "chamber",
+    "chassis",
+    "control_panel",
+    "data_port",
+    "display",
+    "drive",
+    "feet",
+    "lid_hinges",
+    "lid_lock",
+    "power_port",
+    "refrigeration",
+    "rotor",
+    "rotor_slots",
+    "sample_carriers",
+    "sample_lid",
+    "ventilation"
+   ],
+   "joints": {},
+   "nodes": {
+    "chamber": [
+     "eppendorf_5910ri__bowl_floor",
+     "eppendorf_5910ri__chamber_wall",
+     "eppendorf_5910ri__chamber_rim"
+    ],
+    "chassis": [
+     "eppendorf_5910ri__housing",
+     "eppendorf_5910ri__plinth",
+     "eppendorf_5910ri__nameplate",
+     "eppendorf_5910ri__brand",
+     "eppendorf_5910ri__model_label"
+    ],
+    "control_panel": [
+     "eppendorf_5910ri__touch_panel"
+    ],
+    "data_port": [
+     "eppendorf_5910ri__data_inlet"
+    ],
+    "display": [
+     "eppendorf_5910ri__touchscreen",
+     "display_readout",
+     "imbalance_indicator"
+    ],
+    "drive": [
+     "eppendorf_5910ri__motor_proxy"
+    ],
+    "feet": [
+     "eppendorf_5910ri__foot",
+     "eppendorf_5910ri__foot.001",
+     "eppendorf_5910ri__foot.002",
+     "eppendorf_5910ri__foot.003"
+    ],
+    "lid_hinges": [
+     "eppendorf_5910ri__hinge",
+     "eppendorf_5910ri__hinge.001"
+    ],
+    "lid_lock": [
+     "eppendorf_5910ri__lock_receiver",
+     "lock_indicator"
+    ],
+    "power_port": [
+     "eppendorf_5910ri__power_inlet"
+    ],
+    "refrigeration": [
+     "eppendorf_5910ri__refrigeration_proxy"
+    ],
+    "rotor": [
+     "rotor_large_hub",
+     "rotor_fixed_plate",
+     "rotor_large_arm_1",
+     "rotor_large_arm_2",
+     "rotor_large_arm_3",
+     "rotor_large_arm_4"
+    ],
+    "rotor_slots": [
+     "rotor_large_bucket_1",
+     "rotor_fixed_socket_1",
+     "rotor_large_bucket_2",
+     "rotor_fixed_socket_2",
+     "rotor_large_bucket_3",
+     "rotor_fixed_socket_3",
+     "rotor_large_bucket_4",
+     "rotor_fixed_socket_4"
+    ],
+    "sample_carriers": [
+     "sample_carrier_1_body",
+     "sample_carrier_1_cap",
+     "sample_carrier_2_body",
+     "sample_carrier_2_cap",
+     "sample_carrier_3_body",
+     "sample_carrier_3_cap",
+     "sample_carrier_4_body",
+     "sample_carrier_4_cap"
+    ],
+    "sample_lid": [
+     "sample_lid_shell",
+     "sample_lid_inner_ring",
+     "sample_lid_inner_plate",
+     "sample_lid_latch"
+    ],
+    "ventilation": [
+     "eppendorf_5910ri__vent_-1_0",
+     "eppendorf_5910ri__vent_-1_1",
+     "eppendorf_5910ri__vent_-1_2",
+     "eppendorf_5910ri__vent_-1_3",
+     "eppendorf_5910ri__vent_-1_4",
+     "eppendorf_5910ri__vent_-1_5",
+     "eppendorf_5910ri__vent_-1_6",
+     "eppendorf_5910ri__vent_-1_7",
+     "eppendorf_5910ri__vent_-1_8",
+     "eppendorf_5910ri__vent_-1_9",
+     "eppendorf_5910ri__vent_-1_10",
+     "eppendorf_5910ri__vent_-1_11",
+     "eppendorf_5910ri__vent_-1_12",
+     "eppendorf_5910ri__vent_1_0",
+     "eppendorf_5910ri__vent_1_1",
+     "eppendorf_5910ri__vent_1_2",
+     "eppendorf_5910ri__vent_1_3",
+     "eppendorf_5910ri__vent_1_4",
+     "eppendorf_5910ri__vent_1_5",
+     "eppendorf_5910ri__vent_1_6",
+     "eppendorf_5910ri__vent_1_7",
+     "eppendorf_5910ri__vent_1_8",
+     "eppendorf_5910ri__vent_1_9",
+     "eppendorf_5910ri__vent_1_10",
+     "eppendorf_5910ri__vent_1_11",
+     "eppendorf_5910ri__vent_1_12"
+    ]
+   },
+   "parts": [
+    "sample_lid",
+    "rotor",
+    "chamber"
+   ],
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.72,
+     0.68,
+     0.37
+    ]
+   }
+  },
   "eppendorf_cellxpertc170i": {
    "access": {
     "detail": "joint outer_door (revolute)",
@@ -1415,6 +2348,639 @@
      0.9
     ]
    }
+  },
+  "gamry_reference620": {
+   "components": [
+    "cable_guide",
+    "cell_connector",
+    "cell_slot",
+    "counter_electrode_slot",
+    "data_port",
+    "feet",
+    "front_panel",
+    "housing",
+    "power_inlet",
+    "reference_electrode_slot",
+    "status_indicators",
+    "working_electrode_slot"
+   ],
+   "joints": {},
+   "parts": [
+    "cell_connector",
+    "front_panel"
+   ],
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.09,
+     0.27,
+     0.19
+    ]
+   }
+  },
+  "genevac_mivac2": {
+   "components": [
+    "base",
+    "basket_left",
+    "basket_mark_left",
+    "basket_mark_right",
+    "basket_right",
+    "button_auto",
+    "button_manual",
+    "button_preheat",
+    "button_stop",
+    "chamber_floor",
+    "chamber_wall",
+    "display_digits",
+    "display_screen",
+    "encoder",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "housing",
+    "latch_slot",
+    "lid",
+    "lid_hinges",
+    "lid_latch",
+    "lid_mark",
+    "lid_window",
+    "panel",
+    "plate_0",
+    "plate_1",
+    "plate_2",
+    "plate_3",
+    "plate_4",
+    "plate_5",
+    "port_electrical",
+    "port_gas_vent",
+    "port_vacuum",
+    "rotor",
+    "rotor_arm",
+    "rotor_mark",
+    "spindle",
+    "stacker_left_0",
+    "stacker_left_1",
+    "stacker_right_0",
+    "stacker_right_1",
+    "top_rim",
+    "vents_1",
+    "vents_n1",
+    "wells_0",
+    "wells_1",
+    "wells_2",
+    "wells_3",
+    "wells_4",
+    "wells_5"
+   ],
+   "joints": {
+    "basket_left": {
+     "axis": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.45
+     ],
+     "pivot": [
+      0.0,
+      -0.053,
+      0.214
+     ],
+     "type": "revolute"
+    },
+    "basket_right": {
+     "axis": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.45
+     ],
+     "pivot": [
+      0.0,
+      0.053,
+      0.214
+     ],
+     "type": "revolute"
+    },
+    "lid": {
+     "axis": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "photo_estimate",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      1.45
+     ],
+     "pivot": [
+      0.0,
+      0.19,
+      0.29
+     ],
+     "type": "revolute"
+    },
+    "rotor": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      -3.141593,
+      3.141593
+     ],
+     "pivot": [
+      0.0,
+      0.0,
+      0.214
+     ],
+     "type": "revolute"
+    }
+   },
+   "parts": [
+    "lid",
+    "rotor",
+    "basket_left",
+    "basket_right"
+   ],
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.36,
+     0.424,
+     0.3
+    ]
+   }
+  },
+  "hepatochem_photoredoxbox": {
+   "components": [
+    "button_power",
+    "chamber_liner",
+    "chrome_crown",
+    "cooling_fan",
+    "display_bezel",
+    "display_digits",
+    "display_screen",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "front_panel",
+    "handle_recess",
+    "housing",
+    "ir_probe",
+    "knob_bezel",
+    "knob_encoder",
+    "led_0",
+    "led_1",
+    "led_2",
+    "led_3",
+    "led_mount_0",
+    "led_mount_1",
+    "led_mount_2",
+    "led_mount_3",
+    "lid",
+    "lid_handle",
+    "lid_vent_0",
+    "lid_vent_1",
+    "lid_vent_2",
+    "lid_vent_3",
+    "lid_vent_4",
+    "lid_vent_5",
+    "panel_screws",
+    "power_inlet",
+    "sample_rack",
+    "sample_vial_0",
+    "sample_vial_1",
+    "sample_vial_2",
+    "sample_vial_3",
+    "sample_vial_4",
+    "sample_vial_5",
+    "sample_vial_6",
+    "sample_vial_7",
+    "stir_motor",
+    "upper_deck",
+    "vial_cap_0",
+    "vial_cap_1",
+    "vial_cap_2",
+    "vial_cap_3",
+    "vial_cap_4",
+    "vial_cap_5",
+    "vial_cap_6",
+    "vial_cap_7",
+    "vial_interface_0",
+    "vial_interface_1",
+    "vial_interface_2",
+    "vial_interface_3",
+    "vial_interface_4",
+    "vial_interface_5",
+    "vial_interface_6",
+    "vial_interface_7"
+   ],
+   "joints": {
+    "lid": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.12
+     ],
+     "pivot": [
+      0.0,
+      0.015,
+      0.26
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "lid",
+    "sample_rack"
+   ],
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.3556,
+     0.3556,
+     0.3048
+    ]
+   }
+  },
+  "ika_ks4000": {
+   "components": [
+    "air_fan",
+    "base_tray",
+    "button_power",
+    "button_shift",
+    "button_speed",
+    "button_speed_down",
+    "button_speed_up",
+    "button_temp",
+    "button_temp_down",
+    "button_temp_up",
+    "button_time_down",
+    "button_time_up",
+    "button_timer",
+    "chamber",
+    "control_panel",
+    "display_digits",
+    "drain_port",
+    "duct_vents",
+    "eccentric_drive",
+    "fixture_frame",
+    "fixture_rollers",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "front_console",
+    "heater",
+    "hood",
+    "hood_handle",
+    "hood_seal",
+    "hood_sensor",
+    "hood_window_front",
+    "hood_window_left",
+    "hood_window_right",
+    "hood_window_roof",
+    "housing",
+    "mains_recess",
+    "motor",
+    "orbit_x",
+    "platform",
+    "power_inlet",
+    "pt1000_external_port",
+    "pt1000_external_probe",
+    "pt1000_internal",
+    "rear_louvres",
+    "rear_nameplate",
+    "rs232_port",
+    "safety_sensor",
+    "sample_port_0",
+    "sample_port_1",
+    "sample_port_2",
+    "sample_port_3",
+    "sample_port_4",
+    "sample_port_5",
+    "sample_port_6",
+    "sample_port_7",
+    "sample_port_8",
+    "top_cover"
+   ],
+   "joints": {
+    "hood": {
+     "axis": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "manufacturer_verified",
+     "evidence": "manufacturer",
+     "limits": [
+      0.0,
+      1.570796
+     ],
+     "pivot": [
+      0.0,
+      0.16044,
+      0.51743
+     ],
+     "type": "revolute"
+    },
+    "platform": {
+     "axis": [
+      0.0,
+      1.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      -0.01,
+      0.01
+     ],
+     "pivot": [
+      0.0,
+      0.0,
+      0.196
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "hood",
+    "platform"
+   ],
+   "size": {
+    "detail": "manufacturer_dimensions_m",
+    "evidence": "manufacturer",
+    "value": [
+     0.58,
+     0.75,
+     0.52
+    ]
+   }
+  },
+  "ika_t25": {
+   "components": [
+    "clamp_lock",
+    "clamp_rod",
+    "cross_sleeve",
+    "display_digits",
+    "drive",
+    "drive_flange",
+    "drive_marker",
+    "drive_top_vents",
+    "extension_arm",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "knob_speed",
+    "nameplate",
+    "panel",
+    "power_cable",
+    "rotor",
+    "rotor_marker",
+    "sample_surface",
+    "shaft_tube",
+    "speed_reference_mark",
+    "stand_base",
+    "stand_column",
+    "stator",
+    "switch_run",
+    "tool_lock",
+    "vent_0",
+    "vent_1",
+    "vent_2",
+    "vent_3",
+    "vent_4",
+    "vessel",
+    "vessel_clamp",
+    "vessel_marking",
+    "vessel_rim"
+   ],
+   "joints": {
+    "drive": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "task_envelope",
+     "evidence": "engineering_assumption",
+     "limits": [
+      -0.018419,
+      0.05
+     ],
+     "pivot": [
+      0.0,
+      0.0,
+      0.24242
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "drive",
+    "rotor",
+    "vessel"
+   ],
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.32,
+     0.3,
+     0.628
+    ]
+   }
+  },
+  "mt_xpr204e": {
+   "components": [
+    "chamber_floor",
+    "door_left",
+    "door_right",
+    "door_top",
+    "draftshield_frame",
+    "foot_front_left",
+    "foot_front_right",
+    "foot_rear_left",
+    "foot_rear_right",
+    "front_glass",
+    "housing",
+    "pan",
+    "pan_support",
+    "partition_panel",
+    "rear_ports",
+    "security_anchor",
+    "security_switch",
+    "status_light",
+    "terminal_display",
+    "terminal_holder",
+    "terminal_housing",
+    "touch_key_door_left",
+    "touch_key_door_right",
+    "touch_key_home",
+    "touch_key_standby",
+    "touch_key_tare",
+    "touch_key_zero",
+    "weigh_below"
+   ],
+   "joints": {},
+   "nodes": {
+    "chamber_floor": [
+     "PX224E__chamber_floor"
+    ],
+    "door_left": [
+     "mt_xpr204e__door_left"
+    ],
+    "door_right": [
+     "mt_xpr204e__door_right"
+    ],
+    "door_top": [
+     "mt_xpr204e__door_top"
+    ],
+    "draftshield_frame": [
+     "mt_xpr204e__draftshield_frame"
+    ],
+    "foot_front_left": [
+     "PX224E__foot_front_left"
+    ],
+    "foot_front_right": [
+     "PX224E__foot_front_right"
+    ],
+    "foot_rear_left": [
+     "PX224E__foot_rear_left"
+    ],
+    "foot_rear_right": [
+     "PX224E__foot_rear_right"
+    ],
+    "front_glass": [
+     "mt_xpr204e__front_glass"
+    ],
+    "housing": [
+     "PX224E__housing"
+    ],
+    "pan": [
+     "PX224E__pan"
+    ],
+    "pan_support": [
+     "PX224E__pan_support"
+    ],
+    "partition_panel": [
+     "mt_xpr204e__partition_panel"
+    ],
+    "rear_ports": [
+     "PX224E__rear_ports"
+    ],
+    "security_anchor": [
+     "PX224E__security_anchor"
+    ],
+    "security_switch": [
+     "PX224E__security_switch"
+    ],
+    "status_light": [
+     "mt_xpr204e__status_light"
+    ],
+    "terminal_display": [
+     "mt_xpr204e__terminal_display"
+    ],
+    "terminal_holder": [
+     "mt_xpr204e__terminal_holder"
+    ],
+    "terminal_housing": [
+     "mt_xpr204e__terminal_housing"
+    ],
+    "touch_key_door_left": [
+     "mt_xpr204e__touch_key_door_left"
+    ],
+    "touch_key_door_right": [
+     "mt_xpr204e__touch_key_door_right"
+    ],
+    "touch_key_home": [
+     "mt_xpr204e__touch_key_home"
+    ],
+    "touch_key_standby": [
+     "mt_xpr204e__touch_key_standby"
+    ],
+    "touch_key_tare": [
+     "mt_xpr204e__touch_key_tare"
+    ],
+    "touch_key_zero": [
+     "mt_xpr204e__touch_key_zero"
+    ],
+    "weigh_below": [
+     "PX224E__weigh_below"
+    ]
+   },
+   "parts": [
+    "door_left",
+    "door_right",
+    "pan"
+   ]
+  },
+  "opentrons_flex_single_5_1000ul": {
+   "components": [
+    "base",
+    "carriage_x",
+    "carriage_z",
+    "connections",
+    "deck",
+    "enclosure",
+    "frame",
+    "gantry_y",
+    "pipette",
+    "rear_power_switch",
+    "slot_a1",
+    "slot_a2",
+    "slot_a3",
+    "slot_a4",
+    "slot_b1",
+    "slot_b2",
+    "slot_b3",
+    "slot_b4",
+    "slot_c1",
+    "slot_c2",
+    "slot_c3",
+    "slot_c4",
+    "slot_d1",
+    "slot_d2",
+    "slot_d3",
+    "slot_d4",
+    "status_light",
+    "touchscreen",
+    "y_rails"
+   ],
+   "joints": {},
+   "parts": [
+    "gantry_y",
+    "carriage_x",
+    "pipette",
+    "deck"
+   ]
   },
   "sciex_pa800": {
    "access": {
@@ -1713,6 +3279,525 @@
      0.87,
      0.645,
      0.587
+    ]
+   }
+  },
+  "syrris_asiadiscovery": {
+   "components": [
+    "bpr",
+    "chip",
+    "chip_clamp",
+    "chip_handle",
+    "chip_hot_sign",
+    "chip_inlet_0",
+    "chip_inlet_1",
+    "chip_inlet_2",
+    "chip_outlet",
+    "chip_window",
+    "climate",
+    "climate_display",
+    "climate_panel",
+    "climate_port_plate",
+    "climate_red_disc",
+    "climate_surround",
+    "collector",
+    "collector_gantry_slot",
+    "collector_keypad",
+    "collector_nozzle",
+    "collector_rail_beam",
+    "collector_rail_caps",
+    "collector_x",
+    "collector_y",
+    "display_digits",
+    "feed_bottle_0",
+    "feed_bottle_1",
+    "feed_bottle_2",
+    "feed_bottle_3",
+    "feed_cap_0",
+    "feed_cap_1",
+    "feed_cap_2",
+    "feed_cap_3",
+    "feed_fitting_0",
+    "feed_fitting_1",
+    "feed_tubing",
+    "fraction_rack",
+    "fraction_slot_0",
+    "fraction_slot_1",
+    "fraction_slot_2",
+    "fraction_slot_3",
+    "fraction_slot_4",
+    "fraction_slot_5",
+    "fraction_slot_6",
+    "fraction_slot_7",
+    "fraction_vial_0",
+    "fraction_vial_1",
+    "fraction_vial_2",
+    "fraction_vial_3",
+    "fraction_vial_4",
+    "fraction_vial_5",
+    "fraction_vial_6",
+    "fraction_vial_7",
+    "gas_inlet",
+    "injection_valve_0",
+    "injection_valve_1",
+    "injector",
+    "injector_cover",
+    "injector_display",
+    "injector_notch_shade",
+    "injector_panel",
+    "injector_red_disc",
+    "input_store",
+    "input_store_band",
+    "input_store_warning",
+    "knob_backpressure",
+    "liquid_line_0",
+    "liquid_line_1",
+    "liquid_line_2",
+    "liquid_line_3",
+    "module_feet",
+    "power_inlet",
+    "pressure",
+    "pressure_cover",
+    "pressure_display",
+    "pressure_panel",
+    "pump",
+    "pump_display",
+    "pump_heads",
+    "pump_jog_bezel",
+    "pump_panel",
+    "pump_pressure_sensors",
+    "pump_red_disc",
+    "pump_red_dot",
+    "regulator_plate",
+    "regulator_red_disc",
+    "sample_loop_0",
+    "sample_loop_1",
+    "syringe_0",
+    "syringe_1",
+    "syringe_2",
+    "syringe_3",
+    "syringe_bands",
+    "syringe_drives",
+    "syringe_plungers",
+    "usb_port"
+   ],
+   "joints": {
+    "chip_clamp": {
+     "axis": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.04
+     ],
+     "pivot": [
+      -0.175,
+      0.0,
+      0.146
+     ],
+     "type": "prismatic"
+    },
+    "collector_x": {
+     "axis": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.3
+     ],
+     "pivot": [
+      0.215,
+      0.1,
+      0.235
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "chip_clamp",
+    "collector_x",
+    "chip"
+   ],
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     1.23,
+     0.309,
+     0.5124
+    ]
+   }
+  },
+  "ta_dsc2500": {
+   "components": [
+    "back_cover_roof",
+    "beam",
+    "beam_cover_left",
+    "beam_cover_right",
+    "beam_foot_left",
+    "beam_foot_right",
+    "cell_floor",
+    "cell_liner",
+    "control_panel",
+    "controller",
+    "controller_mount",
+    "cooling_ring",
+    "cooling_rod_0",
+    "cooling_rod_1",
+    "cooling_rod_10",
+    "cooling_rod_11",
+    "cooling_rod_12",
+    "cooling_rod_13",
+    "cooling_rod_14",
+    "cooling_rod_15",
+    "cooling_rod_2",
+    "cooling_rod_3",
+    "cooling_rod_4",
+    "cooling_rod_5",
+    "cooling_rod_6",
+    "cooling_rod_7",
+    "cooling_rod_8",
+    "cooling_rod_9",
+    "data_back",
+    "data_port",
+    "discovery_badge",
+    "display_digits",
+    "facs_air_inlet",
+    "facs_core",
+    "facs_fin_0",
+    "facs_fin_1",
+    "facs_fin_10",
+    "facs_fin_11",
+    "facs_fin_12",
+    "facs_fin_13",
+    "facs_fin_2",
+    "facs_fin_3",
+    "facs_fin_4",
+    "facs_fin_5",
+    "facs_fin_6",
+    "facs_fin_7",
+    "facs_fin_8",
+    "facs_fin_9",
+    "foot_0",
+    "foot_1",
+    "foot_2",
+    "foot_3",
+    "front_cover_roof",
+    "front_nameplate",
+    "front_shell",
+    "furnace",
+    "furnace_base",
+    "furnace_cradle",
+    "furnace_deck_infill",
+    "furnace_inner_rim",
+    "furnace_mouth",
+    "furnace_outer_rim",
+    "gas_exhaust",
+    "gas_exhaust_nut",
+    "gas_manifold",
+    "gripper_finger_0",
+    "gripper_finger_1",
+    "housing",
+    "inner_lid",
+    "laser_position_sensor",
+    "lid",
+    "lid_cover",
+    "lid_crossbar",
+    "lid_guide",
+    "lid_guide_bracket",
+    "lid_guide_shaft",
+    "lid_support_bridge",
+    "lid_upper_link",
+    "lid_vertical_brace",
+    "manifold_mount",
+    "power_back",
+    "power_bezel",
+    "power_in",
+    "power_pin_0",
+    "power_pin_1",
+    "power_pin_2",
+    "power_pivot",
+    "power_switch",
+    "purge_inlet",
+    "purge_inlet_b",
+    "purge_inlet_b_nut",
+    "purge_inlet_nut",
+    "rear_screw_0",
+    "rear_screw_1",
+    "rear_screw_2",
+    "rear_screw_3",
+    "rear_vent_0",
+    "rear_vent_1",
+    "rear_vent_2",
+    "rear_vent_3",
+    "rear_vent_4",
+    "rear_vent_5",
+    "rear_vent_6",
+    "rear_vent_7",
+    "rear_wall",
+    "reference_pan",
+    "reference_pan_rim",
+    "reference_sensor",
+    "reference_stem",
+    "rim_bridge_0",
+    "rim_bridge_1",
+    "rim_bridge_10",
+    "rim_bridge_11",
+    "rim_bridge_12",
+    "rim_bridge_13",
+    "rim_bridge_14",
+    "rim_bridge_15",
+    "rim_bridge_16",
+    "rim_bridge_17",
+    "rim_bridge_18",
+    "rim_bridge_19",
+    "rim_bridge_2",
+    "rim_bridge_20",
+    "rim_bridge_21",
+    "rim_bridge_22",
+    "rim_bridge_23",
+    "rim_bridge_24",
+    "rim_bridge_25",
+    "rim_bridge_26",
+    "rim_bridge_27",
+    "rim_bridge_28",
+    "rim_bridge_29",
+    "rim_bridge_3",
+    "rim_bridge_30",
+    "rim_bridge_31",
+    "rim_bridge_32",
+    "rim_bridge_33",
+    "rim_bridge_34",
+    "rim_bridge_35",
+    "rim_bridge_36",
+    "rim_bridge_37",
+    "rim_bridge_38",
+    "rim_bridge_39",
+    "rim_bridge_4",
+    "rim_bridge_40",
+    "rim_bridge_41",
+    "rim_bridge_42",
+    "rim_bridge_43",
+    "rim_bridge_44",
+    "rim_bridge_45",
+    "rim_bridge_46",
+    "rim_bridge_47",
+    "rim_bridge_48",
+    "rim_bridge_49",
+    "rim_bridge_5",
+    "rim_bridge_50",
+    "rim_bridge_51",
+    "rim_bridge_52",
+    "rim_bridge_53",
+    "rim_bridge_54",
+    "rim_bridge_55",
+    "rim_bridge_56",
+    "rim_bridge_57",
+    "rim_bridge_58",
+    "rim_bridge_59",
+    "rim_bridge_6",
+    "rim_bridge_60",
+    "rim_bridge_61",
+    "rim_bridge_62",
+    "rim_bridge_63",
+    "rim_bridge_64",
+    "rim_bridge_65",
+    "rim_bridge_66",
+    "rim_bridge_67",
+    "rim_bridge_68",
+    "rim_bridge_69",
+    "rim_bridge_7",
+    "rim_bridge_70",
+    "rim_bridge_71",
+    "rim_bridge_8",
+    "rim_bridge_9",
+    "rim_support",
+    "sample_charge",
+    "sample_pan",
+    "sample_pan_rim",
+    "sample_sensor",
+    "sample_stem",
+    "sampler_back_cover",
+    "sampler_front_cover",
+    "sampler_gripper",
+    "sampler_top_bridge",
+    "sampler_x",
+    "sampler_y",
+    "sampler_z",
+    "screen_bezel",
+    "screen_footer",
+    "screen_mount",
+    "sensor_pedestal",
+    "side_left",
+    "side_right",
+    "top_deck",
+    "touchscreen",
+    "tray_a",
+    "tray_b",
+    "tray_edge_a_front",
+    "tray_edge_a_rear",
+    "tray_edge_b_front",
+    "tray_edge_b_rear",
+    "tray_pan_01",
+    "tray_pan_02",
+    "tray_pan_08",
+    "tray_pan_12",
+    "tray_pan_17",
+    "tray_pan_26",
+    "tray_pan_28",
+    "tray_pan_36",
+    "tray_pan_40",
+    "tray_pan_48",
+    "tray_pan_54",
+    "tray_pan_support_01",
+    "tray_pan_support_02",
+    "tray_pan_support_08",
+    "tray_pan_support_12",
+    "tray_pan_support_17",
+    "tray_pan_support_26",
+    "tray_pan_support_28",
+    "tray_pan_support_36",
+    "tray_pan_support_40",
+    "tray_pan_support_48",
+    "tray_pan_support_54",
+    "tray_post_a_0",
+    "tray_post_a_1",
+    "tray_post_b_0",
+    "tray_post_b_1",
+    "tray_socket_01",
+    "tray_socket_02",
+    "tray_socket_03",
+    "tray_socket_04",
+    "tray_socket_05",
+    "tray_socket_06",
+    "tray_socket_07",
+    "tray_socket_08",
+    "tray_socket_09",
+    "tray_socket_10",
+    "tray_socket_11",
+    "tray_socket_12",
+    "tray_socket_13",
+    "tray_socket_14",
+    "tray_socket_15",
+    "tray_socket_16",
+    "tray_socket_17",
+    "tray_socket_18",
+    "tray_socket_19",
+    "tray_socket_20",
+    "tray_socket_21",
+    "tray_socket_22",
+    "tray_socket_23",
+    "tray_socket_24",
+    "tray_socket_25",
+    "tray_socket_26",
+    "tray_socket_27",
+    "tray_socket_28",
+    "tray_socket_29",
+    "tray_socket_30",
+    "tray_socket_31",
+    "tray_socket_32",
+    "tray_socket_33",
+    "tray_socket_34",
+    "tray_socket_35",
+    "tray_socket_36",
+    "tray_socket_37",
+    "tray_socket_38",
+    "tray_socket_39",
+    "tray_socket_40",
+    "tray_socket_41",
+    "tray_socket_42",
+    "tray_socket_43",
+    "tray_socket_44",
+    "tray_socket_45",
+    "tray_socket_46",
+    "tray_socket_47",
+    "tray_socket_48",
+    "tray_socket_49",
+    "tray_socket_50",
+    "tray_socket_51",
+    "tray_socket_52",
+    "tray_socket_53",
+    "tray_socket_54",
+    "tray_support_a",
+    "tray_support_b",
+    "x_bearing_0",
+    "x_bearing_1",
+    "x_rail_0",
+    "x_rail_1",
+    "x_seat_0_left",
+    "x_seat_0_right",
+    "x_seat_1_left",
+    "x_seat_1_right",
+    "y_bearing_0",
+    "y_bearing_1",
+    "y_rail_0",
+    "y_rail_1",
+    "y_seat_0_front",
+    "y_seat_0_rear",
+    "y_seat_1_front",
+    "y_seat_1_rear",
+    "z_bearing"
+   ],
+   "joints": {
+    "lid": {
+     "axis": [
+      0.0,
+      0.948683,
+      0.316228
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.06
+     ],
+     "pivot": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "type": "prismatic"
+    },
+    "sampler_x": {
+     "axis": [
+      1,
+      0,
+      0
+     ],
+     "detail": "engineering_assumption",
+     "evidence": "engineering_assumption",
+     "limits": [
+      0.0,
+      0.33
+     ],
+     "pivot": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "type": "prismatic"
+    }
+   },
+   "parts": [
+    "lid",
+    "sampler_x",
+    "furnace"
+   ],
+   "size": {
+    "detail": "model_bounding_box",
+    "evidence": "engineering_assumption",
+    "value": [
+     0.53,
+     0.51,
+     0.61
     ]
    }
   },

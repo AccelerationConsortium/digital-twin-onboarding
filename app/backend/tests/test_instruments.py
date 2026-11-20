@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import pytest
 from academy.chemlab import CHEMLAB
-from academy.cloudlab import CLOUDLAB, CONTRACTS, INSTRUMENTS, LAYOUT
+from academy.cloudlab import CLOUDLAB, CONTRACTS, LAYOUT
 from academy.simple_twins import SIZE_BASES, TEMPLATES, TwinSpec, usda
 from academy.simready import SIMREADY
 from academy.workcell_models import catalog as workcell_catalog
@@ -413,7 +413,8 @@ def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geomet
     for asset in CLOUDLAB.values():
         assert TwinSpec.model_validate(asset["spec"]).model_dump(mode="json") == asset["spec"]
         assert len(asset["spec"]["parts"]) == 1
-        assert asset["url"] == "https://www.emeraldcloudlab.com/instrumentation/"
+        if asset["lab"] == "ecl":
+            assert asset["url"] == "https://www.emeraldcloudlab.com/instrumentation/"
         assumptions = asset["spec"]["assumptions"]
         assert asset["experiment"] in assumptions and "teaching defaults" in assumptions
         if asset["stand_in"]:
@@ -476,9 +477,9 @@ def test_every_cloudlab_twin_carries_layout_geometry_with_its_basis():
 
 def test_stand_in_twins_take_their_contract_values_and_evidence():
     stand_ins = {k: a for k, a in CLOUDLAB.items() if a["stand_in"]}
-    assert len(stand_ins) == 15
+    assert sum(a["lab"] == "ecl" for a in stand_ins.values()) == 15
     for asset_id, asset in stand_ins.items():
-        slug = INSTRUMENTS[asset_id][-1]
+        slug = asset["slug"]
         found, spec = CONTRACTS["stand_ins"][slug], asset["spec"]
         assert asset["layout_model"] == asset["stand_in"]
         if "size" in found:
@@ -503,10 +504,17 @@ def test_stand_in_twins_take_their_contract_values_and_evidence():
 
 def test_pinned_contract_values_carry_no_dataset_text():
     allowed = {"size", "access", "level_m", "opening", "site", "extends_m", "port"}
-    allowed |= {"parts", "joints", "components"}
+    allowed |= {"parts", "joints", "components", "nodes"}
     for slug, found in CONTRACTS["stand_ins"].items():
         assert found.keys() <= allowed, slug
         for key, item in found.items():
+            if key == "nodes":
+                # Model node names only: component ids to identifiers, nothing else.
+                assert all(re.fullmatch(r"[a-z0-9_]+", c) for c in item)
+                assert all(
+                    re.fullmatch(r"[A-Za-z0-9_.-]+", n) for names in item.values() for n in names
+                )
+                continue
             if key == "port":
                 assert re.fullmatch(r"[a-z0-9_]+", item)
                 continue

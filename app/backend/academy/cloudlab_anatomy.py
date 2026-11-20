@@ -15,7 +15,14 @@ UP, FRONT, BACK = (0, 0, 1), (0, -1, 0), (0, 1, 0)
 LEFT, RIGHT = (-1, 0, 0), (1, 0, 0)
 
 # Stand-ins whose model names its nodes with a prefix other than `<slug>__`.
-PREFIX = {"agilent_hplc1260": "hplc1260__", "agilent_gc8890b": "GC7890B__"}
+PREFIX = {
+    "agilent_hplc1260": "hplc1260__",
+    "agilent_gc8890b": "GC7890B__",
+    "azenta_intellixcap_s1_46_0001": "intellixcap_s1__",
+    "biotage_extrahera_classic": "extrahera__",
+    "gamry_reference620": "gamry_ref620__",
+    "opentrons_flex_single_5_1000ul": "flex__",
+}
 
 # slug: [(label, what it does, components, toward or None)], in the order they are numbered.
 ANATOMY = {
@@ -411,6 +418,470 @@ ANATOMY = {
             BACK,
         ),
     ],
+    # Acceleration Consortium stand-ins.
+    "opentrons_flex_single_5_1000ul": [
+        (
+            "Deck",
+            "Holds plates, tip racks and reservoirs in a grid of slots.",
+            ("deck", "slot_*"),
+            None,
+        ),
+        (
+            "Gantry",
+            "Carries the pipette left and right, front and back.",
+            ("gantry_y", "y_rails", "carriage_x"),
+            UP,
+        ),
+        (
+            "Pipette",
+            "Rides down on its own axis to draw and release liquid.",
+            ("carriage_z", "pipette"),
+            FRONT,
+        ),
+        ("Touchscreen", "Starts runs and shows where a protocol is.", ("touchscreen",), RIGHT),
+        (
+            "Status light",
+            "Shows whether the robot is idle, running or needs attention.",
+            ("status_light",),
+            UP,
+        ),
+    ],
+    "mt_xpr204e": [
+        (
+            "Draft shield",
+            "Glass doors that keep air currents off the pan.",
+            ("door_left", "door_right", "door_top", "front_glass", "draftshield_frame"),
+            UP,
+        ),
+        ("Weighing pan", "Where the vial sits while it is weighed.", ("pan", "pan_support"), FRONT),
+        (
+            "Weighing cell",
+            "Measures the force on the pan under the chamber floor.",
+            ("chamber_floor", "weigh_below"),
+            None,
+        ),
+        (
+            "Terminal",
+            "Display and keys to tare, zero and read the mass.",
+            ("terminal_*", "touch_key_*", "status_light"),
+            FRONT,
+        ),
+        (
+            "Rear ports",
+            "Power and the data link to the computer that reads it.",
+            ("rear_ports", "security_switch", "security_anchor"),
+            BACK,
+        ),
+    ],
+    "azenta_intellixcap_s1_46_0001": [
+        (
+            "Gripper",
+            "Grips the caps of a rack of tubes at once.",
+            ("gripper", "jaw_left", "jaw_right"),
+            UP,
+        ),
+        ("Spindle", "Turns the gripper to unscrew or screw the caps.", ("spindle",), UP),
+        (
+            "Sample interface",
+            "Where the tube rack is set and held down.",
+            ("sample_interface",),
+            FRONT,
+        ),
+        ("Controller", "Chooses capping or decapping.", ("controller", "trigger_disc"), RIGHT),
+        (
+            "Power entry",
+            "Mains input and the switch that selects the supply.",
+            ("power_inlet", "power_selection_button"),
+            BACK,
+        ),
+    ],
+    "ika_t25": [
+        (
+            "Drive",
+            "The motor that spins the dispersing tool.",
+            ("drive", "drive_*", "tool_lock"),
+            UP,
+        ),
+        (
+            "Dispersing tool",
+            "A rotor turning inside a stator shears the sample apart.",
+            ("shaft_tube", "stator", "rotor", "rotor_marker"),
+            FRONT,
+        ),
+        (
+            "Vessel",
+            "Holds the sample under the tool.",
+            ("vessel", "vessel_*", "sample_surface"),
+            FRONT,
+        ),
+        (
+            "Stand",
+            "Holds the drive at the height of the vessel.",
+            ("stand_base", "stand_column", "extension_arm", "cross_sleeve", "clamp_*"),
+            LEFT,
+        ),
+        (
+            "Speed control",
+            "Sets how fast the rotor turns.",
+            ("panel", "knob_speed", "switch_run", "display_digits", "speed_reference_mark"),
+            RIGHT,
+        ),
+    ],
+    "ika_ks4000": [
+        ("Hood", "Closes the chamber so the plates stay warm.", ("hood", "hood_*"), UP),
+        (
+            "Shaking platform",
+            "Carries the plates round in small circles.",
+            ("platform", "fixture_frame", "fixture_rollers"),
+            UP,
+        ),
+        (
+            "Drive",
+            "Motor and eccentric that make the platform orbit.",
+            ("motor", "eccentric_drive", "orbit_x"),
+            None,
+        ),
+        (
+            "Heater and fan",
+            "Warm the air in the chamber and move it over the plates.",
+            ("heater", "air_fan"),
+            BACK,
+        ),
+        (
+            "Control panel",
+            "Sets speed, temperature and time.",
+            ("front_console", "control_panel", "button_*", "display_digits"),
+            FRONT,
+        ),
+    ],
+    "genevac_mivac2": [
+        ("Lid", "Seals the chamber so it can be pumped down.", ("lid", "lid_*"), UP),
+        (
+            "Rotor",
+            "Spins the plates so the liquid stays in the wells as it boils off.",
+            ("rotor", "rotor_arm", "rotor_mark", "spindle"),
+            UP,
+        ),
+        (
+            "Plate baskets",
+            "Swing out as the rotor turns, holding the plates.",
+            ("basket_*", "stacker_*", "plate_*", "wells_*"),
+            UP,
+        ),
+        (
+            "Chamber",
+            "Heated bowl under vacuum where the solvent evaporates.",
+            ("chamber_wall", "chamber_floor", "top_rim"),
+            None,
+        ),
+        (
+            "Panel",
+            "Starts, stops and preheats a run.",
+            ("panel", "display_*", "button_*", "encoder"),
+            FRONT,
+        ),
+    ],
+    "biotage_extrahera_classic": [
+        (
+            "Safety shield",
+            "Closes the deck while pressure is applied.",
+            ("safety_shield", "shield_handle"),
+            FRONT,
+        ),
+        (
+            "Pipetting head",
+            "Moves on a gantry to add sample and solvent to the plate.",
+            ("gantry_frame", "gantry_x", "gantry_y", "pipette_z", "pipette_head"),
+            UP,
+        ),
+        (
+            "Pressure manifold",
+            "Pushes air through the filter plate, well by well.",
+            ("pressure_manifold",),
+            UP,
+        ),
+        (
+            "Work deck",
+            "Racks, plates and tips the run uses.",
+            ("work_deck", "deck_slots", "rack_*", "plate_*", "tip_rack"),
+            None,
+        ),
+        (
+            "Collection",
+            "Catches what comes through the filter.",
+            ("collection_carousel", "collection_plate", "waste_tray"),
+            FRONT,
+        ),
+    ],
+    "eppendorf_5910ri": [
+        ("Lid", "Locks shut while the rotor turns.", ("sample_lid", "lid_lock", "lid_hinges"), UP),
+        (
+            "Rotor",
+            "Carries the plates round at speed.",
+            ("rotor", "rotor_slots", "sample_carriers"),
+            UP,
+        ),
+        ("Chamber", "The bowl the rotor turns in.", ("chamber",), None),
+        (
+            "Drive and cooling",
+            "Motor under the rotor and the refrigeration that keeps samples cool.",
+            ("drive", "refrigeration"),
+            BACK,
+        ),
+        ("Control panel", "Sets speed, time and temperature.", ("control_panel", "display"), FRONT),
+    ],
+    "azenta_automated_roll_heat_sealer_a4s": [
+        (
+            "Plate carriage",
+            "Draws the plate in under the press and back out.",
+            ("plate_carriage", "plate_adapter", "external_plate", "guide_rails"),
+            FRONT,
+        ),
+        ("Press head", "Heated plate that presses the film onto the wells.", ("press_head",), UP),
+        (
+            "Film roll",
+            "Feeds sealing film over the plate.",
+            ("film_roll", "roll_support", "feed_rollers", "film_path"),
+            BACK,
+        ),
+        ("Cutter", "Cuts the seal from the roll.", ("cutter",), UP),
+        (
+            "Front panel",
+            "Status display and the buttons that start a seal.",
+            ("front_fascia", "status_display"),
+            FRONT,
+        ),
+    ],
+    "antonpaar_litesizerdls": [
+        (
+            "Sample lid",
+            "Shuts out room light over the cell.",
+            ("sample_lid", "lid_*", "hinge_*", "open_button"),
+            UP,
+        ),
+        (
+            "Measuring cell",
+            "A cuvette or an Omega cell holds the sample in the beam.",
+            (
+                "cuvette",
+                "cell_cap",
+                "cell_select",
+                "quartz_*",
+                "sample_well",
+                "sample_liquid",
+                "omega_*",
+            ),
+            UP,
+        ),
+        (
+            "Temperature block",
+            "Holds the cell at the set temperature.",
+            ("peltier", "thermal_jaw_*", "thermistor", "chamber_*", "purge_*"),
+            None,
+        ),
+        (
+            "Laser and detectors",
+            "Shine light through the sample and catch it scattered at three angles.",
+            ("laser", "optical_bench", "beam_dump", "lens_*", "apd_*"),
+            LEFT,
+        ),
+        (
+            "Electronics",
+            "Power the instrument and connect it to the computer.",
+            ("controller", "power_switch", "dc_in", "usb", "lamp_*", "rear_fan"),
+            BACK,
+        ),
+    ],
+    "hepatochem_photoredoxbox": [
+        ("Lid", "Keeps the light inside the box.", ("lid", "lid_*", "handle_recess"), UP),
+        (
+            "Sample rack",
+            "Holds the vials at the same distance from the lamps.",
+            ("sample_rack", "vial_interface_*", "sample_vial_*", "vial_cap_*"),
+            UP,
+        ),
+        ("Lamps", "Light the vials from below.", ("led_*",), None),
+        (
+            "Stirring and cooling",
+            "Stir each vial and carry the lamps' heat away.",
+            ("stir_motor", "cooling_fan"),
+            BACK,
+        ),
+        (
+            "Front panel",
+            "Sets and shows the run.",
+            ("front_panel", "display_*", "knob_*", "button_power"),
+            FRONT,
+        ),
+    ],
+    "syrris_asiadiscovery": [
+        (
+            "Pumps",
+            "Push the reagents through the reactor at a set flow.",
+            ("pump", "pump_*", "syringe_*"),
+            FRONT,
+        ),
+        (
+            "Injector",
+            "Switches sample loops into the flow.",
+            ("injector", "injector_*", "injection_valve_*", "sample_loop_*"),
+            UP,
+        ),
+        ("Reactor chip", "The heated channel where the reaction happens.", ("chip", "chip_*"), UP),
+        ("Climate", "Heats or cools the reactor.", ("climate", "climate_*"), None),
+        (
+            "Fraction collector",
+            "Moves a nozzle over the vials to collect each fraction.",
+            ("collector", "collector_*", "fraction_*"),
+            RIGHT,
+        ),
+    ],
+    "gamry_reference620": [
+        (
+            "Cell connector",
+            "Where the cell cable plugs in.",
+            ("cell_connector", "cable_guide"),
+            FRONT,
+        ),
+        (
+            "Electrode leads",
+            "Working, reference and counter electrode connections.",
+            (
+                "working_electrode_slot",
+                "reference_electrode_slot",
+                "counter_electrode_slot",
+            ),
+            FRONT,
+        ),
+        ("Front panel", "Shows whether the cell is on.", ("front_panel", "status_indicators"), UP),
+        (
+            "Rear ports",
+            "Power and the computer link that runs it.",
+            ("power_inlet", "data_port"),
+            BACK,
+        ),
+        (
+            "Cell slot",
+            "Where the cell cable is parked when no cell is connected.",
+            ("cell_slot",),
+            FRONT,
+        ),
+    ],
+    "antonpaar_mcr503": [
+        (
+            "Measuring head",
+            "Lowers onto the sample and turns it to measure how it flows.",
+            (
+                "head_lift",
+                "head_carriage",
+                "motor_*",
+                "air_bearing_hub",
+                "rotor",
+                "rotor_index_mark",
+                "quickconnect_collar",
+                "upper_plate",
+            ),
+            UP,
+        ),
+        (
+            "Temperature stage",
+            "Holds the sample at a set temperature.",
+            ("temperature_stage", "stage_*", "sample_plate"),
+            FRONT,
+        ),
+        (
+            "Column",
+            "Guides the head up and down.",
+            ("column", "column_*", "guide_left", "guide_right"),
+            BACK,
+        ),
+        ("Display", "Shows the measurement.", ("controller", "display_*"), RIGHT),
+        (
+            "Rear connections",
+            "Air, coolant, power and the computer link.",
+            (
+                "rear_panel",
+                "air_inlet",
+                "coolant_inlet",
+                "coolant_outlet",
+                "host_port",
+                "power_inlet",
+                "power_switch",
+            ),
+            BACK,
+        ),
+    ],
+    "antonpaar_hit300": [
+        (
+            "Indentation head",
+            "Lowers the diamond tip into the specimen.",
+            ("load_head", "head_*", "stylus", "stylus_holder", "diamond_tip", "depth_sensor"),
+            UP,
+        ),
+        (
+            "Sample stage",
+            "Moves the specimen under the tip.",
+            ("stage_x", "stage_y", "x_*", "y_*"),
+            FRONT,
+        ),
+        (
+            "Specimen holder",
+            "Clamps the specimen flat.",
+            ("sample_holder", "specimen", "clamp_*", "holder_bolt_*"),
+            FRONT,
+        ),
+        (
+            "Column",
+            "Holds the head and carries it down.",
+            ("column", "column_foot", "z_*", "handwheel", "handwheel_*"),
+            BACK,
+        ),
+        (
+            "Controller",
+            "Runs the measurement and records depth against load.",
+            ("controller", "controller_standoff_*"),
+            BACK,
+        ),
+    ],
+    "ta_dsc2500": [
+        ("Cell lid", "Closes over the furnace during a run.", ("lid", "lid_*", "inner_lid"), UP),
+        (
+            "Furnace",
+            "Heats the sample pan and an empty reference pan side by side.",
+            (
+                "furnace",
+                "furnace_*",
+                "sample_pan",
+                "sample_pan_rim",
+                "reference_pan",
+                "reference_pan_rim",
+                "sample_sensor",
+                "reference_sensor",
+            ),
+            UP,
+        ),
+        (
+            "Autosampler",
+            "Picks pans from the trays and sets them in the cell.",
+            (
+                "sampler_x",
+                "sampler_y",
+                "sampler_z",
+                "sampler_gripper",
+                "gripper_finger_*",
+                "beam",
+                "beam_*",
+            ),
+            FRONT,
+        ),
+        ("Pan trays", "Hold the pans waiting to be measured.", ("tray_*",), FRONT),
+        (
+            "Cooling",
+            "Draws heat out of the cell to cool it fast.",
+            ("cooling_ring", "cooling_rod_*", "facs_*"),
+            None,
+        ),
+    ],
 }
 
 
@@ -435,16 +906,19 @@ def anatomy(asset_id):
     slug = CLOUDLAB[asset_id].get("slug")
     if slug not in ANATOMY:
         return None
-    return {
-        "node_prefix": PREFIX.get(slug, f"{slug}__"),
-        "parts": [
-            {
-                "n": n,
-                "label": label,
-                "about": about,
-                "components": members(slug, names),
-                "toward": list(toward) if toward else None,
-            }
-            for n, (label, about, names, toward) in enumerate(ANATOMY[slug], 1)
-        ],
-    }
+    # Where the model names nodes after neither slug nor component, the contract says.
+    own = CONTRACTS["stand_ins"][slug].get("nodes")
+    parts = []
+    for n, (label, about, names, toward) in enumerate(ANATOMY[slug], 1):
+        found = members(slug, names)
+        part = {
+            "n": n,
+            "label": label,
+            "about": about,
+            "components": found,
+            "toward": list(toward) if toward else None,
+        }
+        if own:
+            part["nodes"] = [node for c in found for node in own.get(c, [])]
+        parts.append(part)
+    return {"node_prefix": PREFIX.get(slug, f"{slug}__"), "parts": parts}

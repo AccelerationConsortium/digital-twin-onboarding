@@ -3,7 +3,7 @@
   uv run python scripts/library-models/chemlab_layout.py [CACHE]
 
 Downloads geometry_manifest.json and asset.contract.json of every ChemLab stand-in that
-cloudlab.py names, at the revision chemlab.py pins (into CACHE, default a temporary
+cloudlab.py and ac_equipment.py name, at the revision chemlab.py pins (into CACHE, default a temporary
 folder), and writes app/backend/academy/chemlab_layout.json. For each stand-in:
 
   size      outside (width, depth, height) in metres
@@ -15,6 +15,7 @@ folder), and writes app/backend/academy/chemlab_layout.json. For each stand-in:
   parts     the components a learner can point at in the 3D view
   joints    of those, the ones that move: type, axis, limits and pivot in the asset frame
   components every component the model names, which the anatomy view may group
+  nodes     each component's node names in model.glb, for the stand-ins in OWN_NODES
 
 Every field carries the dataset's evidence for it: `manufacturer` where the asset records a
 manufacturer document, otherwise `engineering_assumption`, with the dataset's own label as
@@ -56,6 +57,7 @@ STAND_INS = {
     "biotage_selekt": (("W_D_H", (0, 1, 2)), "tray", ("tray", "front")),
     "sciex_pa800": (("W_D_H", (0, 1, 2)), "sample_tray_inlet", ("sample_cover", "front")),
     "cem_libertyblue": (None, "reactor", ("reactor_cover", "top")),
+    "antonpaar_litesizerdls": (None, "cuvette", ("sample_lid", "top")),
     # The rest take samples through tubing or from a nest the contract does not place.
     "agilent_hplc1260": (None, None, None),
     "agilent_gc8890b": (None, None, None),
@@ -63,6 +65,23 @@ STAND_INS = {
     "thermo_orbitrapexploris": (("", (0, 1, 2)), None, None),
     "shimadzu_icpms2030": (("main_unit_W_D_H_excluding_protrusions", (0, 1, 2)), None, None),
     "cytiva_ktaoligosynt": (("full_W_H_D", (0, 2, 1)), None, None),
+    # Acceleration Consortium stand-ins. None of these contracts places a sample nest this
+    # script reads, so each gives its size only (or nothing, and the catalog size stands).
+    "antonpaar_hit300": (None, None, None),
+    "antonpaar_mcr503": (("", (0, 1, 2)), None, None),
+    "azenta_automated_roll_heat_sealer_a4s": (None, None, None),
+    "azenta_intellixcap_s1_46_0001": (None, None, None),
+    "biotage_extrahera_classic": (None, None, None),
+    "eppendorf_5910ri": (None, None, None),
+    "gamry_reference620": (None, None, None),
+    "genevac_mivac2": (("Duo_W_D_H", (0, 1, 2)), None, None),
+    "hepatochem_photoredoxbox": (("W_D_H", (0, 1, 2)), None, None),
+    "ika_ks4000": (("W_D_H", (0, 1, 2)), None, None),
+    "ika_t25": (None, None, None),
+    "mt_xpr204e": (None, None, None),
+    "opentrons_flex_single_5_1000ul": (None, None, None),
+    "syrris_asiadiscovery": (None, None, None),
+    "ta_dsc2500": (None, None, None),
 }
 # The components a learner can point at on each stand-in's model: the doors, lids and
 # drawers a sample goes through and what they uncover. Their joints are the motions the
@@ -83,7 +102,26 @@ PARTS = {
     # No joints in these contracts: the model is shown as it stands.
     "agilent_hplc1260": (),
     "agilent_gc8890b": (),
+    "antonpaar_hit300": ("load_head", "stage_x", "specimen"),
+    "antonpaar_litesizerdls": ("sample_lid", "cell_select", "cuvette"),
+    "antonpaar_mcr503": ("head_lift", "rotor", "temperature_stage"),
+    "azenta_automated_roll_heat_sealer_a4s": ("plate_carriage", "press_head", "film_roll"),
+    "azenta_intellixcap_s1_46_0001": ("gripper", "sample_interface"),
+    "biotage_extrahera_classic": ("safety_shield", "pipette_head", "pressure_manifold"),
+    "eppendorf_5910ri": ("sample_lid", "rotor", "chamber"),
+    "gamry_reference620": ("cell_connector", "front_panel"),
+    "genevac_mivac2": ("lid", "rotor", "basket_left", "basket_right"),
+    "hepatochem_photoredoxbox": ("lid", "sample_rack"),
+    "ika_ks4000": ("hood", "platform"),
+    "ika_t25": ("drive", "rotor", "vessel"),
+    "mt_xpr204e": ("door_left", "door_right", "pan"),
+    "opentrons_flex_single_5_1000ul": ("gantry_y", "carriage_x", "pipette", "deck"),
+    "syrris_asiadiscovery": ("chip_clamp", "collector_x", "chip"),
+    "ta_dsc2500": ("lid", "sampler_x", "furnace"),
 }
+# Stand-ins whose model.glb names nodes after neither the slug nor the component, so the
+# anatomy view needs each component's own node names from the contract.
+OWN_NODES = {"azenta_automated_roll_heat_sealer_a4s", "eppendorf_5910ri", "mt_xpr204e"}
 # Which part of each drawer's front is open: the drawer's own front panel.
 DRAWER_FRONT = {"agilent_1260infinity": "drawer_1", "biotage_selekt": "tray_handle"}
 
@@ -96,8 +134,8 @@ def revision():
 
 
 def stand_ins():
-    """The ChemLab slugs cloudlab.py uses as stand-ins."""
-    text = (BACKEND / "cloudlab.py").read_text()
+    """The ChemLab slugs cloudlab.py and ac_equipment.py use as stand-ins."""
+    text = "".join((BACKEND / name).read_text() for name in ("cloudlab.py", "ac_equipment.py"))
     return sorted(set(re.findall(r'^        "([a-z0-9_]+)",\n    \),', text, re.M)))
 
 
@@ -132,7 +170,9 @@ def field(value, label):
 
 
 def components(manifest):
-    return {c["id"]: c for c in manifest["components"]}
+    found = manifest["components"]
+    # A few newer manifests key their components by id instead of listing them.
+    return dict(found) if isinstance(found, dict) else {c["id"]: c for c in found}
 
 
 def origin(manifest, parts, cid):
@@ -213,6 +253,16 @@ def derive(manifest, slug):
     return out
 
 
+def nodes(manifest):
+    """Each component's node names in the model, as the contract lists them."""
+    out = {}
+    for cid, part in components(manifest).items():
+        names = part.get("objects") or ([part["object"]] if part.get("object") else [])
+        if names:
+            out[cid] = names
+    return out
+
+
 def motion(manifest, slug):
     """The parts a learner can point at and the joints among them, in the asset frame."""
     parts = components(manifest)
@@ -226,6 +276,8 @@ def motion(manifest, slug):
         if not moves:
             continue
         limits = moves.get("limits_m", moves.get("limits_rad"))
+        if limits is None or moves["type"] == "continuous":
+            continue  # a rotor that turns freely has no range for the view to pose
         joints[cid] = {
             "type": moves["type"],
             "axis": [round(v, 6) for v in moves["axis"]],
@@ -252,6 +304,8 @@ def main():
             **motion(manifest, slug),
             "components": sorted(components(manifest)),
         }
+        if slug in OWN_NODES:
+            result[slug]["nodes"] = nodes(manifest)
         print(slug, sorted(result[slug]), flush=True)
     OUT.write_text(
         json.dumps(
