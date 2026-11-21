@@ -1,3 +1,4 @@
+import type { Stage } from "./skills";
 // What Meet the instruments and the teaching pages show of a cloud lab or AC twin.
 import type { Mesh, Operation } from "./instrumentTypes";
 import type { Anatomy, Mass } from "./TwinAnatomy";
@@ -23,6 +24,8 @@ export type Instrument = {
   published: string;
   narrowed: string | null;
   operations: Operation[];
+  /** The parts of an experiment the instrument can take. */
+  stages: Stage[];
   holds: { vessel: string; max_volume_ul: number };
   slots: number;
   limits: { min_temp_c: number; max_temp_c: number; max_duration_s: number };

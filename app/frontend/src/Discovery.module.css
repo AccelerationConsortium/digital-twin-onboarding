@@ -1048,3 +1048,7 @@
     grid-column: 2;
   }
 }
+
+.reproduce > li > div:first-of-type > span {
+  margin-bottom: 6px;
+}

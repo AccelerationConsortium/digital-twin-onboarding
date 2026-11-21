@@ -1,4 +1,15 @@
-import { ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Cable,
+  ClipboardCheck,
+  FlaskConical,
+  LayoutGrid,
+  Search,
+  ShieldCheck,
+  Siren,
+  SquareTerminal,
+  type LucideIcon,
+} from "lucide-react";
 import { FirstLessonCard } from "./FirstLessonCard";
 import { firstTransfer } from "./learningContent";
 import {
@@ -11,6 +22,9 @@ import type { Course, Session } from "./types";
 import DeckTwin from "./labTwin/DeckTwin";
 import FloorTwin from "./labTwin/FloorTwin";
 import ChainTwin from "./labTwin/ChainTwin";
+import StageRail from "./StageRail";
+import { PublishedLines } from "./SkillTree";
+import { useSkills } from "./skills";
 import s from "./LearningPaths.module.css";
 
 const FOCUS = {
@@ -32,6 +46,7 @@ type Props = {
 
 function Resource({
   number,
+  icon: Icon,
   title,
   description,
   action,
@@ -40,6 +55,7 @@ function Resource({
   status,
 }: {
   number: string;
+  icon?: LucideIcon;
   title: string;
   description: string;
   action: string;
@@ -50,7 +66,7 @@ function Resource({
   return (
     <article className={s.resource}>
       <span className={s.number} aria-hidden="true">
-        {number}
+        {Icon ? <Icon size={20} /> : number}
       </span>
       <div>
         <h3>{title}</h3>
@@ -75,6 +91,7 @@ export default function LearningPaths({
   onDesign,
 }: Props) {
   const selected = LEARNING_LEVELS.find((item) => item.id === level)!;
+  const [skills] = useSkills();
   const first = latestCourseSession(sessions, "flex-first-transfer");
   const practice = latestCourseSession(sessions, "flex-foundations");
   const design = latestCourseSession(sessions, "workflow-sandbox");
@@ -87,6 +104,7 @@ export default function LearningPaths({
         <h1>Learning lab</h1>
         <p>Choose the level that fits your work. You can start at any level.</p>
       </header>
+      <StageRail current={2} onNavigate={onNavigate} />
       <nav className={s.levels} aria-label="Learning levels">
         {LEARNING_LEVELS.map((item, index) => (
           <a
@@ -126,6 +144,15 @@ export default function LearningPaths({
           <FloorTwin onNavigate={onNavigate} />
         ) : (
           <ChainTwin onNavigate={onNavigate} />
+        )}
+        {level === "intermediate" && skills && (
+          <section className={s.lines} aria-labelledby="published-lines">
+            <h3 id="published-lines">Reproduce one on the twins</h3>
+            <PublishedLines
+              skills={skills}
+              onOpen={(id) => onNavigate(`marketplace/${id}`)}
+            />
+          </section>
         )}
         <h3 className={s.lessonsTitle}>Guided lessons</h3>
         {level === "beginner" ? (
@@ -218,9 +245,10 @@ export default function LearningPaths({
             </aside>
           </>
         ) : level === "intermediate" ? (
-          <>
+          <div className={s.cards}>
             <Resource
               number="01"
+              icon={ClipboardCheck}
               title={
                 courses.find((course) => course.id === "workflow-readiness")
                   ?.title ?? "Can this workflow run?"
@@ -231,6 +259,7 @@ export default function LearningPaths({
             />
             <Resource
               number="02"
+              icon={Search}
               title="Find the fault"
               description="Fourteen workflows, each with one mistake put in. Predict what happens, name the cause and repair it."
               action="Open fault practice"
@@ -238,6 +267,7 @@ export default function LearningPaths({
             />
             <Resource
               number="03"
+              icon={Siren}
               title="Fault drills"
               description="An instrument fault fires mid-run on the twin. Respond against the clock, then take a checkride."
               action="Open fault drills"
@@ -245,6 +275,7 @@ export default function LearningPaths({
             />
             <Resource
               number="04"
+              icon={FlaskConical}
               title="Discovery studio"
               description="Define what changes, what stays fixed and how measurements inform the next experiment."
               action="Open discovery studio"
@@ -252,16 +283,18 @@ export default function LearningPaths({
             />
             <Resource
               number="05"
+              icon={LayoutGrid}
               title="Plan a multi-device workcell"
               description="Assign operations to selected instruments, arrange a bench layout and inspect its arm path checks."
               action="Open workcell planner"
               onOpen={() => onNavigate("instruments/layout")}
             />
-          </>
+          </div>
         ) : (
-          <>
+          <div className={s.cards}>
             <Resource
               number="01"
+              icon={Cable}
               title="Inside a connector"
               description="Explore the existing connector modules, command mapping and referenced implementation."
               action="Open connector explorer"
@@ -269,6 +302,7 @@ export default function LearningPaths({
             />
             <Resource
               number="02"
+              icon={SquareTerminal}
               title="Mock command contracts"
               description="Inspect the selected instruments’ mock interfaces and SiLA bundle exports in the workcell planner."
               action="Explore mock connectors"
@@ -276,6 +310,7 @@ export default function LearningPaths({
             />
             <Resource
               number="03"
+              icon={ShieldCheck}
               title="Device readiness"
               description="Understand the checks required before a real connector can be used. Choosing this level does not grant execution permission."
               action="Review readiness"
@@ -288,7 +323,7 @@ export default function LearningPaths({
                 is available yet.
               </p>
             </article>
-          </>
+          </div>
         )}
       </section>
       <section className={s.shared} aria-label="Shared learning resources">

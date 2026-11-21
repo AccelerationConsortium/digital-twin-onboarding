@@ -20,6 +20,7 @@ from .cloudlab_anatomy import anatomy
 from .cloudlab_workflow import INSTRUMENTS as WORKFLOW
 from .mock_contract import PlanError, execute_mock, site_keys
 from .models import StrictModel
+from .stages import stages
 
 MAX_STEPS = 24
 STATEMENT = (
@@ -763,6 +764,7 @@ def instruments():
     for item in found["instruments"]:
         key = item["id"]
         item["does"] = DOES[key]
+        item["stages"] = stages(key, item["operations"])
         item["motion"] = motion(key)
         item["anatomy"] = anatomy(key)
         shown = {x["shows"]: x["id"] for x in (item["motion"] or {"states": []})["states"]}

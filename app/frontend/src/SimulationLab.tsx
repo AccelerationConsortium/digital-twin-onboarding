@@ -21,6 +21,9 @@ import {
 } from "./simulationTypes";
 import PageStory from "./PageStory";
 import { MoreTwins, SimGuide } from "./SimGuide";
+import type { WorkflowTemplate } from "./CloudLabWorkflow";
+import { ChangeBench } from "./PaperBench";
+import StageRail from "./StageRail";
 import s from "./SimulationLab.module.css";
 
 const amount = (value: number | null | undefined) =>
@@ -69,9 +72,14 @@ const remember = (id: string, engine: string) => {
 export default function SimulationLab({
   onOpenInstruments,
   onNavigate,
+  changePaper,
+  onTemplate,
 }: {
   onOpenInstruments: () => void;
   onNavigate: (target: string) => void;
+  /** The published workflow to open ready to change. */
+  changePaper?: string;
+  onTemplate: (template: WorkflowTemplate) => void;
 }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [session, setSession] = useState<SimulationSession | null>(null);
@@ -417,6 +425,9 @@ export default function SimulationLab({
     : frame?.mixture_components_ul.reduce((a, b) => a + b, 0);
   return (
     <div className={s.page}>
+      <StageRail current={3} onNavigate={onNavigate} />
+      <ChangeBench initial={changePaper} onOpen={onTemplate} />
+      <hr className={s.rule} />
       <button className={s.secondary} onClick={onOpenInstruments}>
         Design a multi-device workflow <ArrowRight size={16} />
       </button>

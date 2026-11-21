@@ -21,6 +21,10 @@ def test_every_instrument_teaches_its_purpose_and_steps_from_its_twin():
         assert item["does"].endswith(".") and len(item["does"]) < 120
         assert [s["operation"] for s in item["steps"]] == spec["operations"]
         assert item["in_workflow"] == (item["id"] in WORKFLOW)
+        # A twin that takes a reading can characterize or test; the rest prepare.
+        assert item["stages"] in (["prepare"], ["characterize", "test"])
+        if "read" not in item["operations"]:
+            assert item["stages"] == ["prepare"]
     nmr = next(i for i in instruments()["instruments"] if i["id"] == "nmr")
     assert nmr["steps"][0]["says"] == "Put up to 96 tubes in, each up to 1.5 mL."
     assert nmr["motion"] is None and all(s["state"] is None for s in nmr["steps"])

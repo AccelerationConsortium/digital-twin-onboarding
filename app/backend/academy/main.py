@@ -75,6 +75,7 @@ from .simple_twins import (
     ToleranceSummary,
 )
 from .simple_twins import Revision as TwinRevision
+from .skill_map import Meet, Skills
 from .store import Conflict, DynamoStore, SQLiteStore
 from .teaching import InvalidTransition, control, execute_step, initial_state, new_session
 from .workcell_assets import router as workcell_router
@@ -121,7 +122,8 @@ def create_app(settings: Settings | None = None, store=None):
     app.state.media = MediaService(app.state.runs)
     app.state.twins = SimpleTwinService(app.state.store, settings)
     app.state.practice = FaultPractice(app.state.store)
-    app.state.cloudlab_workflows = CloudLabWorkflows(app.state.store)
+    app.state.skills = Skills(app.state.store)
+    app.state.cloudlab_workflows = CloudLabWorkflows(app.state.store, app.state.skills.learn)
     app.state.mixing_twins = MixingTwinService(app.state.store, app.state.twins)
     if settings.runtime == "local":
         app.add_middleware(
@@ -335,9 +337,17 @@ def create_app(settings: Settings | None = None, store=None):
     def run_cloudlab_workflow(data: RunWorkflow, owner: str = Depends(identify)):
         return app.state.cloudlab_workflows.run(owner, data)
 
+    @app.get("/api/skills")
+    def skill_tree(owner: str = Depends(identify)):
+        return app.state.skills.get(owner)
+
+    @app.post("/api/skills/meet")
+    def meet_function(data: Meet, owner: str = Depends(identify)):
+        return app.state.skills.meet(owner, data)
+
     @app.post("/api/marketplace/{paper}/template")
     def marketplace_template(paper: PaperId, data: Picks, _owner: str = Depends(identify)):
-        return paper_template(paper, data.picks)
+        return paper_template(paper, data.picks, data.measure, data.add)
 
     @app.get("/api/twins/library")
     def instrument_library(

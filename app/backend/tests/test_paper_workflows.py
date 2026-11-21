@@ -93,3 +93,13 @@ def test_a_chemlab_twin_saves_and_runs_in_the_cloud_lab_designer(client):
     assert ran.json()["runs"][0]["evidence"] == "synthetic"
     bad = [cw.step("chemlab:not-a-twin", "load", 100)]
     assert client.post("/api/cloudlab/workflow/check", json={"steps": bad}).status_code == 422
+
+
+@pytest.mark.parametrize("paper", list(pw.PAPERS))
+def test_every_step_is_one_part_of_the_experiment(paper):
+    rows = pw.template(paper, {})["rows"]
+    for row in rows:
+        # Only a reading characterizes or tests; everything before it prepares.
+        assert (row["stage"] == "prepare") == (row["operation"] != "read")
+    assert rows[0]["stage"] == "prepare"
+    assert rows[-1]["stage"] in {"characterize", "test"}

@@ -32,6 +32,7 @@ import {
   Layers3,
   Compass,
   Store,
+  Waypoints,
   GitBranch,
   LayoutDashboard,
   House,
@@ -64,6 +65,7 @@ import {
 } from "./studioContent";
 
 const WorkflowStudio = lazy(() => import("./WorkflowStudio"));
+import StageRail from "./StageRail";
 const SimulationLab = lazy(() => import("./SimulationLab"));
 const InstrumentStudio = lazy(() => import("./InstrumentStudio"));
 const ModelLibrary = lazy(() => import("./ModelLibrary"));
@@ -78,6 +80,7 @@ const Workcell = lazy(() => import("./Workcell"));
 const InstrumentModules = lazy(() => import("./InstrumentModules"));
 const StudyGroups = lazy(() => import("./StudyGroups"));
 const SupervisorReview = lazy(() => import("./SupervisorReview"));
+const SkillTree = lazy(() => import("./SkillTree"));
 const Qualifications = lazy(() => import("./Qualifications"));
 const WorkcellCase = lazy(() => import("./workcellCase/WorkcellCase"));
 const DilutionWorkspace = lazy(() => import("./DilutionWorkspace"));
@@ -115,6 +118,7 @@ const learnLabels = {
   learn: "Learning lab",
   sim: "Simulation lab",
   marketplace: "Workflow marketplace",
+  skills: "Skill tree",
 };
 function Onboarding({
   profile,
@@ -447,6 +451,8 @@ export default function App() {
   const [lesson, setLesson] = useState<string | null>(null);
   const [discoverySeed, setDiscoverySeed] = useState<Workflow | undefined>();
   const [paperTemplate, setPaperTemplate] = useState<WorkflowTemplate>();
+  // The published workflow the skill tree sent to the simulation lab to be changed.
+  const [changePaper, setChangePaper] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -516,7 +522,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -554,7 +560,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -753,6 +759,7 @@ export default function App() {
                   ],
                   ["sim", FlaskConical, view === "sim"],
                   ["marketplace", Store, view === "marketplace"],
+                  ["skills", Waypoints, view === "skills"],
                 ] as const
               ).map(([target, Icon, active], index) => (
                 <button
@@ -762,7 +769,7 @@ export default function App() {
                   onClick={() => nav(target)}
                 >
                   <Icon size={18} /> {learnLabels[target]}
-                  {index > 0 && (
+                  {index > 0 && target !== "skills" && (
                     <small className={s.navStep} aria-hidden="true">
                       {index}
                     </small>
@@ -943,9 +950,11 @@ export default function App() {
                                               ? "Workflow marketplace"
                                               : view === "connector"
                                                 ? "Connector explorer"
-                                                : view === "sim"
-                                                  ? "Simulation lab"
-                                                  : "Learning lab"))}
+                                                : view === "skills"
+                                                  ? "Skill tree"
+                                                  : view === "sim"
+                                                    ? "Simulation lab"
+                                                    : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -967,6 +976,7 @@ export default function App() {
                 "discovery",
                 "connector",
                 "marketplace",
+                "skills",
               ].includes(view) && (
                 <button
                   className={s.textButton}
@@ -1056,6 +1066,7 @@ export default function App() {
                 </div>
               ) : view === "instruments" ? (
                 <div className={s.instrumentPage}>
+                  <StageRail current={1} onNavigate={nav} />
                   <InstrumentStories onDesign={createStudio} busy={busy} />
                   <InstrumentModules onDesign={createStudio} busy={busy} />
                   <Suspense fallback={null}>
@@ -1107,10 +1118,23 @@ export default function App() {
                     onPlan={() => nav("plan/instruments")}
                   />
                 </div>
+              ) : view === "skills" ? (
+                <SkillTree
+                  onNavigate={nav}
+                  onChange={(paper) => {
+                    setChangePaper(paper);
+                    nav("sim");
+                  }}
+                />
               ) : view === "sim" ? (
                 <SimulationLab
                   onOpenInstruments={() => nav("plan/workflow")}
                   onNavigate={nav}
+                  changePaper={changePaper}
+                  onTemplate={(template) => {
+                    setPaperTemplate(template);
+                    nav("cloudlab-workflow");
+                  }}
                 />
               ) : view === "cloudlab" ? (
                 <CloudLabTraining
@@ -1123,6 +1147,7 @@ export default function App() {
                   template={paperTemplate}
                   onTemplateTaken={() => setPaperTemplate(undefined)}
                   onBack={() => nav("instruments")}
+                  onSkills={() => nav("skills")}
                   onError={showError}
                   registerLeaveGuard={registerLeaveGuard}
                 />

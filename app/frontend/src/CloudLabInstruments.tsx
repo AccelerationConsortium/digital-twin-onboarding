@@ -16,6 +16,7 @@ import {
 import LabProvenance from "./LabProvenance";
 import { Thumbnail } from "./ModelLibrary";
 import TwinExplorer, { useTwin } from "./TwinExplorer";
+import { STAGE_LABEL } from "./skills";
 import s from "./CloudLabInstruments.module.css";
 
 const COPY: Record<
@@ -155,6 +156,13 @@ export default function CloudLabInstruments({
               <small>
                 {open.section} · <code>{open.experiment}</code>
               </small>
+              <span className={s.stages}>
+                {open.stages.map((stage) => (
+                  <span key={stage} data-stage={stage}>
+                    {STAGE_LABEL[stage]}
+                  </span>
+                ))}
+              </span>
             </div>
             <div className={s.actions}>
               <button className={s.teach} onClick={() => onTeach(open.id)}>

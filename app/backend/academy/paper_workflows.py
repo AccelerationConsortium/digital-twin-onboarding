@@ -41,6 +41,26 @@ FUNCTIONS = {
     "gas-analysis": r"gas chromatograph",
     "diffraction": r"powder X-ray diffract",
 }
+# What each function is called, and the twin operation that shows it.
+LABELS = {
+    "dispense": ("Dispense liquids", "load"),
+    "stir": ("Stir", "mix"),
+    "incubate": ("Incubate", "wait"),
+    "sonicate": ("Sonicate", "mix"),
+    "dose-powder": ("Dose powders", "load"),
+    "grind": ("Grind", "mix"),
+    "spin-coat": ("Spin-coat", "wait"),
+    "anneal": ("Anneal", "heat"),
+    "fire": ("Fire", "heat"),
+    "illuminate": ("Illuminate", "wait"),
+    "conductivity": ("Conductivity", "read"),
+    "absorbance": ("Absorbance", "read"),
+    "fluorescence": ("Fluorescence", "read"),
+    "sheet-resistance": ("Sheet resistance", "read"),
+    "gas-analysis": ("Gas analysis", "read"),
+    "diffraction": ("X-ray diffraction", "read"),
+}
+MEASURES = tuple(f for f, (_, operation) in LABELS.items() if operation == "read")
 DOING = {
     "load": "hold a sample",
     "mix": "mix",
@@ -51,8 +71,15 @@ DOING = {
 SHOWN = 4
 
 
-def paper_step(text, functions, operation, value=1):
-    return {"text": text, "functions": functions, "operation": operation, "value": value}
+def paper_step(text, functions, operation, value=1, stage="prepare"):
+    """A step of a paper. A reading says whether it characterizes or tests the sample."""
+    return {
+        "text": text,
+        "functions": functions,
+        "operation": operation,
+        "value": value,
+        "stage": stage,
+    }
 
 
 # The load step's value is the volume the template would like; the chain's smallest
@@ -63,39 +90,47 @@ PAPERS = {
             "Dispense salt and solvent stocks into a composition library", ["dispense"], "load", 200
         ),
         paper_step("Mix each formulation", ["dispense", "stir"], "mix", 60),
-        paper_step("Measure ionic conductivity", ["conductivity"], "read"),
+        paper_step("Measure ionic conductivity", ["conductivity"], "read", stage="test"),
     ],
     "ada": [
         paper_step("Combine precursor formulations", ["dispense"], "load", 200),
         paper_step("Mix each formulation", ["dispense", "stir"], "mix", 30),
         paper_step("Spin-coat the formulation into a film", ["spin-coat"], "wait", 60),
         paper_step("Anneal the film", ["anneal"], "heat", 100),
-        paper_step("Measure the film's optical response", ["absorbance"], "read"),
-        paper_step("Measure the film's electrical response", ["sheet-resistance"], "read"),
+        paper_step(
+            "Measure the film's optical response", ["absorbance"], "read", stage="characterize"
+        ),
+        paper_step(
+            "Measure the film's electrical response", ["sheet-resistance"], "read", stage="test"
+        ),
     ],
     "sonication": [
         paper_step("Prepare precursor solutions", ["dispense"], "load", 200),
         paper_step("Apply ultrasound to form nanocrystals", ["sonicate"], "mix", 120),
-        paper_step("Record optical spectra", ["absorbance", "fluorescence"], "read"),
+        paper_step(
+            "Record optical spectra", ["absorbance", "fluorescence"], "read", stage="characterize"
+        ),
     ],
     "rainbow": [
         paper_step("Prepare nanocrystal formulations in a plate", ["dispense"], "load", 200),
         paper_step("Mix each formulation", ["dispense", "stir"], "mix", 30),
         paper_step("Let the reaction proceed", ["incubate", "stir"], "wait", 300),
-        paper_step("Measure emission across the plate", ["fluorescence"], "read"),
+        paper_step("Measure emission across the plate", ["fluorescence"], "read", stage="test"),
     ],
     "mobile": [
         paper_step("Dispense solid photocatalyst into a vial", ["dose-powder"], "load", 1000),
         paper_step("Disperse the mixture", ["sonicate", "stir"], "mix", 60),
         paper_step("Illuminate the sample", ["illuminate"], "wait", 600),
-        paper_step("Measure the hydrogen produced", ["gas-analysis"], "read"),
+        paper_step("Measure the hydrogen produced", ["gas-analysis"], "read", stage="test"),
     ],
     "alab": [
         paper_step("Dose precursor powders", ["dose-powder"], "load", 1000),
         paper_step("Mix and grind the precursors", ["grind"], "mix", 120),
         # Firing is far hotter than any teaching twin holds, so every furnace says so.
         paper_step("Fire the mixture in a furnace", ["fire"], "heat", 1000),
-        paper_step("Identify phases by X-ray diffraction", ["diffraction"], "read"),
+        paper_step(
+            "Identify phases by X-ray diffraction", ["diffraction"], "read", stage="characterize"
+        ),
     ],
 }
 PaperId = Literal[tuple(PAPERS)]
@@ -104,6 +139,33 @@ PaperId = Literal[tuple(PAPERS)]
 class Picks(StrictModel):
     # Step index -> chosen instrument; "" leaves the step out of the template.
     picks: dict[int, str] = Field(default_factory=dict, max_length=16)
+    # Another paper whose measurements replace this paper's own.
+    measure: PaperId | None = None
+    # Measurements added after the paper's own.
+    add: list[Literal[MEASURES]] = Field(default_factory=list, max_length=3)
+
+
+def prepares(paper):
+    return [s for s in PAPERS[paper] if s["stage"] == "prepare"]
+
+
+def measures(paper):
+    return [s for s in PAPERS[paper] if s["stage"] != "prepare"]
+
+
+def composed(paper, measure=None, add=()):
+    """A paper's steps, its measurements swapped for another's, with any added after."""
+    measured = measure or paper
+    steps = [{**s, "paper": paper} for s in prepares(paper)]
+    steps += [{**s, "paper": measured} for s in measures(measured)]
+    have = {f for s in steps for f in s["functions"]}
+    for function in dict.fromkeys(add):
+        if function not in have:
+            text = f"Also measure {LABELS[function][0].lower()}"
+            steps.append(
+                {**paper_step(text, [function], "read", stage="characterize"), "paper": None}
+            )
+    return steps
 
 
 def pool():
@@ -180,11 +242,11 @@ def rank(step, sample):
     return [c for _, c in sorted(eligible, key=lambda pair: pair[0])], rejected
 
 
-def template(paper, picks):
+def template(paper, picks, measure=None, add=()):
     """The paper's steps with ranked candidates, and the workflow the picks make."""
     rows, steps, chain = [], [], {}
     sample, count = None, {}
-    for index, step in enumerate(PAPERS[paper]):
+    for index, step in enumerate(composed(paper, measure, add)):
         candidates, rejected = rank(step, sample)
         ids = [c["id"] for c in candidates]
         wanted = picks.get(index)
@@ -194,6 +256,10 @@ def template(paper, picks):
             "index": index,
             "text": step["text"],
             "operation": step["operation"],
+            "stage": step["stage"],
+            "functions": step["functions"],
+            # The paper this step is read from; none for a measurement the learner added.
+            "paper": step["paper"],
             "chosen": chosen,
             "candidates": candidates[:SHOWN] + [c for c in candidates[SHOWN:] if c["id"] == chosen],
             "rejected": rejected,
@@ -226,6 +292,8 @@ def template(paper, picks):
     used = [s["instrument"] for s in steps]
     return {
         "paper": paper,
+        "measure": measure or paper,
+        "measures": [{"id": f, "label": LABELS[f][0]} for f in MEASURES],
         "rows": rows,
         "steps": steps,
         "check": cw.check(steps) if steps else None,
