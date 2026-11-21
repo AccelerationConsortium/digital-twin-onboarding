@@ -302,3 +302,7 @@
     transform: none;
   }
 }
+
+.lines > div + div {
+  margin-top: 18px;
+}

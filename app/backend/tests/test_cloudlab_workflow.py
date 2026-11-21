@@ -200,3 +200,52 @@ def test_runs_are_kept_per_learner_and_bounded(client, app):
     with TestClient(app) as other:
         assert other.post("/api/auth/guest", json={"name": "Grace"}).status_code == 200
         assert other.get("/api/cloudlab/workflow").json()["steps"] == []
+
+
+def test_a_learner_keeps_several_workflows_apart(client):
+    first = save(client, cw.STARTERS["cell-assay"]["steps"], "First").json()
+    assert first["id"] == "" and first["saved"] == [{"id": "", "title": "First", "steps": 9}]
+
+    other = "0b1f6c1e-3d0a-4c58-9d2e-7a4f1c2b3d4e"
+    blank = client.get("/api/cloudlab/workflow", params={"id": other}).json()
+    assert blank["version"] == 0 and blank["steps"] == [] and blank["id"] == other
+    body = {"id": other, "title": "Second", "steps": cw.STARTERS["pcr-sizing"]["steps"]}
+    second = client.put("/api/cloudlab/workflow", json={**body, "expected_version": 0}).json()
+    assert [w["title"] for w in second["saved"]] == ["First", "Second"]
+
+    # Saving and running one leaves the other as it was.
+    ran = client.post("/api/cloudlab/workflow/run", json={"id": other, "expected_version": 1})
+    assert ran.status_code == 200 and len(ran.json()["runs"]) == 1
+    kept = client.get("/api/cloudlab/workflow").json()
+    assert kept["title"] == "First" and kept["version"] == 1 and kept["runs"] == []
+    assert client.get("/api/cloudlab/workflow", params={"id": "nope"}).status_code == 422
+
+
+def test_deleting_a_workflow_needs_its_version_and_keeps_the_rest(client):
+    save(client, cw.STARTERS["cell-assay"]["steps"], "First")
+    other = "0b1f6c1e-3d0a-4c58-9d2e-7a4f1c2b3d4e"
+    body = {"id": other, "title": "Second", "steps": [step("plate-reader", "load")]}
+    client.put("/api/cloudlab/workflow", json={**body, "expected_version": 0})
+    for stale in (0, 5):
+        refused = client.post(
+            "/api/cloudlab/workflow/delete", json={"id": other, "expected_version": stale}
+        )
+        assert refused.status_code == 409
+    left = client.post("/api/cloudlab/workflow/delete", json={"id": other, "expected_version": 1})
+    assert [w["title"] for w in left.json()["saved"]] == ["First"]
+    assert client.get("/api/cloudlab/workflow", params={"id": other}).json()["version"] == 0
+
+
+def test_saved_workflows_are_bounded(client):
+    from uuid import uuid4
+
+    steps = [step("plate-reader", "load")]
+    for n in range(cw.MAX_SAVED):
+        body = {"id": str(uuid4()), "title": f"W{n}", "steps": steps, "expected_version": 0}
+        assert client.put("/api/cloudlab/workflow", json=body).status_code == 200
+    extra = {"id": str(uuid4()), "title": "One more", "steps": steps, "expected_version": 0}
+    refused = client.put("/api/cloudlab/workflow", json=extra)
+    assert refused.status_code == 422 and "Delete one" in refused.text
+    # One already saved can still be changed.
+    again = {**body, "title": "Renamed", "expected_version": 1}
+    assert client.put("/api/cloudlab/workflow", json=again).status_code == 200

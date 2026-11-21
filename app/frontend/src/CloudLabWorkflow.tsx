@@ -82,6 +82,10 @@ export type WorkflowTemplate = {
 };
 type Workspace = {
   version: number;
+  /** Empty for the first workflow a learner saved; a UUID for each one after. */
+  id: string;
+  saved: { id: string; title: string; steps: number }[];
+  max_saved: number;
   title: string;
   steps: Step[];
   runs: Run[];
@@ -150,6 +154,24 @@ function defaultValue(instrument: Instrument, operation: Operation) {
   return 1;
 }
 
+const LAST = "lab.cloudlab.workflow";
+/** The workflow this browser last had open, so a visit returns to it. */
+const remembered = () => {
+  try {
+    const ref = localStorage.getItem(LAST) ?? "";
+    return /^[0-9a-f-]{36}$/.test(ref) ? ref : "";
+  } catch {
+    return "";
+  }
+};
+const remember = (ref: string) => {
+  try {
+    localStorage.setItem(LAST, ref);
+  } catch {
+    // The designer then opens on the first saved workflow.
+  }
+};
+
 export default function CloudLabWorkflow({
   onBack,
   onError,
@@ -184,20 +206,26 @@ export default function CloudLabWorkflow({
     setTitle(next.title);
     setSteps(next.steps);
     setCheck(next.check);
+    remember(next.id);
   };
+  const open = (ref: string) =>
+    api<Workspace>(`/cloudlab/workflow${ref ? `?id=${ref}` : ""}`);
   useEffect(() => {
-    api<Workspace>("/cloudlab/workflow")
-      .then((next) => {
-        adopt(next);
-        setStarter(paper ? PAPER : (Object.keys(next.starters)[0] ?? ""));
-        if (!paper || offered.current) return;
+    open(remembered())
+      .then(async (last) => {
+        setStarter(paper ? PAPER : (Object.keys(last.starters)[0] ?? ""));
+        if (!paper || offered.current) return adopt(last);
         offered.current = true;
         onTemplateTaken?.();
-        // The template is a draft: the saved workflow stays until the learner saves.
+        // A template opens as a workflow of its own, beside the ones already saved.
+        const room = last.saved.length < last.max_saved;
+        const next =
+          last.steps.length && room ? await open(crypto.randomUUID()) : last;
+        adopt(next);
         if (
           !next.steps.length ||
           window.confirm(
-            `Replace your workflow steps with the "${paper.title}" template? Your saved workflow stays until you save.`,
+            `You have ${last.max_saved} saved workflows. Replace this one's steps with the "${paper.title}" template? It stays as saved until you save.`,
           )
         ) {
           setSteps(paper.steps);
@@ -334,7 +362,12 @@ export default function CloudLabWorkflow({
     api<Workspace>(
       "/cloudlab/workflow",
       json(
-        { expected_version: workspace.version, title: title.trim(), steps },
+        {
+          id: workspace.id,
+          expected_version: workspace.version,
+          title: title.trim(),
+          steps,
+        },
         "PUT",
       ),
     );
@@ -343,11 +376,35 @@ export default function CloudLabWorkflow({
       const saved = dirty ? await save() : workspace;
       const next = await api<Workspace & { earned: Earned | null }>(
         "/cloudlab/workflow/run",
-        json({ expected_version: saved.version }),
+        json({ id: saved.id, expected_version: saved.version }),
       );
       setEarned(next.earned);
       return next;
     });
+  // Another workflow opens only once this one's changes are saved or given up.
+  const leave = () =>
+    !dirty ||
+    window.confirm("Your workflow changes are not saved. Leave them?");
+  const switchTo = (ref: string) => {
+    if (!leave()) return;
+    setEarned(null);
+    void perform(() => open(ref));
+  };
+  const remove = () => {
+    if (
+      !window.confirm(
+        `Delete "${workspace.title}" and its runs? What its runs added to your skill tree stays.`,
+      )
+    )
+      return;
+    setEarned(null);
+    void perform(() =>
+      api<Workspace>(
+        "/cloudlab/workflow/delete",
+        json({ id: workspace.id, expected_version: workspace.version }),
+      ),
+    );
+  };
   const titleOf = (id: string) => workflows.find((w) => w.id === id)?.title;
   const gains = earned
     ? [
@@ -414,6 +471,47 @@ export default function CloudLabWorkflow({
           </button>
         </div>
       </header>
+      <div className={c.shelf}>
+        <label>
+          MY WORKFLOWS
+          <select
+            aria-label="Saved workflow"
+            value={workspace.id}
+            disabled={busy}
+            onChange={(event) => switchTo(event.target.value)}
+          >
+            {!workspace.version && (
+              <option value={workspace.id}>New workflow (not saved)</option>
+            )}
+            {workspace.saved.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.title} · {item.steps} steps
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          className={s.secondary}
+          disabled={
+            busy ||
+            !workspace.version ||
+            workspace.saved.length >= workspace.max_saved
+          }
+          onClick={() => switchTo(crypto.randomUUID())}
+        >
+          <Plus size={16} /> New workflow
+        </button>
+        <button
+          className={s.secondary}
+          disabled={busy || !workspace.version}
+          onClick={remove}
+        >
+          <Trash2 size={16} /> Delete
+        </button>
+        <small>
+          {workspace.saved.length} of {workspace.max_saved}
+        </small>
+      </div>
       <div className={s.nameRow}>
         <label>
           WORKFLOW NAME
