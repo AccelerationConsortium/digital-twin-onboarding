@@ -7,7 +7,7 @@ import type { Workflow } from "./discoveryContent";
 import { instrumentModel } from "./instrumentModels";
 import type { Mesh } from "./instrumentTypes";
 import { lit, upright } from "./modelViews";
-import { STAGE_LABEL, type Stage } from "./skills";
+import { STAGES, STAGE_LABEL, type Stage } from "./skills";
 import s from "./PaperCell.module.css";
 
 type Station = {
@@ -24,6 +24,8 @@ type Cell = { stations: Station[]; statement: string };
 const PITCH = 1.5; // distance between station centres
 const PAD = 1.2; // a station's square platform
 const FIT = 0.92; // the part of a platform a model may cover
+const RAIL = PAD / 2 + 0.26; // the track the sample rides, in front of the stations
+const LEVEL = 1.56; // the height the station numbers float at
 const TONE: Record<Stage, string> = {
   prepare: "--ok",
   characterize: "--info",
@@ -102,15 +104,81 @@ export default function PaperCell({ item }: { item: Workflow }) {
 
     const n = cell.stations.length;
     const x = (i: number) => (i - (n - 1) / 2) * PITCH;
-    // The bench every station stands on.
+    // The plate every station stands on, with rounded corners.
+    const w = n * PITCH + 0.7;
+    const d = PAD + 1.2;
+    const r = 0.22;
+    const outline = new THREE.Shape()
+      .moveTo(-w / 2 + r, -d / 2)
+      .lineTo(w / 2 - r, -d / 2)
+      .quadraticCurveTo(w / 2, -d / 2, w / 2, -d / 2 + r)
+      .lineTo(w / 2, d / 2 - r)
+      .quadraticCurveTo(w / 2, d / 2, w / 2 - r, d / 2)
+      .lineTo(-w / 2 + r, d / 2)
+      .quadraticCurveTo(-w / 2, d / 2, -w / 2, d / 2 - r)
+      .lineTo(-w / 2, -d / 2 + r)
+      .quadraticCurveTo(-w / 2, -d / 2, -w / 2 + r, -d / 2);
     const bench = new THREE.Mesh(
-      keep(new THREE.BoxGeometry(n * PITCH + 0.5, 0.1, PAD + 0.7)),
-      keep(new THREE.MeshStandardMaterial({ color: tone("--surface-3") })),
+      keep(
+        new THREE.ExtrudeGeometry(outline, {
+          depth: 0.1,
+          bevelEnabled: true,
+          bevelSize: 0.025,
+          bevelThickness: 0.025,
+          bevelSegments: 3,
+          curveSegments: 12,
+        }),
+      ),
+      keep(
+        new THREE.MeshStandardMaterial({
+          color: tone("--surface-1"),
+          roughness: 0.85,
+        }),
+      ),
     );
-    bench.position.y = -0.05;
+    bench.rotation.x = -Math.PI / 2;
+    bench.position.y = -0.125;
     scene.add(bench);
+    // The track that carries the sample from station to station.
+    const rail = new THREE.Mesh(
+      keep(new THREE.BoxGeometry(n * PITCH - 0.1, 0.04, 0.12)),
+      keep(new THREE.MeshStandardMaterial({ color: tone("--line-strong") })),
+    );
+    rail.position.set(0, 0.02, RAIL);
+    scene.add(rail);
+    // Each station's number, as in the list below the drawing.
+    const badge = (i: number, colour: THREE.Color) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 128;
+      const pen = canvas.getContext("2d")!;
+      pen.fillStyle = `#${colour.getHexString()}`;
+      pen.beginPath();
+      pen.arc(64, 64, 54, 0, Math.PI * 2);
+      pen.fill();
+      pen.lineWidth = 8;
+      pen.strokeStyle = `#${tone("--surface-1").getHexString()}`;
+      pen.stroke();
+      pen.fillStyle = `#${tone("--on-brand").getHexString()}`;
+      pen.font = "700 64px system-ui, sans-serif";
+      pen.textAlign = "center";
+      pen.textBaseline = "middle";
+      pen.fillText(String(i + 1), 64, 68);
+      const texture = keep(new THREE.CanvasTexture(canvas));
+      texture.colorSpace = THREE.SRGBColorSpace;
+      const sprite = new THREE.Sprite(
+        keep(new THREE.SpriteMaterial({ map: texture, depthTest: false })),
+      );
+      sprite.position.set(x(i), LEVEL, 0);
+      sprite.renderOrder = 2;
+      scene.add(sprite);
+      return sprite;
+    };
+    const badges: THREE.Sprite[] = [];
 
     const pads: THREE.MeshStandardMaterial[] = [];
+    const heights = cell.stations.map(() => LEVEL);
+    // Numbers keep a readable size when a narrow view stands further back.
+    let far = 1;
     cell.stations.forEach((station, i) => {
       const colour = tone(TONE[stageOf(station)]);
       const material = keep(
@@ -122,6 +190,7 @@ export default function PaperCell({ item }: { item: Workflow }) {
         }),
       );
       pads.push(material);
+      badges.push(badge(i, colour));
       const pad = new THREE.Mesh(
         keep(new THREE.BoxGeometry(PAD, 0.12, PAD)),
         material,
@@ -139,6 +208,8 @@ export default function PaperCell({ item }: { item: Workflow }) {
         );
         model.position.set(x(i), 0.12, 0);
         scene.add(model);
+        // The number sits just above whatever stands on the platform.
+        heights[i] = 0.12 + size.y * model.scale.y + 0.26;
       };
       const box = () => {
         const [w, h, d] = station.size_m;
@@ -195,18 +266,31 @@ export default function PaperCell({ item }: { item: Workflow }) {
       scene.add(tip);
     }
 
-    // The sample, hovering over the station it is at.
-    const sample = new THREE.Mesh(
-      keep(new THREE.SphereGeometry(0.09, 24, 16)),
+    // The sample: a vial on a carrier, parked in front of the station it is at.
+    const sample = new THREE.Group();
+    const carrier = new THREE.Mesh(
+      keep(new THREE.CylinderGeometry(0.12, 0.13, 0.05, 32)),
+      keep(new THREE.MeshStandardMaterial({ color: ink })),
+    );
+    carrier.position.y = 0.065;
+    const vial = new THREE.Mesh(
+      keep(new THREE.CylinderGeometry(0.06, 0.06, 0.2, 24)),
       keep(
         new THREE.MeshStandardMaterial({
           color: tone("--accent"),
           emissive: tone("--accent"),
-          emissiveIntensity: 0.6,
+          emissiveIntensity: 0.55,
         }),
       ),
     );
-    sample.position.set(x(0), 1.5, 0);
+    vial.position.y = 0.19;
+    const cap = new THREE.Mesh(
+      keep(new THREE.CylinderGeometry(0.066, 0.066, 0.04, 24)),
+      keep(new THREE.MeshStandardMaterial({ color: tone("--surface-1") })),
+    );
+    cap.position.y = 0.31;
+    sample.add(carrier, vial, cap);
+    sample.position.set(x(0), 0, RAIL);
     scene.add(sample);
 
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -217,14 +301,15 @@ export default function PaperCell({ item }: { item: Workflow }) {
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       // Far enough back that the whole row fits the width it is given.
-      const span = n * PITCH + 0.2;
+      const span = n * PITCH + 0.7;
       const half = THREE.MathUtils.degToRad(camera.fov) / 2;
       const distance = Math.max(
-        (span * 1.18) / 2 / (Math.tan(half) * camera.aspect),
-        1.25 / Math.tan(half),
+        (span * 1.3) / 2 / (Math.tan(half) * camera.aspect),
+        1.45 / Math.tan(half),
       );
+      far = Math.min(distance / 5.75, 1.7);
       camera.position.set(distance * 0.28, distance * 0.42, distance * 0.86);
-      controls.target.set(0, 0.45, 0);
+      controls.target.set(0, 0.6, 0);
       camera.updateProjectionMatrix();
     };
     size();
@@ -237,9 +322,13 @@ export default function PaperCell({ item }: { item: Workflow }) {
       sample.position.x = still
         ? goal
         : THREE.MathUtils.lerp(sample.position.x, goal, 0.09);
-      sample.position.y = 1.5 + (still ? 0 : Math.sin(time / 420) * 0.04);
       pads.forEach((material, i) => {
-        material.emissiveIntensity = i === where.current ? 0.55 : 0;
+        const here = i === where.current;
+        material.emissiveIntensity = here ? 0.55 : 0;
+        const lift = here && !still ? Math.sin(time / 420) * 0.03 : 0;
+        badges[i].position.y = heights[i] + lift;
+        badges[i].scale.setScalar((here ? 0.34 : 0.24) * far);
+        badges[i].material.opacity = here ? 1 : 0.8;
       });
       controls.update();
       renderer.render(scene, camera);
@@ -264,14 +353,44 @@ export default function PaperCell({ item }: { item: Workflow }) {
     );
   if (!cell) return <div className={s.cell} aria-busy="true" />;
   const station = cell.stations[at];
+  const steps = cell.stations.flatMap((x) => x.steps);
+  const readouts: { value: string; label: string; stage?: Stage }[] = [
+    { value: String(cell.stations.length), label: "Stations" },
+    { value: String(steps.length), label: "Steps" },
+    ...STAGES.map((stage) => ({
+      value: String(steps.filter((step) => step.stage === stage).length),
+      label: STAGE_LABEL[stage],
+      stage,
+    })),
+  ];
   return (
     <div className={s.cell}>
-      <div
-        ref={host}
-        className={s.scene}
-        role="img"
-        aria-label={`${item.title} as a workcell of ${cell.stations.length} stations: ${cell.stations.map((x) => x.name).join(", ")}`}
-      />
+      <div className={s.stage}>
+        <div
+          ref={host}
+          className={s.scene}
+          role="img"
+          aria-label={`${item.title} as a workcell of ${cell.stations.length} stations: ${cell.stations.map((x) => x.name).join(", ")}`}
+        />
+        <button
+          className={s.play}
+          disabled={playing}
+          onClick={() => {
+            setAt(0);
+            setPlaying(true);
+          }}
+        >
+          <Play size={15} /> Follow the sample
+        </button>
+      </div>
+      <dl className={s.readouts}>
+        {readouts.map((x) => (
+          <div key={x.label} data-stage={x.stage}>
+            <dd>{x.value}</dd>
+            <dt>{x.label}</dt>
+          </div>
+        ))}
+      </dl>
       <ol className={s.stations} aria-label="Stations">
         {cell.stations.map((x, i) => (
           <li key={x.id + i}>
@@ -283,35 +402,21 @@ export default function PaperCell({ item }: { item: Workflow }) {
                 setAt(i);
               }}
             >
-              <span>{i + 1}</span>
-              {x.name}
+              <span>{String(i + 1).padStart(2, "0")}</span>
+              <strong>{x.name}</strong>
+              <small>{x.steps.map((step) => step.text).join(" · ")}</small>
             </button>
           </li>
         ))}
         {loop && (
-          <li className={s.back} title={item.question}>
-            <Repeat size={14} /> next sample
+          <li className={s.back}>
+            <Repeat size={14} /> {item.question}
           </li>
         )}
       </ol>
-      <div className={s.now} aria-live="polite">
-        <span className={s.chip} data-stage={stageOf(station)}>
-          {STAGE_LABEL[stageOf(station)]}
-        </span>
-        <p>{station.steps.map((step) => step.text).join(" · ")}</p>
-        <div className={s.actions}>
-          <button
-            className={s.quiet}
-            disabled={playing}
-            onClick={() => {
-              setAt(0);
-              setPlaying(true);
-            }}
-          >
-            <Play size={15} /> Follow the sample
-          </button>
-        </div>
-      </div>
+      <p className={s.hidden} aria-live="polite">
+        Station {at + 1}: {station.name}
+      </p>
       <details className={s.about}>
         <summary>What is drawn</summary>
         <p>{cell.statement}</p>

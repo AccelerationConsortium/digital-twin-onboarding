@@ -11,16 +11,20 @@
   --stage-soft: var(--accent-soft);
 }
 .cell {
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   display: grid;
-  gap: 12px;
+  gap: 16px;
   min-height: 360px;
 }
+.stage {
+  position: relative;
+}
 .scene {
-  height: clamp(260px, 34vw, 420px);
+  height: clamp(280px, 36vw, 460px);
   border-radius: var(--radius-md);
   background:
-    radial-gradient(120% 90% at 50% 100%, var(--surface-3), transparent 70%),
-    var(--surface-0);
+    radial-gradient(90% 70% at 50% 62%, var(--surface-1), transparent 72%),
+    var(--surface-2);
   border: 1px solid var(--line);
   overflow: hidden;
   touch-action: pan-y;
@@ -31,102 +35,17 @@
   height: 100%;
   cursor: grab;
 }
+.scene canvas:active {
+  cursor: grabbing;
+}
 /* Without WebGL the stations below still tell the route. */
 .scene[data-flat] {
   display: none;
 }
-.stations {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.stations li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.stations li + li::before {
-  content: "→";
-  color: var(--faint);
-}
-.stations button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px 6px 6px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-  color: var(--ink);
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  transition:
-    border-color var(--dur-2),
-    background var(--dur-2);
-}
-.stations button span {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  font-size: 12px;
-  color: var(--on-brand);
-  background: var(--stage);
-}
-.stations button:hover {
-  border-color: var(--line-emph);
-}
-.stations button[aria-pressed="true"] {
-  background: var(--stage-soft);
-  border-color: var(--stage);
-}
-.stations button:focus-visible,
-.primary:focus-visible,
-.quiet:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-}
-.back {
-  font-size: 12px;
-  color: var(--muted);
-}
-.now {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
-}
-.now p {
-  flex: 1 1 260px;
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.45;
-  color: var(--ink);
-}
-.chip {
-  padding: 2px 9px;
-  border-radius: var(--radius-pill);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  color: var(--stage);
-  background: var(--stage-soft);
-}
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.primary,
-.quiet {
+.play {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -135,23 +54,140 @@
   font: inherit;
   font-size: 14px;
   font-weight: 600;
-  border-radius: var(--radius-sm);
-}
-.primary {
   color: var(--on-brand);
   background: var(--brand);
   border: 1px solid var(--brand);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-2);
 }
-.primary:hover {
+.play:hover {
   background: var(--brand-strong);
 }
-.quiet {
-  color: var(--ink);
-  background: var(--surface-1);
-  border: 1px solid var(--line);
-}
-.quiet:disabled {
+.play:disabled {
   opacity: 0.55;
+}
+.scene[data-flat] + .play {
+  position: static;
+  justify-self: start;
+}
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0 18px;
+  margin: 0;
+}
+.readouts div {
+  --stage: var(--line-emph);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--stage);
+}
+.readouts dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.readouts dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.readouts dt::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--stage);
+}
+.stations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.stations li {
+  display: flex;
+}
+.stations button {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: start;
+  gap: 2px 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-left: 3px solid var(--stage);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color var(--dur-2),
+    background var(--dur-2);
+}
+.stations button span {
+  grid-row: span 2;
+  padding-top: 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--stage);
+}
+.stations button strong {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.stations button small {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.stations button:hover {
+  background: var(--surface-2);
+}
+.stations button[aria-pressed="true"] {
+  background: var(--stage-soft);
+  border-color: var(--stage);
+}
+.stations button:focus-visible,
+.play:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.back {
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+}
+.back svg {
+  flex: none;
+}
+.hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .about {
   font-size: 12px;
@@ -167,4 +203,31 @@
 }
 .note {
   color: var(--danger);
+}
+@media (max-width: 640px) {
+  .scene {
+    height: 230px;
+  }
+  .play {
+    position: static;
+    margin-top: 10px;
+  }
+  .readouts {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px 14px;
+  }
+  .readouts div {
+    grid-column: span 2;
+  }
+  .readouts div:nth-child(-n + 2) {
+    grid-column: span 3;
+  }
+  .readouts dd {
+    font-size: 22px;
+  }
+  .readouts dt {
+    gap: 4px;
+    font-size: 9.5px;
+    letter-spacing: 0;
+  }
 }
