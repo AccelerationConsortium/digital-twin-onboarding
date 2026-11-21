@@ -33,6 +33,7 @@ from .store import Conflict, Write
 KEY = "cloudlab-workflow"
 MAX_STEPS = 32
 KEPT_RUNS = 5
+MAX_SAVED = 12
 # Instruments that join workflow design: the liquid handler that prepares plates, and
 # instruments with a ChemLab-Assets stand-in.
 INSTRUMENTS = [
@@ -111,13 +112,24 @@ class Draft(StrictModel):
     steps: list[Step] = Field(max_length=MAX_STEPS)
 
 
+# The first workflow a learner saved has no id; each one after it is named by a UUID.
+WORKFLOW_ID = r"^$|^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$"
+WorkflowRef = Field(default="", pattern=WORKFLOW_ID)
+
+
 class SaveWorkflow(Draft):
     expected_version: int = Field(ge=0, strict=True)
     title: str = Field(min_length=1, max_length=80)
+    id: str = WorkflowRef
 
 
 class RunWorkflow(StrictModel):
     expected_version: int = Field(ge=0, strict=True)
+    id: str = WorkflowRef
+
+
+class DeleteWorkflow(RunWorkflow):
+    pass
 
 
 def contract_steps(steps):
@@ -271,8 +283,12 @@ STARTERS = {
 }
 
 
-def initial():
-    return {"version": 0, "title": "Cloud lab workflow", "steps": [], "runs": []}
+def initial(ref=""):
+    return {"version": 0, "id": ref, "title": "Cloud lab workflow", "steps": [], "runs": []}
+
+
+def key_of(ref):
+    return f"{KEY}#{ref}" if ref else KEY
 
 
 class CloudLabWorkflows:
@@ -281,42 +297,64 @@ class CloudLabWorkflows:
         # What a run adds to the learner's skill tree: a write, and what is new.
         self.learn = learn
 
-    def record(self, owner):
-        return self.store.get(owner, KEY) or initial()
+    def record(self, owner, ref=""):
+        # A workflow saved before learners could keep several has no id of its own.
+        return {"id": ref, **(self.store.get(owner, key_of(ref)) or initial(ref))}
 
-    def view(self, record):
+    def saved(self, owner):
+        """The learner's saved workflows, the first one first."""
+        return [
+            {"id": r.get("id", ""), "title": r["title"], "steps": len(r["steps"])}
+            for r in self.store.partition(owner, KEY, MAX_SAVED + 1)
+        ]
+
+    def view(self, owner, record):
         return {
             **record,
             "check": check(record["steps"]),
             "instruments": catalog(s["instrument"] for s in record["steps"]),
+            "saved": self.saved(owner),
+            "max_saved": MAX_SAVED,
             "starters": STARTERS,
             "statement": STATEMENT,
             "evidence": "synthetic",
         }
 
-    def get(self, owner):
-        return self.view(self.record(owner))
+    def get(self, owner, ref=""):
+        return self.view(owner, self.record(owner, ref))
 
-    def current(self, owner, expected):
-        record = self.record(owner)
-        if record["version"] != expected:
+    def current(self, owner, data):
+        record = self.record(owner, data.id)
+        if record["version"] != data.expected_version:
             raise Conflict
+        if not record["version"] and len(self.saved(owner)) >= MAX_SAVED:
+            raise HTTPException(
+                422, f"You can keep {MAX_SAVED} workflows. Delete one to save another."
+            )
         return record
 
     def put(self, owner, record, expected):
         record["version"] = expected + 1
-        self.store.put(owner, KEY, record, expected or None)
-        return self.view(record)
+        self.store.put(owner, key_of(record["id"]), record, expected or None)
+        return self.view(owner, record)
+
+    def delete(self, owner, data):
+        """Remove a saved workflow and its runs; what its runs earned stays on the tree."""
+        if not data.expected_version:
+            raise Conflict
+        self.store.transact([Write(owner, key_of(data.id), None, data.expected_version)])
+        left = self.saved(owner)
+        return self.get(owner, left[0]["id"] if left else "")
 
     def save(self, owner, data):
         """Save a draft as written; a draft may still break a rule, and its check says so."""
-        record = self.current(owner, data.expected_version)
+        record = self.current(owner, data)
         record["title"] = data.title.strip() or initial()["title"]
         record["steps"] = [s.model_dump() for s in data.steps]
         return self.put(owner, record, data.expected_version)
 
     def run(self, owner, data):
-        record = self.current(owner, data.expected_version)
+        record = self.current(owner, data)
         if not record["steps"]:
             raise HTTPException(422, "Add a step before running the workflow")
         result = check(record["steps"])
@@ -333,7 +371,7 @@ class CloudLabWorkflows:
         }
         record["runs"] = [run, *record["runs"]][:KEPT_RUNS]
         record["version"] = data.expected_version + 1
-        writes = [Write(owner, KEY, record, data.expected_version or None)]
+        writes = [Write(owner, key_of(record["id"]), record, data.expected_version or None)]
         earned = None
         if self.learn:
             write, earned = self.learn(owner, record["steps"])
@@ -341,4 +379,4 @@ class CloudLabWorkflows:
                 writes.append(write)
         # The run and what it earned are saved together or not at all.
         self.store.transact(writes)
-        return {**self.view(record), "earned": earned}
+        return {**self.view(owner, record), "earned": earned}

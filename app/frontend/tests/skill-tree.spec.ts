@@ -66,14 +66,30 @@ test("a learner lights the skill tree from an instrument to a recombined workflo
   await expect(change.getByTestId("paper-step-3")).toContainText(
     "Characterize",
   );
-  // The designer asks before a template replaces the workflow already saved there.
-  page.once("dialog", (dialog) => dialog.accept());
   await change
     .getByRole("button", { name: "Open as a cloud lab workflow" })
     .click();
   await page.getByRole("button", { name: "Run teaching simulation" }).click();
   await expect(earned).toContainText(
     "Recombined Find a better electrolyte → When pipetting is not the answer",
+  );
+
+  // The recombined workflow is saved beside the reproduced one, which is still there.
+  const shelf = page.getByLabel("Saved workflow");
+  await expect(shelf.locator("option")).toHaveText([
+    "Find a better electrolyte · 4 steps",
+    "Find a better electrolyte → When pipetting is not the answer · 4 steps",
+  ]);
+  await shelf.selectOption({ label: "Find a better electrolyte · 4 steps" });
+  await expect(page.getByLabel("Workflow name")).toHaveValue(
+    "Find a better electrolyte",
+  );
+  await expect(page.getByText("2 of 12", { exact: true })).toBeVisible();
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(shelf.locator("option")).toHaveCount(1);
+  await expect(page.getByLabel("Workflow name")).toHaveValue(
+    "Find a better electrolyte → When pipetting is not the answer",
   );
   expect(errors).toEqual([]);
 });

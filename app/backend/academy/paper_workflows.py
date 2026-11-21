@@ -301,3 +301,48 @@ def template(paper, picks, measure=None, add=()):
         "statement": cw.STATEMENT,
         "evidence": "synthetic",
     }
+
+
+CELL_STATEMENT = (
+    "Academy's reading of the paper on comparable twins that have a 3D model. It is not "
+    "the lab's own instruments or floor plan, and the models are not drawn to one scale."
+)
+
+
+def drawing(key):
+    """A twin's 3D model, with the credit its licence asks for; None if it has none."""
+    if key in CLOUDLAB:
+        shown = next(i for i in cw.overview()["instruments"] if i["id"] == key)
+        return shown["mesh"] and {"mesh": shown["mesh"], "credit": shown["attribution"]}
+    asset = CHEMLAB[key.removeprefix(cw.CHEMLAB_PREFIX)]
+    return asset["mesh"] and {"mesh": asset["mesh"], "credit": asset["attribution"]}
+
+
+def cell(paper):
+    """A paper as a workcell: a station for each twin its steps pass through, in order."""
+    stations = []
+    for index, step in enumerate(PAPERS[paper]):
+        candidates = rank(step, None)[0]
+        # The first twin that can take the step and can be drawn; else the first, as a box.
+        chosen = next((c for c in candidates if drawing(c["id"])), candidates[0])
+        told = {"index": index, "text": step["text"], "stage": step["stage"]}
+        if stations and stations[-1]["id"] == chosen["id"]:
+            stations[-1]["steps"].append(told)
+            continue
+        drawn = drawing(chosen["id"]) or {"mesh": None, "credit": None}
+        stations.append(
+            {
+                "id": chosen["id"],
+                "name": chosen["name"],
+                "source": chosen["source"],
+                **drawn,
+                "size_m": cw.spec_of(chosen["id"])["parts"][0]["size"],
+                "steps": [told],
+            }
+        )
+    return {
+        "paper": paper,
+        "stations": stations,
+        "statement": CELL_STATEMENT,
+        "evidence": "synthetic",
+    }

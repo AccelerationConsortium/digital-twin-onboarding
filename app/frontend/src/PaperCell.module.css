@@ -1,0 +1,170 @@
+.cell [data-stage="prepare"] {
+  --stage: var(--ok);
+  --stage-soft: var(--ok-soft);
+}
+.cell [data-stage="characterize"] {
+  --stage: var(--info);
+  --stage-soft: var(--info-soft);
+}
+.cell [data-stage="test"] {
+  --stage: var(--accent);
+  --stage-soft: var(--accent-soft);
+}
+.cell {
+  display: grid;
+  gap: 12px;
+  min-height: 360px;
+}
+.scene {
+  height: clamp(260px, 34vw, 420px);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(120% 90% at 50% 100%, var(--surface-3), transparent 70%),
+    var(--surface-0);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+/* Without WebGL the stations below still tell the route. */
+.scene[data-flat] {
+  display: none;
+}
+.stations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.stations li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stations li + li::before {
+  content: "→";
+  color: var(--faint);
+}
+.stations button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 6px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--ink);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  transition:
+    border-color var(--dur-2),
+    background var(--dur-2);
+}
+.stations button span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  color: var(--on-brand);
+  background: var(--stage);
+}
+.stations button:hover {
+  border-color: var(--line-emph);
+}
+.stations button[aria-pressed="true"] {
+  background: var(--stage-soft);
+  border-color: var(--stage);
+}
+.stations button:focus-visible,
+.primary:focus-visible,
+.quiet:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.back {
+  font-size: 12px;
+  color: var(--muted);
+}
+.now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+.now p {
+  flex: 1 1 260px;
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.chip {
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--stage);
+  background: var(--stage-soft);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.primary,
+.quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 15px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+}
+.primary {
+  color: var(--on-brand);
+  background: var(--brand);
+  border: 1px solid var(--brand);
+}
+.primary:hover {
+  background: var(--brand-strong);
+}
+.quiet {
+  color: var(--ink);
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+}
+.quiet:disabled {
+  opacity: 0.55;
+}
+.about {
+  font-size: 12px;
+  color: var(--muted);
+}
+.about p,
+.about ul {
+  margin: 8px 0 0;
+  line-height: 1.55;
+}
+.about ul {
+  padding-left: 18px;
+}
+.note {
+  color: var(--danger);
+}
