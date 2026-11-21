@@ -22,6 +22,9 @@ import type { Course, Session } from "./types";
 import DeckTwin from "./labTwin/DeckTwin";
 import FloorTwin from "./labTwin/FloorTwin";
 import ChainTwin from "./labTwin/ChainTwin";
+import { useState } from "react";
+import { workflows } from "./discoveryContent";
+import PaperCell from "./PaperCell";
 import StageRail from "./StageRail";
 import { PublishedLines } from "./SkillTree";
 import { useSkills } from "./skills";
@@ -92,6 +95,9 @@ export default function LearningPaths({
 }: Props) {
   const selected = LEARNING_LEVELS.find((item) => item.id === level)!;
   const [skills] = useSkills();
+  // The published workflow drawn as a workcell on the intermediate level.
+  const [paper, setPaper] = useState<string>(workflows[0].id);
+  const shown = workflows.find((w) => w.id === paper)!;
   const first = latestCourseSession(sessions, "flex-first-transfer");
   const practice = latestCourseSession(sessions, "flex-foundations");
   const design = latestCourseSession(sessions, "workflow-sandbox");
@@ -147,9 +153,12 @@ export default function LearningPaths({
         )}
         {level === "intermediate" && skills && (
           <section className={s.lines} aria-labelledby="published-lines">
-            <h3 id="published-lines">Reproduce one on the twins</h3>
+            <h3 id="published-lines">Published workflows as workcells</h3>
+            <PaperCell item={shown} />
             <PublishedLines
               skills={skills}
+              selected={shown.id}
+              onSelect={setPaper}
               onOpen={(id) => onNavigate(`marketplace/${id}`)}
             />
           </section>

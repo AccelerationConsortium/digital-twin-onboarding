@@ -27,7 +27,14 @@ from .cloudlab import CLOUDLAB
 from .cloudlab_teaching import Practice
 from .cloudlab_teaching import instruments as cloudlab_instruments_overview
 from .cloudlab_teaching import practise as practise_cloudlab_instrument
-from .cloudlab_workflow import CloudLabWorkflows, Draft, RunWorkflow, SaveWorkflow
+from .cloudlab_workflow import (
+    WORKFLOW_ID,
+    CloudLabWorkflows,
+    DeleteWorkflow,
+    Draft,
+    RunWorkflow,
+    SaveWorkflow,
+)
 from .cloudlab_workflow import check as check_cloudlab_workflow
 from .connections import ConnectionService
 from .connector_api import router as connector_router
@@ -46,6 +53,7 @@ from .models import COURSES, Experiment, Guest, Profile, Revision, UpdateExperim
 from .onboarding import DeviceUpdate, OnboardingService, TwinCreate
 from .pairing import PairRunService
 from .paper_workflows import PaperId, Picks
+from .paper_workflows import cell as paper_cell
 from .paper_workflows import template as paper_template
 from .recipes import MIXING, CreateMixing, MixingPlan, mixing_session
 from .run_monitor import router as run_monitor_router
@@ -322,8 +330,14 @@ def create_app(settings: Settings | None = None, store=None):
         return practise_cloudlab_instrument(asset_id, [s.model_dump() for s in data.steps])
 
     @app.get("/api/cloudlab/workflow")
-    def cloudlab_workflow(owner: str = Depends(identify)):
-        return app.state.cloudlab_workflows.get(owner)
+    def cloudlab_workflow(
+        id: str = Query(default="", pattern=WORKFLOW_ID), owner: str = Depends(identify)
+    ):
+        return app.state.cloudlab_workflows.get(owner, id)
+
+    @app.post("/api/cloudlab/workflow/delete")
+    def delete_cloudlab_workflow(data: DeleteWorkflow, owner: str = Depends(identify)):
+        return app.state.cloudlab_workflows.delete(owner, data)
 
     @app.put("/api/cloudlab/workflow")
     def save_cloudlab_workflow(data: SaveWorkflow, owner: str = Depends(identify)):
@@ -344,6 +358,10 @@ def create_app(settings: Settings | None = None, store=None):
     @app.post("/api/skills/meet")
     def meet_function(data: Meet, owner: str = Depends(identify)):
         return app.state.skills.meet(owner, data)
+
+    @app.get("/api/marketplace/{paper}/cell")
+    def marketplace_cell(paper: PaperId, _owner: str = Depends(identify)):
+        return paper_cell(paper)
 
     @app.post("/api/marketplace/{paper}/template")
     def marketplace_template(paper: PaperId, data: Picks, _owner: str = Depends(identify)):

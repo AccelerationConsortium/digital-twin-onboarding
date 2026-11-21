@@ -103,3 +103,24 @@ def test_every_step_is_one_part_of_the_experiment(paper):
         assert (row["stage"] == "prepare") == (row["operation"] != "read")
     assert rows[0]["stage"] == "prepare"
     assert rows[-1]["stage"] in {"characterize", "test"}
+
+
+@pytest.mark.parametrize("paper", list(pw.PAPERS))
+def test_a_paper_is_a_workcell_of_drawn_twins_in_step_order(paper):
+    cell = pw.cell(paper)
+    assert cell["evidence"] == "synthetic" and "not the lab's own" in cell["statement"]
+    told = [step["index"] for station in cell["stations"] for step in station["steps"]]
+    assert told == list(range(len(pw.PAPERS[paper])))
+    for station in cell["stations"]:
+        # Every station is a twin that can do its steps, drawn with its model and credit.
+        for step in station["steps"]:
+            wanted = pw.PAPERS[paper][step["index"]]
+            assert wanted["operation"] in cw.spec_of(station["id"])["operations"]
+        assert station["mesh"]["kind"] == "glb" and station["credit"]
+        assert len(station["size_m"]) == 3
+
+
+def test_the_cell_route_names_each_station(client):
+    cell = client.get("/api/marketplace/alab/cell").json()
+    assert [len(s["steps"]) for s in cell["stations"]] == [1, 1, 1, 1]
+    assert client.get("/api/marketplace/nope/cell").status_code == 422
