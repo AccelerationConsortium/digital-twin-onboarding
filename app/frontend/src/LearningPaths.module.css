@@ -233,3 +233,72 @@
     padding: 16px;
   }
 }
+
+.lines {
+  margin-top: 28px;
+  padding: 20px 22px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.lines > h3 {
+  font-size: 17px;
+  margin-bottom: 14px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.cards .resource,
+.cards .planned {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--dur-2),
+    transform var(--dur-2) var(--ease-out);
+}
+.cards .resource:hover {
+  border-color: var(--line-emph);
+  transform: translateY(-2px);
+}
+.cards .resource > div {
+  flex: 1;
+}
+.cards .number {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+  color: var(--brand-text);
+  background: var(--brand-soft);
+}
+.cards .resource h3,
+.cards .planned h3 {
+  font-size: 17px;
+}
+.cards .resource p,
+.cards .planned p {
+  font-size: 14px;
+  line-height: 1.55;
+}
+.cards .resource button {
+  align-self: flex-start;
+}
+.cards .planned {
+  border-style: dashed;
+  background: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cards .resource:hover {
+    transform: none;
+  }
+}

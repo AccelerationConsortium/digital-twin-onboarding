@@ -15,8 +15,11 @@ import {
   Workflow,
 } from "lucide-react";
 import { api, ApiError, json } from "./api";
+import { workflows } from "./discoveryContent";
+import type { Earned } from "./skills";
 import s from "./WorkflowStudio.module.css";
 import c from "./CloudLabWorkflow.module.css";
+import k from "./SkillTree.module.css";
 
 type Operation = "load" | "transfer" | "mix" | "heat" | "read" | "wait";
 type Step = {
@@ -152,12 +155,14 @@ export default function CloudLabWorkflow({
   onError,
   registerLeaveGuard,
   template,
+  onSkills,
   onTemplateTaken,
 }: {
   onBack: () => void;
   onError: (message: string) => void;
   registerLeaveGuard: (guard: (() => boolean) | null) => void;
   template?: WorkflowTemplate;
+  onSkills?: () => void;
   onTemplateTaken?: () => void;
 }) {
   // The paper template stays a starter for this visit.
@@ -170,6 +175,8 @@ export default function CloudLabWorkflow({
   const [starter, setStarter] = useState("");
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  // What the last run here added to the learner's skill tree.
+  const [earned, setEarned] = useState<Earned | null>(null);
   const checked = useRef(0);
 
   const adopt = (next: Workspace) => {
@@ -334,11 +341,29 @@ export default function CloudLabWorkflow({
   const run = () =>
     perform(async () => {
       const saved = dirty ? await save() : workspace;
-      return api<Workspace>(
+      const next = await api<Workspace & { earned: Earned | null }>(
         "/cloudlab/workflow/run",
         json({ expected_version: saved.version }),
       );
+      setEarned(next.earned);
+      return next;
     });
+  const titleOf = (id: string) => workflows.find((w) => w.id === id)?.title;
+  const gains = earned
+    ? [
+        ...earned.papers.map((id) => `Reproduced ${titleOf(id)}`),
+        ...earned.swapped.map(
+          (id) => `Swapped an instrument in ${titleOf(id)}`,
+        ),
+        ...earned.extended.map(
+          ([id, f]) => `Added ${f.replace("-", " ")} to ${titleOf(id)}`,
+        ),
+        ...earned.recombined.map(
+          ([a, b]) => `Recombined ${titleOf(a)} → ${titleOf(b)}`,
+        ),
+        ...earned.functions.map((f) => `Met ${f.replace("-", " ")}`),
+      ]
+    : [];
 
   // The flow: instruments in the order the workflow first uses them.
   const used = [...new Set(steps.map((st) => st.instrument))].filter(
@@ -745,6 +770,19 @@ export default function CloudLabWorkflow({
                 <h2>Run result</h2>
                 <span>{ran.trace.length} steps</span>
               </div>
+              {!!gains.length && (
+                <div className={k.earned} aria-live="polite">
+                  <strong>New on your skill tree</strong>
+                  {gains.map((gain) => (
+                    <span key={gain}>{gain}</span>
+                  ))}
+                  {onSkills && (
+                    <button onClick={onSkills}>
+                      See the tree <ArrowRight size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
               <ol className={c.trace}>
                 {ran.trace.map((entry) => (
                   <li key={entry.step}>

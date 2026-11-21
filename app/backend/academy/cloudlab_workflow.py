@@ -28,7 +28,7 @@ from .chemlab import CHEMLAB
 from .cloudlab import CLOUDLAB, overview
 from .mock_contract import PlanError, execute_mock, site_keys
 from .models import StrictModel
-from .store import Conflict
+from .store import Conflict, Write
 
 KEY = "cloudlab-workflow"
 MAX_STEPS = 32
@@ -276,8 +276,10 @@ def initial():
 
 
 class CloudLabWorkflows:
-    def __init__(self, store):
+    def __init__(self, store, learn=None):
         self.store = store
+        # What a run adds to the learner's skill tree: a write, and what is new.
+        self.learn = learn
 
     def record(self, owner):
         return self.store.get(owner, KEY) or initial()
@@ -330,4 +332,13 @@ class CloudLabWorkflows:
             "evidence": "synthetic",
         }
         record["runs"] = [run, *record["runs"]][:KEPT_RUNS]
-        return self.put(owner, record, data.expected_version)
+        record["version"] = data.expected_version + 1
+        writes = [Write(owner, KEY, record, data.expected_version or None)]
+        earned = None
+        if self.learn:
+            write, earned = self.learn(owner, record["steps"])
+            if write:
+                writes.append(write)
+        # The run and what it earned are saved together or not at all.
+        self.store.transact(writes)
+        return {**self.view(record), "earned": earned}
