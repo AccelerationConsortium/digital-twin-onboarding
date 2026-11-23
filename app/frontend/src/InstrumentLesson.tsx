@@ -23,6 +23,7 @@ import {
   kilograms,
   metres,
   part,
+  sketchCredit,
   sourceUrl,
   volume,
   type Instrument,
@@ -585,7 +586,13 @@ function Studio({
           <section className={s.deckPanel} aria-label="Instrument">
             <div className={s.sectionHeading}>
               <h2>Instrument</h2>
-              <span>{item.mesh ? "3D" : "ESTIMATED BOX"}</span>
+              <span>
+                {item.sketch
+                  ? "PHOTO SKETCH"
+                  : item.mesh
+                    ? "3D"
+                    : "ESTIMATED BOX"}
+              </span>
             </div>
             {item.mesh ? (
               <TwinExplorer mesh={item.mesh} twin={twin} />
@@ -703,6 +710,7 @@ function Studio({
         <p className={l.fine}>
           Synthetic teaching twin, not this instrument's specification.{" "}
           {item.stand_in && `${item.attribution}. `}
+          {sketchCredit(item)}
           <LabProvenance lab={lab} item={item} />
         </p>
         <div className={l.onward}>

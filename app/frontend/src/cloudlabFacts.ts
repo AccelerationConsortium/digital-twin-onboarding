@@ -4,6 +4,12 @@ import type { Mesh, Operation } from "./instrumentTypes";
 import type { Anatomy, Mass } from "./TwinAnatomy";
 import type { Motion } from "./twinMotion";
 
+/** One sentence saying a drawn shape is a photo sketch, where it is one. */
+export const sketchCredit = (item: { sketch: Instrument["sketch"] }) =>
+  item.sketch
+    ? `Shape sketched from a ${item.sketch.instrument} product photo, not measured. `
+    : "";
+
 export type LabId = "ecl" | "ac";
 export type Lab = {
   id: LabId;
@@ -46,6 +52,13 @@ export type Instrument = {
   geometry_basis: Record<string, string>;
   stand_in: string | null;
   mesh: Mesh | null;
+  /** Set when the drawn shape was read off a product photo rather than a library model. */
+  sketch: {
+    instrument: string;
+    page: string;
+    read: string;
+    model: string;
+  } | null;
   attribution: string;
   does: string;
   steps: {

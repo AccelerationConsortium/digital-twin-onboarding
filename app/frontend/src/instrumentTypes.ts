@@ -98,7 +98,14 @@ export type Residual = {
 };
 /** The registered model drawn in place of the planning box. */
 export type Mesh = {
-  kind: "glb" | "ot2" | "balance" | "ur5e";
+  kind: "glb" | "ot2" | "balance" | "ur5e" | "sketch";
+  /** A sketch's boxes: Y up, standing on Y=0, front toward +Z, in metres. */
+  parts?: {
+    label: string;
+    size: [number, number, number];
+    position: [number, number, number];
+    color: string;
+  }[];
   url?: string;
   sha256?: string;
   /** The axis the model stands on; a Z-up model is turned to the scene's Y up. */

@@ -48,7 +48,12 @@ async function registered(id: string) {
 const templates = new Map<string, Promise<THREE.Object3D>>();
 /** A shared Z-up template for an instrument model; clone it before adding it to a scene. */
 export function instrumentModel(mesh: Mesh): Promise<THREE.Object3D> {
-  const key = mesh.kind === "glb" ? mesh.url! : mesh.kind;
+  const key =
+    mesh.kind === "glb"
+      ? mesh.url!
+      : mesh.kind === "sketch"
+        ? `sketch:${mesh.asset}`
+        : mesh.kind;
   if (!templates.has(key))
     templates.set(
       key,
@@ -68,10 +73,40 @@ export function instrumentModel(mesh: Mesh): Promise<THREE.Object3D> {
           return ot2.group;
         }
         if (mesh.kind === "balance") return buildBalance().group;
+        if (mesh.kind === "sketch") return buildSketch(mesh);
         throw new Error(`No instrument model for ${mesh.kind}`);
       })(),
     );
   return templates.get(key)!;
+}
+
+/** A photo sketch's boxes as a Z-up model, each edged so that neighbours read apart. */
+function buildSketch(mesh: Mesh) {
+  const group = new THREE.Group();
+  for (const part of mesh.parts ?? []) {
+    const [w, h, d] = part.size;
+    const [x, y, z] = part.position;
+    const geometry = new THREE.BoxGeometry(w, d, h);
+    const box = new THREE.Mesh(
+      geometry,
+      new THREE.MeshStandardMaterial({ color: part.color, roughness: 0.7 }),
+    );
+    box.name = part.label;
+    // The twin's front is +Z with Y up; a Z-up model's front is -Y.
+    box.position.set(x, -z, y);
+    box.add(
+      new THREE.LineSegments(
+        new THREE.EdgesGeometry(geometry),
+        new THREE.LineBasicMaterial({
+          color: 0x000000,
+          transparent: true,
+          opacity: 0.35,
+        }),
+      ),
+    );
+    group.add(box);
+  }
+  return group;
 }
 
 /**

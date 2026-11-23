@@ -7,6 +7,7 @@ import {
   CAN,
   metres,
   part,
+  sketchCredit,
   sourceUrl,
   volume,
   type Instrument,
@@ -278,6 +279,7 @@ export default function CloudLabInstruments({
               <p className={s.fine}>
                 Synthetic teaching twin, not this instrument's specification.{" "}
                 {open.stand_in && `${open.attribution}. `}
+                {sketchCredit(open)}
                 <LabProvenance lab={lab} item={open} />
               </p>
             </div>

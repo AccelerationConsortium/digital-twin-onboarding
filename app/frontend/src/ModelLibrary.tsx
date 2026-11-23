@@ -282,7 +282,7 @@ export function Thumbnail({ mesh }: { mesh: Mesh }) {
 export function Preview({ mesh }: { mesh: Mesh }) {
   const host = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
-  const key = mesh.url ?? mesh.kind;
+  const key = mesh.url ?? [mesh.kind, mesh.asset].filter(Boolean).join(":");
   useEffect(() => {
     const el = host.current;
     if (!el) return;

@@ -91,3 +91,32 @@ test("AC self-driving lab instruments are met, used and taken apart like cloud l
   await page.getByRole("button", { name: /Next instrument/ }).click();
   await expect(page).toHaveURL(/#\/instruments\/ac-filtration$/);
 });
+
+test("an instrument no library model resembles is drawn as a sketch of its product photo", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page.getByRole("button", { name: "Enter the learning lab" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.goto("/#/instruments/ac-tecan");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Liquid handler (Tecan)." }),
+  ).toBeVisible();
+  const instrument = page.getByRole("region", { name: "Instrument" });
+  await expect(instrument.getByText("PHOTO SKETCH")).toBeVisible();
+  await expect(instrument.locator("canvas")).toBeVisible();
+  await expect(
+    page.getByText("No 3D model; the twin is one estimated box."),
+  ).toHaveCount(0);
+  // It says the shape is read off a photo; the twin's size is still its datasheet's.
+  await expect(
+    page.getByText(
+      /Shape sketched from a Tecan Fluent 480 product photo, not measured\./,
+    ),
+  ).toBeVisible();
+  // A sketch has no parts catalogued to take apart.
+  await expect(page.getByRole("region", { name: "Anatomy" })).toHaveCount(0);
+});
