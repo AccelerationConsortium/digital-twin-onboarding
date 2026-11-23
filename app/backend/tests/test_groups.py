@@ -137,9 +137,9 @@ def test_a_bench_layout_is_shared_for_discussion_not_copied(app):
 
 def test_researcher_group_limits_layout_planning(app):
     ada = learner(app, "Ada")
-    assert ada.get("/api/access").json() == {"plan_layouts": True}
+    assert ada.get("/api/access").json()["plan_layouts"] is True
     app.state.settings = replace(app.state.settings, researcher_group="researchers")
-    assert ada.get("/api/access").json() == {"plan_layouts": False}
+    assert ada.get("/api/access").json()["plan_layouts"] is False
     search = ada.post("/api/twins/layout/search", json={"bench": {"width": 2, "depth": 1}})
     assert search.status_code == 403
     saved = ada.put("/api/twins/layout/constraints", json={"expected_version": 0})

@@ -7,6 +7,7 @@ from mangum import Mangum
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import (
+    admission,
     adversary,
     agent_sandbox,
     arm_simulation,
@@ -22,7 +23,14 @@ from . import (
     sim2real_api,
 )
 from ._version import __version__
-from .auth import identify, local_signer, may_plan_layouts, require_layout_planner
+from .admission import Admission, CognitoInviter
+from .auth import (
+    identify,
+    local_signer,
+    may_plan_layouts,
+    operator_claims,
+    require_layout_planner,
+)
 from .cloudlab import CLOUDLAB
 from .cloudlab_teaching import Practice
 from .cloudlab_teaching import instruments as cloudlab_instruments_overview
@@ -258,7 +266,10 @@ def create_app(settings: Settings | None = None, store=None):
 
     @app.get("/api/access")
     def access(request: Request, owner: str = Depends(identify)):
-        return {"plan_layouts": may_plan_layouts(request)}
+        return {
+            "plan_layouts": may_plan_layouts(request),
+            "admit_learners": operator_claims(request),
+        }
 
     @app.put("/api/me")
     def update_profile(data: Profile, owner: str = Depends(identify)):
@@ -866,6 +877,14 @@ def create_app(settings: Settings | None = None, store=None):
         return save(owner, control(session, command), data.version)
 
     sim2real_api.install(app, store=app.state.store, pairing=app.state.pairing)
+    app.state.admission = Admission(
+        app.state.store,
+        open_domains=settings.self_signup_email_domains,
+        inviter=CognitoInviter(settings.issuer, settings.app_url)
+        if settings.runtime == "aws"
+        else None,
+    )
+    admission.install(app, app.state.admission)
     groups.install(app, store=app.state.store)
     cloudlab_training.install(app, store=app.state.store)
     node_api.install(app)

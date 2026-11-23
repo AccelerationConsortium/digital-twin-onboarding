@@ -1,4 +1,5 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { api, json } from "./api";
 import { ArrowRight, BookOpen, FlaskConical, GitBranch } from "lucide-react";
 import type { Config } from "./types";
 import SketchTwin from "./SketchTwin";
@@ -34,6 +35,24 @@ export default function Landing({
   busy: boolean;
 }) {
   const [name, setName] = useState("");
+  // Emails outside the sign-up domains ask a lab operator for an invitation.
+  const [asking, setAsking] = useState(false);
+  const [ask, setAsk] = useState({ email: "", name: "", note: "" });
+  const [asked, setAsked] = useState<"" | "sending" | "sent">("");
+  const [refused, setRefused] = useState("");
+  const request = async () => {
+    setAsked("sending");
+    setRefused("");
+    try {
+      await api("/access-requests", json(ask));
+      setAsked("sent");
+    } catch (error) {
+      setAsked("");
+      setRefused(
+        error instanceof Error ? error.message : "The request was not sent.",
+      );
+    }
+  };
   const page = useRef<HTMLElement>(null);
   const entry = useRef<HTMLFormElement>(null);
   const signup = config.self_signup_email_domains ?? [];
@@ -104,14 +123,61 @@ export default function Landing({
           aria-labelledby="landing-entry"
           onSubmit={(e) => {
             e.preventDefault();
-            onEnter(name.trim() || "Learner");
+            if (asking) void request();
+            else onEnter(name.trim() || "Learner");
           }}
         >
           <h2 id="landing-entry">
-            {config.auth === "cognito" && signup.length
-              ? "Join or sign in"
-              : "Get started"}
+            {asking
+              ? "Request access"
+              : config.auth === "cognito" && signup.length
+                ? "Join or sign in"
+                : "Get started"}
           </h2>
+          {asking && asked === "sent" && (
+            <p className={s.sent} role="status">
+              Request sent. An invitation will arrive by email once a lab
+              operator approves it.
+            </p>
+          )}
+          {asking && asked !== "sent" && (
+            <>
+              <label className={s.nameField}>
+                Email
+                <input
+                  type="email"
+                  required
+                  maxLength={254}
+                  autoComplete="email"
+                  value={ask.email}
+                  onChange={(e) => setAsk({ ...ask, email: e.target.value })}
+                />
+              </label>
+              <label className={s.nameField}>
+                Name
+                <input
+                  required
+                  maxLength={80}
+                  autoComplete="name"
+                  value={ask.name}
+                  onChange={(e) => setAsk({ ...ask, name: e.target.value })}
+                />
+              </label>
+              <label className={s.nameField}>
+                Lab or course (optional)
+                <input
+                  maxLength={300}
+                  value={ask.note}
+                  onChange={(e) => setAsk({ ...ask, note: e.target.value })}
+                />
+              </label>
+              {refused && (
+                <p className={s.refused} role="alert">
+                  {refused}
+                </p>
+              )}
+            </>
+          )}
           {config.auth === "local" && (
             <label className={s.nameField}>
               What should we call you?
@@ -124,28 +190,45 @@ export default function Landing({
               />
             </label>
           )}
-          <button
-            className={s.primary}
-            disabled={busy || config.auth === "disabled"}
-          >
-            {busy
-              ? "Opening your workspace…"
-              : config.auth === "cognito"
-                ? signup.length
-                  ? "Sign in or create an account"
-                  : "Sign in to Lab Onboarding"
-                : "Enter the learning lab"}
-            <ArrowRight size={18} />
-          </button>
-          <span className={s.caption}>
-            {config.auth === "local"
-              ? "Local preview · your progress stays on this computer"
-              : config.auth === "disabled"
-                ? "Sign-in has not been configured. Ask your administrator."
-                : signup.length
-                  ? `New learners can sign up with ${signup.map((domain) => `@${domain}`).join(" or ")}. Verify your email to start learning.`
-                  : "Use your training account to save your progress."}
-          </span>
+          {!(asking && asked === "sent") && (
+            <button
+              className={s.primary}
+              disabled={
+                busy || asked === "sending" || config.auth === "disabled"
+              }
+            >
+              {asking
+                ? "Send request"
+                : busy
+                  ? "Opening your workspace…"
+                  : config.auth === "cognito"
+                    ? signup.length
+                      ? "Sign in or create an account"
+                      : "Sign in to Lab Onboarding"
+                    : "Enter the learning lab"}
+              <ArrowRight size={18} />
+            </button>
+          )}
+          {!asking && (
+            <span className={s.caption}>
+              {config.auth === "local"
+                ? "Local preview · your progress stays on this computer"
+                : config.auth === "disabled"
+                  ? "Sign-in has not been configured. Ask your administrator."
+                  : signup.length
+                    ? `New learners can sign up with ${signup.map((domain) => `@${domain}`).join(" or ")}. Verify your email to start learning.`
+                    : "Use your training account to save your progress."}
+            </span>
+          )}
+          {config.auth === "cognito" && (
+            <button
+              type="button"
+              className={s.switch}
+              onClick={() => setAsking(!asking)}
+            >
+              {asking ? "Back to sign in" : "Request access with another email"}
+            </button>
+          )}
         </form>
       </section>
 

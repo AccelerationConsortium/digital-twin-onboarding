@@ -64,7 +64,10 @@ resource "aws_cognito_user_pool" "learners" {
   auto_verified_attributes = ["email"]
   deletion_protection      = "ACTIVE"
   admin_create_user_config { allow_admin_create_user_only = length(var.self_signup_email_domains) == 0 }
-  lambda_config { pre_sign_up = aws_lambda_function.signup.arn }
+  lambda_config {
+    pre_sign_up    = aws_lambda_function.signup.arn
+    custom_message = aws_lambda_function.signup.arn
+  }
   user_attribute_update_settings {
     attributes_require_verification_before_update = ["email"]
   }
@@ -132,7 +135,9 @@ resource "aws_iam_role_policy" "api" {
   role = aws_iam_role.api.id
   policy = jsonencode({ Version = "2012-10-17", Statement = [
     { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:Query"], Resource = [aws_dynamodb_table.records.arn, "${aws_dynamodb_table.records.arn}/index/created_at"] },
-    { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.api.arn}:*" }
+    { Effect = "Allow", Action = ["logs:CreateLogStream", "logs:PutLogEvents"], Resource = "${aws_cloudwatch_log_group.api.arn}:*" },
+    # Lab operators invite learners whose email is outside the self-registration domains.
+    { Effect = "Allow", Action = "cognito-idp:AdminCreateUser", Resource = aws_cognito_user_pool.learners.arn }
   ] })
 }
 resource "aws_lambda_function" "api" {
@@ -210,7 +215,7 @@ resource "aws_apigatewayv2_authorizer" "learners" {
   }
 }
 resource "aws_apigatewayv2_route" "public" {
-  for_each  = toset(["GET /api/health", "GET /api/config"])
+  for_each  = toset(["GET /api/health", "GET /api/config", "POST /api/access-requests"])
   api_id    = aws_apigatewayv2_api.api.id
   route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.api.id}"
