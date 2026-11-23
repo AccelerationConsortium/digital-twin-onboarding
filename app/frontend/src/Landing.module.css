@@ -378,6 +378,30 @@
   line-height: 1.55;
   color: var(--muted);
 }
+.switch {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.switch:hover {
+  text-decoration: underline;
+}
+.sent,
+.refused {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.refused {
+  color: var(--danger);
+  font-size: 13px;
+}
 
 .steps {
   position: relative;

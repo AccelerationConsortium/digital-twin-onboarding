@@ -37,5 +37,22 @@ for (const domains of [["utoronto.ca", "mail.utoronto.ca"], []]) {
         page.getByText("Use your training account to save your progress."),
       ).toBeVisible();
     }
+
+    // Any other email asks a lab operator; nothing is granted by asking.
+    await page
+      .getByRole("button", { name: "Request access with another email" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Request access" }),
+    ).toBeVisible();
+    await page
+      .getByLabel("Email")
+      .fill(`guest-${domains.length}-${Date.now()}@example.com`);
+    await page.getByLabel("Name", { exact: true }).fill("Grace");
+    await page.getByLabel("Lab or course (optional)").fill("Visiting lab");
+    await page.getByRole("button", { name: "Send request" }).click();
+    await expect(page.getByRole("status")).toContainText("Request sent.");
+    await page.getByRole("button", { name: "Back to sign in" }).click();
+    await expect(page.getByRole("button", { name: /^Sign in/ })).toHaveCount(2);
   });
 }

@@ -1,0 +1,122 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 42px 60px;
+  color: var(--ink);
+}
+.page h1 {
+  margin: 0;
+  font-family: "Manrope", sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  letter-spacing: -0.8px;
+}
+.page h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+.page p {
+  margin: 0;
+}
+.invite label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.inline {
+  display: flex;
+  gap: 8px;
+  max-width: 520px;
+}
+.inline input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 12px;
+  border: var(--hairline) solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+.primary {
+  composes: primary from "./App.module.css";
+  min-height: 42px;
+  padding: 0 18px;
+}
+.secondary {
+  composes: secondary from "./App.module.css";
+  min-height: 42px;
+  padding: 0 14px;
+}
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+.list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+}
+.list > li + li {
+  border-top: var(--hairline) solid var(--line);
+}
+.list > li > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 14px;
+}
+.list span,
+.list time,
+.list p {
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.invited {
+  color: var(--ink) !important;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .page {
+    padding: 28px 18px 48px;
+  }
+  .inline {
+    flex-direction: column;
+  }
+  .list > li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .actions {
+    grid-column: 1 / -1;
+  }
+  .actions button {
+    flex: 1;
+  }
+}

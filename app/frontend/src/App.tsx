@@ -38,6 +38,7 @@ import {
   House,
   ListChecks,
   MessagesSquare,
+  UserPlus,
   Award,
 } from "lucide-react";
 import { api, ApiError, configureAuth, json, signIn, signOut } from "./api";
@@ -65,6 +66,7 @@ import {
 } from "./studioContent";
 
 const WorkflowStudio = lazy(() => import("./WorkflowStudio"));
+const AccessRequests = lazy(() => import("./AccessRequests"));
 import StageRail from "./StageRail";
 const SimulationLab = lazy(() => import("./SimulationLab"));
 const InstrumentStudio = lazy(() => import("./InstrumentStudio"));
@@ -438,6 +440,7 @@ export default function App() {
   const [config, setConfig] = useState<Config | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [canPlan, setCanPlan] = useState(true);
+  const [canAdmit, setCanAdmit] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [session, setSession] = useState<Session | null>(null);
@@ -522,7 +525,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|access|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -549,8 +552,12 @@ export default function App() {
       api<Session[]>("/sessions"),
     ]);
     // Asked once signed in, so a visitor's bootstrap probes stay the same.
-    const access = await api<{ plan_layouts: boolean }>("/access");
+    const access = await api<{
+      plan_layouts: boolean;
+      admit_learners?: boolean;
+    }>("/access");
     setCanPlan(access.plan_layouts);
+    setCanAdmit(Boolean(access.admit_learners));
     setProfile(p);
     setCourses(c);
     setSessions(r);
@@ -560,7 +567,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|access|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -798,6 +805,15 @@ export default function App() {
               >
                 <MessagesSquare size={18} /> Reviews
               </button>
+              {canAdmit && (
+                <button
+                  className={view === "access" ? s.activeNav : ""}
+                  aria-current={view === "access" ? "page" : undefined}
+                  onClick={() => nav("access")}
+                >
+                  <UserPlus size={18} /> Access requests
+                </button>
+              )}
               <button
                 className={
                   view === "cloudlab" || view === "portal" ? s.activeNav : ""
@@ -936,25 +952,27 @@ export default function App() {
                                 ? "Study groups"
                                 : view === "reviews"
                                   ? "Reviews"
-                                  : view === "qualifications"
-                                    ? "Qualifications"
-                                    : view === "cloudlab"
-                                      ? "Cloud lab onboarding"
-                                      : view === "cloudlab-workflow"
-                                        ? "Cloud lab workflow"
-                                        : view === "portal"
-                                          ? "Mock cloud lab portal"
-                                          : view === "discovery"
-                                            ? "Discovery studio"
-                                            : view === "marketplace"
-                                              ? "Workflow marketplace"
-                                              : view === "connector"
-                                                ? "Connector explorer"
-                                                : view === "skills"
-                                                  ? "Skill tree"
-                                                  : view === "sim"
-                                                    ? "Simulation lab"
-                                                    : "Learning lab"))}
+                                  : view === "access"
+                                    ? "Access requests"
+                                    : view === "qualifications"
+                                      ? "Qualifications"
+                                      : view === "cloudlab"
+                                        ? "Cloud lab onboarding"
+                                        : view === "cloudlab-workflow"
+                                          ? "Cloud lab workflow"
+                                          : view === "portal"
+                                            ? "Mock cloud lab portal"
+                                            : view === "discovery"
+                                              ? "Discovery studio"
+                                              : view === "marketplace"
+                                                ? "Workflow marketplace"
+                                                : view === "connector"
+                                                  ? "Connector explorer"
+                                                  : view === "skills"
+                                                    ? "Skill tree"
+                                                    : view === "sim"
+                                                      ? "Simulation lab"
+                                                      : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -1158,6 +1176,8 @@ export default function App() {
                 />
               ) : view === "qualifications" ? (
                 <Qualifications key={workspaceRouteRevision} onOpen={nav} />
+              ) : view === "access" && canAdmit ? (
+                <AccessRequests onError={showError} />
               ) : view === "reviews" ? (
                 <SupervisorReview
                   key={workspaceRouteRevision}

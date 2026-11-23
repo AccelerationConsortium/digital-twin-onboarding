@@ -102,3 +102,40 @@ def test_operator_can_invite_other_domains_without_policy():
 def test_other_trigger_sources_rejected(trigger):
     with pytest.raises(ValueError, match="method is not enabled"):
         signup.handler(event(trigger=trigger), None)
+
+
+def invited(metadata=None):
+    return {
+        "triggerSource": "CustomMessage_AdminCreateUser",
+        "request": {
+            "usernameParameter": "{username}",
+            "codeParameter": "{####}",
+            "clientMetadata": metadata,
+        },
+        "response": {"smsMessage": None, "emailMessage": None, "emailSubject": None},
+    }
+
+
+def test_invitation_email_carries_credentials_and_the_operators_link():
+    message = signup.handler(invited({"app_url": "https://academy.example"}), None)["response"]
+    assert "{username}" in message["emailMessage"] and "{####}" in message["emailMessage"]
+    assert 'href="https://academy.example"' in message["emailMessage"]
+    assert message["emailSubject"] == "Your Lab Onboarding invitation"
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [None, {}, {"app_url": "javascript:alert(1)"}, {"app_url": 'https://a.example"><b>'}],
+)
+def test_invitation_email_never_embeds_an_untrusted_link(metadata):
+    message = signup.handler(invited(metadata), None)["response"]["emailMessage"]
+    assert "href" not in message and "{username}" in message and "{####}" in message
+
+
+@pytest.mark.parametrize(
+    "trigger", ["CustomMessage_SignUp", "CustomMessage_ForgotPassword", "CustomMessage_ResendCode"]
+)
+def test_verification_and_recovery_messages_are_untouched(trigger):
+    request = invited()
+    request["triggerSource"] = trigger
+    assert signup.handler(request, None)["response"]["emailMessage"] is None
