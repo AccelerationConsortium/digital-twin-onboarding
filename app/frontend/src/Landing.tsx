@@ -110,9 +110,9 @@ export default function Landing({
             Virtual Laboratory <em>Training &amp; Competency</em> Platform
           </h1>
           <p style={{ "--i": 2 } as CSSProperties}>
-            Learn the instruments of a self-driving lab (SDL) on a teaching
-            model, practise their faults and build a record of what you can do —
-            before any bench time.
+            Learn the instruments of a self-driving lab (SDL) on interactive
+            digital twins, practise their faults and build a record of what you
+            can do — before any bench time.
           </p>
         </div>
 
