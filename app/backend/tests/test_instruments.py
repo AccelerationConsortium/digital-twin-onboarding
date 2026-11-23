@@ -422,9 +422,13 @@ def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geomet
             assert asset["license"] == "CC-BY-NC-4.0" and asset["stand_in"] in assumptions
             assert "not this instrument's size" in assumptions
         elif asset["layout_model"]:
-            assert asset["mesh"] is None and "not this instrument's size" in assumptions
+            assert "not this instrument's size" in assumptions
         else:
-            assert asset["mesh"] is None and "Academy estimate" in assumptions
+            assert "Academy estimate" in assumptions
+        if not asset["stand_in"]:
+            # Without a library model it is a box, or a photo sketch that says what it is.
+            assert bool(asset["mesh"]) == bool(asset["sketch"])
+            assert not asset["mesh"] or asset["mesh"]["kind"] == "sketch"
     # No model is drawn under two names: each stand-in belongs to the one instrument it is
     # closest to; the rest take the nearest unused model, or a box where none is close.
     drawn = [asset["slug"] for asset in CLOUDLAB.values() if asset["slug"]]
@@ -432,7 +436,8 @@ def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geomet
     assert CLOUDLAB["qpcr"]["stand_in"] == "Bio-Rad CFX Opus 96"
     # With no second thermal cycler modelled, a heated block of wells stands in.
     assert CLOUDLAB["thermocycler"]["slug"] == "scp_digiprepms"
-    assert CLOUDLAB["ac-qpcr"]["mesh"] is None
+    # No thermal cycler is modelled at all, so this one is drawn from its product photo.
+    assert CLOUDLAB["ac-qpcr"]["slug"] is None and CLOUDLAB["ac-qpcr"]["mesh"]["kind"] == "sketch"
     assert CLOUDLAB["ac-orbitrap-lcms"]["slug"] == "thermo_orbitrapexploris"
     thermocycler = CLOUDLAB["thermocycler"]["spec"]
     assert thermocycler["limits"]["min_temp_c"] == 4 and thermocycler["limits"]["max_temp_c"] == 105

@@ -577,6 +577,41 @@ EVIDENCE = {
     "engineering_assumption": "asset author's estimate",
 }
 
+# Instruments no ChemLab model resembles: the outside shape Claude Fable 5.2 read off the
+# product photos each entry names, as a few boxes. Proportions only; the twin keeps its
+# own size. The photos themselves are not kept.
+SKETCHES = json.loads((Path(__file__).parent / "cloudlab_sketches.json").read_text())
+
+
+def sketched(asset_id, box):
+    """A photo sketch's boxes scaled into the twin's one box, as a mesh the page draws.
+
+    Both are Y-up, standing on Y=0 and centred on X=0, Z=0, with the front toward +Z.
+    """
+    found = SKETCHES["sketches"].get(asset_id)
+    if not found:
+        return None, None
+    parts = found["parts"]
+    low = [min(p["position"][i] - p["size"][i] / 2 for p in parts) for i in range(3)]
+    high = [max(p["position"][i] + p["size"][i] / 2 for p in parts) for i in range(3)]
+    scale = [box[i] / (high[i] - low[i]) for i in range(3)]
+    origin = [(low[0] + high[0]) / 2, low[1], (low[2] + high[2]) / 2]
+    mesh = {
+        "kind": "sketch",
+        "asset": asset_id,
+        "parts": [
+            {
+                "label": p["label"],
+                "size": [round(p["size"][i] * scale[i], 4) for i in range(3)],
+                "position": [round((p["position"][i] - origin[i]) * scale[i], 4) for i in range(3)],
+                "color": p["color"],
+            }
+            for p in parts
+        ],
+    }
+    credit = {key: found[key] for key in ("instrument", "page", "read")}
+    return mesh, {**credit, "model": SKETCHES["model"]}
+
 
 def contract(slug, stand_in, slots):
     """The stand-in's layout values as (twin fields, {field: basis}) for an entry."""
@@ -741,6 +776,14 @@ def entry(asset_id, name, experiment, section, published, spec, geometry, lab=EC
     # Read off the twin, since a box no document places takes its loading face by default.
     if twin["access"] == "front" and "level_m" not in basis:
         basis["level_m"] = UNSET  # the planner then presents the plate a third of the way up
+    sketch = None
+    if not stand_in:
+        source["mesh"], sketch = sketched(asset_id, twin["parts"][0]["size"])
+    if sketch:
+        source["attribution"] += (
+            f"; outside shape sketched by Claude Fable 5.2 from a {sketch['instrument']} product "
+            f"photo ({sketch['page']}, read {sketch['read']})"
+        )
     return {
         "label": f"{lab['provider']} {name}",
         "provider": lab["provider"],
@@ -756,6 +799,8 @@ def entry(asset_id, name, experiment, section, published, spec, geometry, lab=EC
         **source,
         "layout_model": model,
         "geometry_basis": basis,
+        # Where a drawn shape that is not a library model comes from.
+        "sketch": sketch,
         # The drawn stand-in's documented mass, with the range its documents give.
         "mass_kg": mass,
         "spec": twin,
@@ -804,6 +849,7 @@ def overview():
                 "geometry_basis": asset["geometry_basis"],
                 "stand_in": asset["stand_in"],
                 "mesh": asset["mesh"],
+                "sketch": asset["sketch"],
                 "attribution": asset["attribution"],
                 "license": asset["license"],
             }

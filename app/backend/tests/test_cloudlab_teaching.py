@@ -65,8 +65,12 @@ def test_the_view_moves_jointed_stand_ins_and_leaves_the_rest_still():
     for asset_id in ("analytical-hplc", "gcms"):
         slug = INSTRUMENTS[asset_id][-1]
         assert found[asset_id]["mesh"] and not CONTRACTS["stand_ins"][slug].get("joints")
-    # Estimated boxes have no model to move.
-    assert all(found[k]["mesh"] is None for k in found if not CLOUDLAB[k]["stand_in"])
+    # Estimated boxes and photo sketches have no model to move.
+    assert all(
+        found[k]["motion"] is None and (found[k]["mesh"] or {"kind": "sketch"})["kind"] == "sketch"
+        for k in found
+        if not CLOUDLAB[k]["stand_in"]
+    )
     incubator = found["cell-incubator"]["motion"]
     assert incubator["node_prefix"] == "eppendorf_cellxpertc170i__"
     door = incubator["joints"]["outer_door"]

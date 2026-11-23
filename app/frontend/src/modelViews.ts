@@ -163,7 +163,7 @@ const thumbs = new Map<string, Promise<string | null>>();
 
 /** A still of the model as an image URL, or null when it cannot be drawn. */
 export function thumbnail(mesh: Mesh): Promise<string | null> {
-  const key = mesh.url ?? mesh.kind;
+  const key = mesh.url ?? [mesh.kind, mesh.asset].filter(Boolean).join(":");
   if (!thumbs.has(key)) {
     const drawn = queue.then(() => draw(mesh));
     queue = drawn.catch(() => undefined);

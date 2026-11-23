@@ -2,9 +2,10 @@
 
 import pytest
 from academy import ac_equipment, chemlab
-from academy.cloudlab import CLOUDLAB, CONTRACTS
+from academy.cloudlab import CLOUDLAB, CONTRACTS, SKETCHES
 from academy.cloudlab_anatomy import anatomy
 from academy.cloudlab_teaching import instruments
+from academy.simple_twins import Part
 
 AC = {key: CLOUDLAB[key] for key in ac_equipment.INSTRUMENTS}
 
@@ -43,9 +44,53 @@ def test_an_ac_twin_names_only_what_the_reference_lists(key):
         assert "MBZUAI" in asset["attribution"]
     else:
         # Otherwise it is a box, never another instrument's model under this name.
-        assert asset["slug"] is None and asset["mesh"] is None
-        assert anatomy(key) is None
+        assert asset["slug"] is None and anatomy(key) is None
         assert asset["geometry_basis"]["size"].startswith(("datasheet:", "estimate"))
+
+
+SKETCHED = [key for key, asset in AC.items() if asset["sketch"]]
+
+
+def test_five_ac_boxes_are_drawn_from_a_product_photo():
+    assert SKETCHED == [
+        "ac-tecan",
+        "ac-bead-separator",
+        "ac-plate-stacker",
+        "ac-qpcr",
+        "ac-medchem-lcms",
+    ]
+
+
+@pytest.mark.parametrize("key", SKETCHED)
+def test_a_photo_sketch_fills_the_twins_box_and_says_where_it_is_from(key):
+    asset, pinned = AC[key], SKETCHES["sketches"][key]
+    mesh, (width, height, depth) = asset["mesh"], asset["spec"]["parts"][0]["size"]
+    assert mesh["kind"] == "sketch" and mesh["asset"] == key and asset["stand_in"] is None
+    assert 5 <= len(mesh["parts"]) <= 12
+    parts = [
+        Part.model_validate({k: p[k] for k in ("size", "position", "color")}) for p in mesh["parts"]
+    ]
+    assert all(p["label"] for p in mesh["parts"])
+    # The boxes span exactly the twin's own box: standing on the bench, centred on it.
+    for axis, (low, high) in enumerate(
+        ((-width / 2, width / 2), (0, height), (-depth / 2, depth / 2))
+    ):
+        assert min(p.position[axis] - p.size[axis] / 2 for p in parts) == pytest.approx(
+            low, abs=1e-3
+        )
+        assert max(p.position[axis] + p.size[axis] / 2 for p in parts) == pytest.approx(
+            high, abs=1e-3
+        )
+    # The twin itself is still its one sized box; the sketch only changes what is drawn.
+    assert len(asset["spec"]["parts"]) == 1
+    assert asset["sketch"] == {
+        "instrument": pinned["instrument"],
+        "page": pinned["page"],
+        "read": pinned["read"],
+        "model": "claude-fable-5-2",
+    }
+    assert pinned["page"].startswith("https://") and pinned["photos"] and pinned["unseen"]
+    assert f"sketched by Claude Fable 5.2 from a {pinned['instrument']}" in asset["attribution"]
 
 
 DRAWN = [key for key, asset in AC.items() if asset["slug"]]

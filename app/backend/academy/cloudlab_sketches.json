@@ -1,0 +1,580 @@
+{
+  "model": "claude-fable-5-2",
+  "sketches": {
+    "ac-qpcr": {
+      "instrument": "Applied Biosystems QuantStudio 7 Pro Real-Time PCR System",
+      "page": "https://www.thermofisher.com/order/catalog/product/A43183",
+      "photos": [
+        "https://www.thermofisher.com/TFS-Assets/LSG/product-images/QS7Pro_F-close-650x600.jpg-650.jpg",
+        "https://www.thermofisher.com/TFS-Assets/LSG/product-images/QS7Pro_R_close-650x600.jpg-650.jpg"
+      ],
+      "read": "2026-11-23",
+      "unseen": "Back, left side and underside; the rounded corners are drawn square.",
+      "parts": [
+        {
+          "label": "housing",
+          "size": [
+            0.338,
+            0.547,
+            0.42
+          ],
+          "position": [
+            0,
+            0.2735,
+            -0.05
+          ],
+          "color": "#eceef0"
+        },
+        {
+          "label": "front panel",
+          "size": [
+            0.3,
+            0.5,
+            0.1
+          ],
+          "position": [
+            0,
+            0.27,
+            0.21
+          ],
+          "color": "#4a4d52"
+        },
+        {
+          "label": "touchscreen",
+          "size": [
+            0.24,
+            0.17,
+            0.012
+          ],
+          "position": [
+            0,
+            0.4,
+            0.265
+          ],
+          "color": "#1e4fa8"
+        },
+        {
+          "label": "status light",
+          "size": [
+            0.06,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0,
+            0.275,
+            0.264
+          ],
+          "color": "#2f7bff"
+        },
+        {
+          "label": "plate drawer",
+          "size": [
+            0.22,
+            0.1,
+            0.012
+          ],
+          "position": [
+            0,
+            0.14,
+            0.265
+          ],
+          "color": "#5a5d62"
+        }
+      ]
+    },
+    "ac-tecan": {
+      "instrument": "Tecan Fluent 480",
+      "page": "https://lifesciences.tecan.com/fluent-laboratory-automation-workstation",
+      "photos": [
+        "https://lifesciences.tecan.com/hubfs/page_images/Fluent/Fluent-480-instrument.jpg",
+        "https://www.tecan.com/hubfs/__BEE_Inbound_Mockup_Files/images/Tec008348.png"
+      ],
+      "read": "2026-11-23",
+      "unseen": "Back and left side. Depth is read from a second Tecan photo of a Fluent whose model is not labelled; the curved hood is drawn square.",
+      "parts": [
+        {
+          "label": "cabinet",
+          "size": [
+            1.1,
+            0.8,
+            0.74
+          ],
+          "position": [
+            0,
+            0.4,
+            0
+          ],
+          "color": "#17181a"
+        },
+        {
+          "label": "deck",
+          "size": [
+            1.15,
+            0.1,
+            0.78
+          ],
+          "position": [
+            0,
+            0.85,
+            0
+          ],
+          "color": "#e9ebed"
+        },
+        {
+          "label": "labware",
+          "size": [
+            0.7,
+            0.05,
+            0.4
+          ],
+          "position": [
+            0,
+            0.925,
+            0.05
+          ],
+          "color": "#7fa6c9"
+        },
+        {
+          "label": "back wall",
+          "size": [
+            1.15,
+            0.6,
+            0.06
+          ],
+          "position": [
+            0,
+            1.2,
+            -0.36
+          ],
+          "color": "#dfe3e6"
+        },
+        {
+          "label": "left panel",
+          "size": [
+            0.05,
+            0.6,
+            0.72
+          ],
+          "position": [
+            -0.55,
+            1.2,
+            0
+          ],
+          "color": "#b9c7cf"
+        },
+        {
+          "label": "right panel",
+          "size": [
+            0.05,
+            0.6,
+            0.72
+          ],
+          "position": [
+            0.55,
+            1.2,
+            0
+          ],
+          "color": "#b9c7cf"
+        },
+        {
+          "label": "hood",
+          "size": [
+            1.15,
+            0.477,
+            0.78
+          ],
+          "position": [
+            0,
+            1.7385,
+            0
+          ],
+          "color": "#c9cdd1"
+        },
+        {
+          "label": "arm",
+          "size": [
+            0.1,
+            0.08,
+            0.66
+          ],
+          "position": [
+            0.1,
+            1.44,
+            0
+          ],
+          "color": "#e6e8ea"
+        },
+        {
+          "label": "pipetting head",
+          "size": [
+            0.12,
+            0.3,
+            0.08
+          ],
+          "position": [
+            0.1,
+            1.27,
+            0.05
+          ],
+          "color": "#3a3f45"
+        },
+        {
+          "label": "touchscreen",
+          "size": [
+            0.22,
+            0.15,
+            0.03
+          ],
+          "position": [
+            -0.35,
+            0.82,
+            0.405
+          ],
+          "color": "#1a1d21"
+        }
+      ]
+    },
+    "ac-bead-separator": {
+      "instrument": "Thermo Scientific KingFisher Duo Prime Purification System",
+      "page": "https://www.thermofisher.com/order/catalog/product/5400110",
+      "photos": [
+        "https://www.thermofisher.com/TFS-Assets/LCD/product-images/KingFisher-Duo-Prime-UV.jpg-650.jpg"
+      ],
+      "read": "2026-11-23",
+      "unseen": "Both sides and the back; depth is not visible in a front view.",
+      "parts": [
+        {
+          "label": "housing",
+          "size": [
+            0.4,
+            0.34,
+            0.46
+          ],
+          "position": [
+            0,
+            0.17,
+            0
+          ],
+          "color": "#f2f3f4"
+        },
+        {
+          "label": "top plate",
+          "size": [
+            0.36,
+            0.01,
+            0.4
+          ],
+          "position": [
+            0,
+            0.345,
+            -0.02
+          ],
+          "color": "#6b6e72"
+        },
+        {
+          "label": "front lid",
+          "size": [
+            0.25,
+            0.15,
+            0.012
+          ],
+          "position": [
+            -0.045,
+            0.2,
+            0.232
+          ],
+          "color": "#3f7fa6"
+        },
+        {
+          "label": "lid handle",
+          "size": [
+            0.25,
+            0.012,
+            0.02
+          ],
+          "position": [
+            -0.045,
+            0.282,
+            0.238
+          ],
+          "color": "#b8bcc0"
+        },
+        {
+          "label": "control panel",
+          "size": [
+            0.085,
+            0.13,
+            0.012
+          ],
+          "position": [
+            0.145,
+            0.215,
+            0.232
+          ],
+          "color": "#16181b"
+        },
+        {
+          "label": "screen",
+          "size": [
+            0.065,
+            0.05,
+            0.006
+          ],
+          "position": [
+            0.145,
+            0.245,
+            0.24
+          ],
+          "color": "#dfe9f2"
+        },
+        {
+          "label": "power switch",
+          "size": [
+            0.02,
+            0.03,
+            0.008
+          ],
+          "position": [
+            0.155,
+            0.05,
+            0.232
+          ],
+          "color": "#111111"
+        }
+      ]
+    },
+    "ac-plate-stacker": {
+      "instrument": "Agilent BioTek BioStack Microplate Stacker",
+      "page": "https://www.selectscience.net/product/agilent-biotek-biostack-microplate-stacker",
+      "photos": [
+        "https://cdn.sanity.io/images/f5b6mtfn/selectscience-prod/32a7734c60be29bc9cd59e448fac4dd606f17209-2108x2920.jpg"
+      ],
+      "read": "2026-11-23",
+      "unseen": "Back and far side. The photo is on SelectScience, not Agilent's site, which refused reading; it does not say whether this is a BioStack 3 or 4.",
+      "parts": [
+        {
+          "label": "base",
+          "size": [
+            0.18,
+            0.12,
+            0.4
+          ],
+          "position": [
+            0,
+            0.06,
+            -0.06
+          ],
+          "color": "#1c1c1e"
+        },
+        {
+          "label": "rear stack",
+          "size": [
+            0.1,
+            0.44,
+            0.14
+          ],
+          "position": [
+            -0.03,
+            0.38,
+            -0.19
+          ],
+          "color": "#1b1b1d"
+        },
+        {
+          "label": "front stack",
+          "size": [
+            0.1,
+            0.44,
+            0.14
+          ],
+          "position": [
+            -0.03,
+            0.38,
+            -0.04
+          ],
+          "color": "#1b1b1d"
+        },
+        {
+          "label": "housing",
+          "size": [
+            0.188,
+            0.22,
+            0.16
+          ],
+          "position": [
+            0,
+            0.23,
+            0.1
+          ],
+          "color": "#f1f2f3"
+        },
+        {
+          "label": "gripper arm",
+          "size": [
+            0.09,
+            0.07,
+            0.14
+          ],
+          "position": [
+            0.02,
+            0.24,
+            0.22
+          ],
+          "color": "#f1f2f3"
+        },
+        {
+          "label": "gripper",
+          "size": [
+            0.08,
+            0.06,
+            0.07
+          ],
+          "position": [
+            0.02,
+            0.18,
+            0.2
+          ],
+          "color": "#222325"
+        },
+        {
+          "label": "plate carrier",
+          "size": [
+            0.14,
+            0.015,
+            0.16
+          ],
+          "position": [
+            0,
+            0.1,
+            0.21
+          ],
+          "color": "#2a2b2d"
+        },
+        {
+          "label": "plate",
+          "size": [
+            0.086,
+            0.015,
+            0.128
+          ],
+          "position": [
+            0,
+            0.115,
+            0.21
+          ],
+          "color": "#e8eef2"
+        }
+      ]
+    },
+    "ac-medchem-lcms": {
+      "instrument": "Waters ACQUITY Premier system with ACQUITY QDa II Mass Detector",
+      "page": "https://www.waters.com/nextgen/us/en/products/mass-spectrometry/mass-spectrometry-systems/acquity-qda-ii-mass-detector.html",
+      "photos": [
+        "https://www.waters.com/content/dam/waters/en/Photography/Products/Instruments/Separations/uplc/acquity-qda-ii-/Acquity-QDa-II-Detector-with-ACQUITY-Premier-Automation-Portal-straight.jpg.1024.resize/img.jpg"
+      ],
+      "read": "2026-11-23",
+      "unseen": "Sides, back and depth; a straight front view. The reference names no make, so a single-quadrupole LC-MS of this kind was chosen.",
+      "parts": [
+        {
+          "label": "solvent manager",
+          "size": [
+            0.34,
+            0.22,
+            0.6
+          ],
+          "position": [
+            0,
+            0.11,
+            0
+          ],
+          "color": "#8e9093"
+        },
+        {
+          "label": "sample manager",
+          "size": [
+            0.34,
+            0.27,
+            0.6
+          ],
+          "position": [
+            0,
+            0.355,
+            0
+          ],
+          "color": "#9a9c9e"
+        },
+        {
+          "label": "column manager",
+          "size": [
+            0.34,
+            0.22,
+            0.6
+          ],
+          "position": [
+            0,
+            0.6,
+            0
+          ],
+          "color": "#9a9c9e"
+        },
+        {
+          "label": "solvent tray",
+          "size": [
+            0.34,
+            0.05,
+            0.5
+          ],
+          "position": [
+            0,
+            0.735,
+            0
+          ],
+          "color": "#7d7f82"
+        },
+        {
+          "label": "detector base",
+          "size": [
+            0.32,
+            0.22,
+            0.55
+          ],
+          "position": [
+            0.34,
+            0.11,
+            0
+          ],
+          "color": "#8e9093"
+        },
+        {
+          "label": "mass detector",
+          "size": [
+            0.32,
+            0.17,
+            0.55
+          ],
+          "position": [
+            0.34,
+            0.305,
+            0
+          ],
+          "color": "#6f7174"
+        },
+        {
+          "label": "automation portal",
+          "size": [
+            0.22,
+            0.16,
+            0.45
+          ],
+          "position": [
+            -0.29,
+            0.19,
+            0.05
+          ],
+          "color": "#a4a6a8"
+        }
+      ]
+    }
+  }
+}
