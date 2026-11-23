@@ -2,7 +2,7 @@ region                    = "ca-central-1"
 environment               = "dev"
 expected_account_id       = "247893369214"
 remote_execution_enabled  = false
-self_signup_email_domains = ["utoronto.ca"]
+self_signup_email_domains = ["utoronto.ca", "mail.utoronto.ca"]
 # Account quota is currently 10 total: reservations require unreserved headroom.
 reserve_lambda_concurrency = false
 learner_request_rate       = 5
