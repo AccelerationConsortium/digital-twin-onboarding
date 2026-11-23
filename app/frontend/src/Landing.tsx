@@ -106,14 +106,16 @@ export default function Landing({
 
       <section className={s.hero}>
         <div className={s.copy}>
-          <h1>
-            <span style={{ "--i": 0 } as CSSProperties}>Welcome to</span>{" "}
-            <em style={{ "--i": 1 } as CSSProperties}>Lab</em>{" "}
-            <em style={{ "--i": 2 } as CSSProperties}>Onboarding.</em>
+          <p className={s.kicker} style={{ "--i": 0 } as CSSProperties}>
+            Virtual Laboratory Training &amp; Competency Platform
+          </p>
+          <h1 style={{ "--i": 1 } as CSSProperties}>
+            How do we establish that a researcher is <em>ready to operate</em> a
+            scientific instrument before granting them access to it?
           </h1>
           <p style={{ "--i": 3 } as CSSProperties}>
-            A place to learn lab automation by trying it. Build a workflow, run
-            it on a teaching model and see what changes — no bench time needed.
+            Learn each instrument on a teaching model, practise its faults and
+            build a record of what you can do — before any bench time.
           </p>
         </div>
 
