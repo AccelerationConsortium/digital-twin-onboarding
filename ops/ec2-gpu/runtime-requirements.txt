@@ -4,7 +4,7 @@
 --extra-index-url https://download.pytorch.org/whl/cu128
 isaaclab[isaacsim,all]==3.0.0b2.post1
 isaacsim[all,extscache]==6.0.1.0
-torch==2.11.0+cu128
+torch==2.13.0
 torchvision==0.26.0+cu128
 
 # Internal source package requirements; source itself stays in independent checkouts.
