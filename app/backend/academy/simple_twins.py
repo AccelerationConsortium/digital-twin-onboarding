@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
-from xml.sax.saxutils import escape
+from xml.etree import ElementTree as ET
 
 import boto3
 import httpx
@@ -28,7 +28,9 @@ from . import arm_simulation, tolerance
 from .arms import arm_for
 from .consolidate import consolidation
 from .layout_search import OBJECTIVES, SHIFTS, improve_layout, robustness, search_layouts
-from .mock_contract import PlanError, execute_mock, site_keys
+from .mock_contract import PlanError, apply_step, execute_mock, site_keys, start_state
+from .mock_sila import ERRORS as SILA_ERRORS
+from .mock_sila import refusal
 from .models import StrictModel
 from .store import Conflict
 from .workcell_layout import (
@@ -987,106 +989,179 @@ def sila_identifier(name):
     return f"{camel(name, 'Instrument')[:60]}Mock"
 
 
+# SiLA units: label, factor and offset to SI, SI base unit, exponent.
+MICROLITRE = ("µL", "0.000000001", "0", "Meter", "3")
+SECOND = ("s", "1", "0", "Second", "1")
+CELSIUS = ("°C", "1", "273.15", "Kelvin", "1")
+STATION = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+# Operation -> description, observable (it takes time on a real instrument), parameters,
+# and the refusal layers of the teaching contract it can report as Defined Execution Errors.
 COMMANDS = {
     "load": (
-        "Load",
-        "Place the tracked sample on this station.",
-        [("VolumeMicroliters", "Sample volume in microlitres.", "Real")],
+        "Place a sample on this station.",
+        False,
+        ["Sample", "VolumeMicroliters", "Site"],
+        ["state", "volume", "resource"],
     ),
     "transfer": (
-        "Transfer",
-        "Move the tracked sample from one station to another.",
-        [
-            ("SourceStation", "Station currently holding the sample.", "String"),
-            ("TargetStation", "Station that receives the sample.", "String"),
-        ],
+        "Move a sample from one station to another.",
+        True,
+        ["Sample", "SourceStation", "TargetStation", "SourceSite", "TargetSite"],
+        ["state", "container", "volume", "resource"],
     ),
     "mix": (
-        "Mix",
         "Mix the sample for the given duration.",
-        [("DurationSeconds", "Mixing time in seconds.", "Real")],
+        True,
+        ["Sample", "DurationSeconds"],
+        ["state", "constraint"],
     ),
     "heat": (
-        "Heat",
         "Set the sample temperature.",
-        [("TargetTemperature", "Teaching temperature, 4–120 °C.", "Real")],
+        True,
+        ["Sample", "TargetTemperature"],
+        ["state", "constraint"],
     ),
-    "read": ("Read", "Return a synthetic state readout of the sample.", []),
-    "wait": (
-        "Wait",
-        "Hold for the given duration.",
-        [("DurationSeconds", "Wait time in seconds.", "Real")],
-    ),
+    "read": ("Return a synthetic state readout of the sample.", False, ["Sample"], ["state"]),
+    "wait": ("Hold for the given duration.", True, ["DurationSeconds"], ["state", "constraint"]),
 }
+# What a Read returns and the properties report: description, basic type, unit.
+READOUTS = {
+    "SampleLoaded": ("Whether a tracked sample is at this station.", "Boolean", None),
+    "TemperatureC": ("Synthetic sample temperature.", "Real", CELSIUS),
+    "VolumeMicroliters": ("Synthetic sample volume at this station.", "Real", MICROLITRE),
+    "Mixed": ("Whether the sample has been mixed.", "Boolean", None),
+}
+
+
+def sila_parameters(spec):
+    """Every command parameter, constrained to what the confirmed spec allows."""
+    limits = spec["limits"]
+    slot = dict(basic="String", pattern=SITE_KEY.strip("^$"))
+    station = dict(basic="String", pattern=STATION)
+    return {
+        "Sample": (
+            "Tracked sample the command acts on.",
+            dict(basic="String", pattern=SAMPLE_KEY.strip("^$")),
+        ),
+        "VolumeMicroliters": (
+            "Sample volume.",
+            dict(basic="Real", unit=MICROLITRE, low=0.001, high=spec["container"]["max_volume_ul"]),
+        ),
+        "Site": ("Slot to load into; empty takes the first free slot.", slot),
+        "SourceStation": ("Server UUID of the station holding the sample.", station),
+        "TargetStation": ("Server UUID of the station that receives the sample.", station),
+        "SourceSite": ("Slot the sample leaves; empty accepts wherever it is.", slot),
+        "TargetSite": ("Slot the sample goes to; empty takes the first free slot.", slot),
+        "DurationSeconds": (
+            "How long the step lasts.",
+            dict(basic="Real", unit=SECOND, low=0.001, high=limits["max_duration_s"]),
+        ),
+        "TargetTemperature": (
+            "Temperature to set.",
+            dict(basic="Real", unit=CELSIUS, low=limits["min_temp_c"], high=limits["max_temp_c"]),
+        ),
+    }
 
 
 def sila_feature(twin):
     """SiLA 2 Feature Definition for the mock connector, derived only from the confirmed spec."""
     spec = twin["spec"]
-    ident = sila_identifier(spec["name"])
 
-    def element(tag, text, indent):
-        return f"{' ' * indent}<{tag}>{escape(text)}</{tag}>"
+    def add(parent, tag, text=None):
+        child = ET.SubElement(parent, tag)
+        child.text = text
+        return child
 
-    lines = [
-        '<?xml version="1.0" encoding="utf-8"?>',
-        '<Feature SiLA2Version="1.1" FeatureVersion="1.0" MaturityLevel="Draft" '
-        'Originator="org.matterix.academy" Category="teaching.mock" '
-        'xmlns="http://www.sila-standard.org" '
-        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-        'xsi:schemaLocation="http://www.sila-standard.org '
-        'https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">',
-        element("Identifier", ident, 2),
-        element("DisplayName", f"{spec['name']} (mock)"[:255], 2),
-        element(
-            "Description",
-            "Synthetic teaching connector generated by Lab Onboarding. It tracks sample custody, "
-            "time and simple state only. It does not control or qualify physical hardware.",
-            2,
-        ),
-    ]
+    def named(parent, tag, identifier, description, display=None):
+        node = add(parent, tag)
+        add(node, "Identifier", identifier)
+        add(node, "DisplayName", display or re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", identifier))
+        add(node, "Description", description)
+        return node
+
+    def data_type(parent, basic, unit=None, low=None, high=None, pattern=None):
+        node = add(parent, "DataType")
+        if not unit and not pattern:
+            add(node, "Basic", basic)
+            return
+        node = add(node, "Constrained")
+        add(add(node, "DataType"), "Basic", basic)
+        rules = add(node, "Constraints")
+        if pattern:
+            add(rules, "Pattern", pattern)
+        # Plain decimals: SiLA constraint values carry no exponent.
+        for tag, value in (("MaximalInclusive", high), ("MinimalInclusive", low)):
+            if value is not None:
+                add(rules, tag, f"{value:.6f}".rstrip("0").rstrip("."))
+        if unit:
+            label, factor, offset, base, exponent = unit
+            node = add(rules, "Unit")
+            add(node, "Label", label)
+            add(node, "Factor", factor)
+            add(node, "Offset", offset)
+            node = add(node, "UnitComponent")
+            add(node, "SIUnit", base)
+            add(node, "Exponent", exponent)
+
+    def readout(parent, tag, identifier):
+        description, basic, unit = READOUTS[identifier]
+        node = named(parent, tag, identifier, description)
+        if tag == "Property":
+            add(node, "Observable", "No")
+        data_type(node, basic, unit)
+
+    root = ET.Element(
+        "Feature",
+        {
+            "SiLA2Version": "1.1",
+            "FeatureVersion": "1.0",
+            "MaturityLevel": "Draft",
+            "Originator": "org.matterix.academy",
+            "Category": "teaching.mock",
+            "xmlns": "http://www.sila-standard.org",
+            "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+            "xsi:schemaLocation": "http://www.sila-standard.org "
+            "https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd",
+        },
+    )
+    add(root, "Identifier", sila_identifier(spec["name"]))
+    add(root, "DisplayName", f"{spec['name']} (mock)"[:255])
+    add(
+        root,
+        "Description",
+        "Synthetic teaching connector generated by Lab Onboarding. It tracks sample custody, "
+        "time and simple state only. It does not control or qualify physical hardware.",
+    )
+    parameters = sila_parameters(spec)
+    raised = []
     for operation in spec["operations"]:
-        command, description, parameters = COMMANDS[operation]
-        lines += [
-            "  <Command>",
-            element("Identifier", command, 4),
-            element("DisplayName", command, 4),
-            element("Description", description, 4),
-            "    <Observable>No</Observable>",
-        ]
-        for name, text, basic in parameters:
-            lines += [
-                "    <Parameter>",
-                element("Identifier", name, 6),
-                element("DisplayName", name, 6),
-                element("Description", text, 6),
-                f"      <DataType><Basic>{basic}</Basic></DataType>",
-                "    </Parameter>",
-            ]
-        lines.append("  </Command>")
-    for name, text, basic in [
-        ("SampleLoaded", "Whether the tracked sample is at this station.", "Boolean"),
-        ("TemperatureC", "Synthetic sample temperature in °C.", "Real"),
-        ("VolumeMicroliters", "Synthetic sample volume at this station in microlitres.", "Real"),
-        *[
-            (
-                f"Consumable{i + 1}Remaining",
-                f"Remaining {c['name']} stock.",
-                "Integer",
-            )
-            for i, c in enumerate(spec["consumables"])
-        ],
-    ]:
-        lines += [
-            "  <Property>",
-            element("Identifier", name, 4),
-            element("DisplayName", name, 4),
-            element("Description", text, 4),
-            "    <Observable>No</Observable>",
-            f"    <DataType><Basic>{basic}</Basic></DataType>",
-            "  </Property>",
-        ]
-    return "\n".join([*lines, "</Feature>", ""])
+        description, observable, names, layers = COMMANDS[operation]
+        command = named(root, "Command", operation.capitalize(), description)
+        add(command, "Observable", "Yes" if observable else "No")
+        for name in names:
+            text, kind = parameters[name]
+            data_type(named(command, "Parameter", name, text), **kind)
+        if operation == "read":
+            for name in ("TemperatureC", "VolumeMicroliters", "Mixed"):
+                readout(command, "Response", name)
+        if any(c["used_by"] == operation for c in spec["consumables"]):
+            layers = [*layers, "consumable"]
+        errors = add(command, "DefinedExecutionErrors")
+        for layer in layers:
+            add(errors, "Identifier", SILA_ERRORS[layer][0])
+        raised += [layer for layer in layers if layer not in raised]
+    for name in ("SampleLoaded", "TemperatureC", "VolumeMicroliters"):
+        readout(root, "Property", name)
+    for index, item in enumerate(spec["consumables"]):
+        node = named(
+            root, "Property", f"Consumable{index + 1}Remaining", f"Remaining {item['name']} stock."
+        )
+        add(node, "Observable", "No")
+        data_type(node, "Integer")
+    for layer in raised:
+        named(root, "DefinedExecutionError", *SILA_ERRORS[layer])
+    ET.indent(root)
+    return '<?xml version="1.0" encoding="utf-8"?>\n' + ET.tostring(root, encoding="unicode") + "\n"
 
 
 def connector_package(twin, record):
@@ -1122,9 +1197,16 @@ python3 -m venv .venv
 
 To leave the mock servers available for a SiLA client, omit `--run`.
 Servers bind only to 127.0.0.1, starting at port 50520 (`--port` changes the range).
-Discovery is disabled. Startup never moves hardware. Read commands expose their
-synthetic observations through SampleLoaded, VolumeMicroliters and TemperatureC
-properties. A failed command leaves the sample and consumable stock unchanged.
+Each server uses TLS with its own self-signed certificate, printed as `ca` at startup
+and announced over SiLA Server Discovery (`--no-discovery` turns the announcement off).
+Startup never moves hardware.
+
+Every operation of an instrument is one SiLA command. Its parameters carry units and
+the instrument's own limits, so a SiLA client refuses an out-of-range value with a
+Validation Error before the command runs. Refusals that depend on the workcell, such as
+a sample that is elsewhere or a consumable that has run out, come back as Defined
+Execution Errors. Transfer, Mix, Heat and Wait are observable commands; Read returns
+its synthetic readout. A failed command leaves the sample and consumable stock unchanged.
 Stop with Ctrl-C. Restarting resets this standalone teaching state.
 
 `workspace.json` pins all confirmed specs and the saved steps at export time.
@@ -1144,7 +1226,7 @@ and supervised acceptance. This mock does not supply a physical device driver.
             "workspace.json": json.dumps(manifest, indent=2),
             "mock_sila.py": Path(__file__).with_name("mock_sila.py").read_text(),
             "mock_contract.py": Path(__file__).with_name("mock_contract.py").read_text(),
-            "requirements.txt": "sila2==0.14.0\n",
+            "requirements.txt": "sila2[cryptography]==0.14.0\n",
         },
     }
 
@@ -1362,8 +1444,23 @@ class SimpleTwinService:
     @staticmethod
     def check_plan(record, steps):
         twins = {t["id"]: t for t in record["twins"]}
+        features = {}
         try:
-            trace = execute_mock(twins, steps)
+            state, trace = start_state(twins), []
+            for number, step in enumerate(steps, 1):
+                twin = twins.get(step["device_id"])
+                # Each step is first held to its instrument's SiLA Feature Definition, as a
+                # SiLA server would before running it; the contract then checks the state.
+                if twin and twin["confirmed"] and twin["mode"] == "mock":
+                    if twin["id"] not in features:
+                        features[twin["id"]] = sila_feature(twin)
+                    refused = refusal(features[twin["id"]], step)
+                    if refused:
+                        raise PlanError(
+                            refused[0],
+                            f"Step {number}: {twin['spec']['name']}'s SiLA connector {refused[1]}",
+                        )
+                trace.append(apply_step(twins, state, step, number))
             # Once instruments are placed, every transfer also needs a collision-free arm path.
             if record.get("layout"):
                 for motion in plan_workflow(twins, record["layout"], steps):

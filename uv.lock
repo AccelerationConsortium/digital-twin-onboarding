@@ -922,7 +922,7 @@ native-worker = [
     { name = "websockets" },
 ]
 sila-mock = [
-    { name = "sila2" },
+    { name = "sila2", extra = ["cryptography"] },
 ]
 
 [package.dev-dependencies]
@@ -945,7 +945,7 @@ requires-dist = [
     { name = "mujoco", specifier = ">=3.3,<3.4" },
     { name = "numpy", marker = "extra == 'native-worker'", specifier = ">=2,<3" },
     { name = "pynacl", specifier = ">=1.5,<2" },
-    { name = "sila2", marker = "extra == 'sila-mock'", specifier = "==0.14.0" },
+    { name = "sila2", extras = ["cryptography"], marker = "extra == 'sila-mock'", specifier = "==0.14.0" },
     { name = "uvicorn", specifier = ">=0.34,<1" },
     { name = "websockets", marker = "extra == 'native-worker'", specifier = ">=15,<17" },
 ]
@@ -1502,6 +1502,11 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/12/4c/5a4dcf0843990433871fd1ab6de50b230d4e6f3de3f727e75aa4b596142e/sila2-0.14.0-py3-none-any.whl", hash = "sha256:0f85447cf9a92889170f666410d5f45b736f2b4025132d73f54609027118a839", size = 197861, upload-time = "2025-12-01T17:31:01.257Z" },
+]
+
+[package.optional-dependencies]
+cryptography = [
+    { name = "cryptography" },
 ]
 
 [[package]]
