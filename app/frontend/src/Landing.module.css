@@ -223,19 +223,14 @@
   padding: clamp(48px, 8vh, 96px) 0 clamp(48px, 7vh, 80px);
 }
 .copy h1 {
-  font-size: clamp(64px, 9.4vw, 150px);
-  line-height: 0.92;
+  font-size: clamp(38px, 5.6vw, 84px);
+  line-height: 1;
   font-weight: 700;
-  letter-spacing: -0.055em;
-  margin: 0 0 32px;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  margin: 0 0 28px;
 }
-.copy h1 > span {
-  font-size: 0.3em;
-  letter-spacing: -0.02em;
-  line-height: 1.4;
-  color: var(--ink-2);
-}
-.copy h1 > *,
+.copy h1,
 .copy p {
   display: block;
   animation: rise 0.9s var(--ease-out) both;
@@ -253,12 +248,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  padding-bottom: 0.1em;
-  margin-bottom: -0.1em;
-  animation:
-    rise 0.9s var(--ease-out) both,
-    sheen 9s linear infinite;
-  animation-delay: calc(0.15s + var(--i) * 0.14s), 1.2s;
+  animation: sheen 9s linear 1.2s infinite;
 }
 @keyframes sheen {
   to {
@@ -266,7 +256,6 @@
   }
 }
 .copy p {
-  display: block;
   font-size: clamp(16px, 1.3vw, 19px);
   line-height: 1.7;
   color: var(--ink-2);

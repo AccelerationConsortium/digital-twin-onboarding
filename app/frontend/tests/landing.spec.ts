@@ -7,7 +7,10 @@ test("the public welcome page leads to sign-in without the instrument stories", 
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Welcome to Lab Onboarding." }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Virtual Laboratory Training & Competency Platform",
+    }),
   ).toBeVisible();
   await expect(page.getByTestId("instrument-stories")).toHaveCount(0);
   await expect(page.getByText(/Opentrons|OT-2|Flex/)).toHaveCount(0);
