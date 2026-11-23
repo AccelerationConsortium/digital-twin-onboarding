@@ -16,6 +16,7 @@ The models are CC-BY-NC-4.0; attribution travels with every twin started from th
 
 import argparse
 import hashlib
+import http.client
 import itertools
 import json
 import struct
@@ -162,7 +163,8 @@ def fetch(dest):
                 with urllib.request.urlopen(url, timeout=120) as response:
                     body = response.read()
                 break
-            except OSError:
+            # A connection cut mid-body is an HTTPException, not an OSError.
+            except (OSError, http.client.HTTPException):
                 if attempt == 3:
                     raise
                 time.sleep(2 * (attempt + 1))

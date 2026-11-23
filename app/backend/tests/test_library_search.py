@@ -96,6 +96,52 @@ def test_the_manifest_script_reads_which_way_up_a_model_stands():
     assert script.up_axis(doc, [0.2, 0.5, 0.3]) == "z"
 
 
+def test_a_download_cut_short_is_tried_again(tmp_path, monkeypatch):
+    import hashlib
+    import http.client
+    import json
+
+    spec = importlib.util.spec_from_file_location("chemlab_models", SCRIPT)
+    script = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(script)
+    body = b"model"
+    manifest = tmp_path / "models.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "revision": "r",
+                "models": {
+                    "a": {
+                        "file": "a.glb",
+                        "source": "a.glb",
+                        "sha256": hashlib.sha256(body).hexdigest(),
+                    }
+                },
+            }
+        )
+    )
+    monkeypatch.setattr(script, "MANIFEST", manifest)
+    monkeypatch.setattr(script.time, "sleep", lambda seconds: None)
+    calls = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            calls.append(1)
+            if len(calls) == 1:
+                raise http.client.IncompleteRead(b"mo", 3)
+            return body
+
+    monkeypatch.setattr(script.urllib.request, "urlopen", lambda url, timeout: Response())
+    script.fetch(tmp_path / "out")
+    assert (tmp_path / "out/a.glb").read_bytes() == body and len(calls) == 2
+
+
 def test_a_slip_or_a_stray_word_still_shows_what_is_relevant():
     assert top("centrifgue") == ["eppendorf_5910ri"]
     assert top("hotplte stirrer") == ["ika_plate_rctdigital"]
