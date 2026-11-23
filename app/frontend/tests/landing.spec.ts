@@ -12,11 +12,6 @@ test("the public welcome page leads to sign-in without the instrument stories", 
       name: "Virtual Laboratory Training & Competency Platform",
     }),
   ).toBeVisible();
-  await expect(
-    page.getByText(
-      "How do we establish that a researcher is ready to operate a scientific instrument before granting them access to it?",
-    ),
-  ).toBeVisible();
   await expect(page.getByTestId("instrument-stories")).toHaveCount(0);
   await expect(page.getByText(/Opentrons|OT-2|Flex/)).toHaveCount(0);
   await expect(page.getByText("TEACHING MODEL · SYNTHETIC")).toBeVisible();

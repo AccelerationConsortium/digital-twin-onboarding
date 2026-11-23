@@ -109,13 +109,10 @@ export default function Landing({
           <h1 style={{ "--i": 0 } as CSSProperties}>
             Virtual Laboratory <em>Training &amp; Competency</em> Platform
           </h1>
-          <p className={s.lead} style={{ "--i": 2 } as CSSProperties}>
-            How do we establish that a researcher is ready to operate a
-            scientific instrument before granting them access to it?
-          </p>
-          <p style={{ "--i": 3 } as CSSProperties}>
-            Learn each instrument on a teaching model, practise its faults and
-            build a record of what you can do — before any bench time.
+          <p style={{ "--i": 2 } as CSSProperties}>
+            Learn the instruments of a self-driving lab (SDL) on a teaching
+            model, practise their faults and build a record of what you can do —
+            before any bench time.
           </p>
         </div>
 
