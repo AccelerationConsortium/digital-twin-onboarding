@@ -845,6 +845,30 @@ def test_failures_are_attributed_to_a_twin_layer(client, layer, steps):
     assert response.json()["detail"]["layer"] == layer
 
 
+def test_a_step_is_held_to_its_instruments_sila_feature_before_the_state(client):
+    reader, heater, arm, catalog = build_cell(client)
+    limits = TEMPLATES["heater"]["limits"]
+    # The sample is not on the heater either, but SiLA refuses the value before running.
+    hot = [{"device_id": heater, "operation": "heat", "value": limits["max_temp_c"] + 1}]
+    message = plan(client, catalog["version"], hot).json()["detail"]["message"]
+    assert message == (
+        "Step 1: Heating station's SiLA connector accepts a Heat TargetTemperature of "
+        f"{limits['min_temp_c']:g}–{limits['max_temp_c']:g} °C"
+    )
+    missing = [{"device_id": reader, "operation": "heat", "value": 37}]
+    detail = plan(client, catalog["version"], missing).json()["detail"]
+    assert detail == {
+        "layer": "state",
+        "message": "Step 1: Plate reader's SiLA connector has no Heat command",
+    }
+    # What depends on the workcell is still the contract's to refuse.
+    absent = [{"device_id": heater, "operation": "heat", "value": 37}]
+    assert (
+        "transfer the sample"
+        in plan(client, catalog["version"], absent).json()["detail"]["message"]
+    )
+
+
 def test_consumables_run_out_and_value_edits_need_no_residual(client):
     handler, catalog = add(client, 0, template_id="liquid-handler")
     spec = TEMPLATES["liquid-handler"]

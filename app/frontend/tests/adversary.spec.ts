@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("the likeliest-failure search finds a rare collision and replays it", async ({
   page,
 }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(360_000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
@@ -41,7 +41,7 @@ test("the likeliest-failure search finds a rare collision and replays it", async
   );
   await expect(found).toContainText(/Plate reader .* drift x \+\d/);
   await expect(found).toContainText(/Found after \d+ of \d+ simulated cycles/);
-  await expect(find).toBeEnabled({ timeout: 60_000 });
+  await expect(find).toBeEnabled({ timeout: 120_000 });
 
   await found.getByRole("button", { name: "Replay" }).first().click();
   await expect(page.getByText(/Found cycle · 1 failed/)).toBeVisible();

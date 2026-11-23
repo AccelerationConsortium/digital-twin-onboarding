@@ -12,9 +12,16 @@ import pytest
 pytest.importorskip("sila2")
 
 from academy.mock_contract import execute_mock  # noqa: E402
-from academy.mock_sila import run_workflow, serve  # noqa: E402
-from academy.simple_twins import TEMPLATES, connector_package  # noqa: E402
+from academy.mock_sila import ERRORS, FIELDS, call, run_workflow, serve, signatures  # noqa: E402
+from academy.simple_twins import TEMPLATES, connector_package, sila_feature  # noqa: E402
 from sila2.client import SilaClient  # noqa: E402
+from sila2.framework import Feature  # noqa: E402
+from sila2.framework.errors.defined_execution_error import DefinedExecutionError  # noqa: E402
+from sila2.framework.errors.validation_error import ValidationError  # noqa: E402
+
+
+def connect(endpoint):
+    return SilaClient("127.0.0.1", endpoint["port"], root_certs=endpoint["ca"].encode())
 
 
 def workcell():
@@ -63,6 +70,23 @@ def port_range(count):
     raise RuntimeError("No free local test port range")
 
 
+def test_every_template_feature_is_a_valid_sila_definition_of_its_operations():
+    for spec in TEMPLATES.values():
+        xml = sila_feature({"spec": spec})
+        feature = Feature(xml)  # validates against the SiLA 2 FeatureDefinition.xsd
+        commands = signatures(xml)
+        # One command per operation the instrument offers, each parameter a step field.
+        assert list(commands) == [o.capitalize() for o in spec["operations"]]
+        assert all(name in FIELDS for names in commands.values() for name in names)
+        assert set(feature._observable_commands) == set(commands) & {
+            "Transfer",
+            "Mix",
+            "Heat",
+            "Wait",
+        }
+        assert set(feature.defined_execution_errors) <= {name for name, _ in ERRORS.values()}
+
+
 def test_network_workflow_matches_web_contract_and_properties():
     _, manifest = workcell()
     with serve(manifest, port_range(4)) as (runtime, endpoints):
@@ -72,16 +96,22 @@ def test_network_workflow_matches_web_contract_and_properties():
         )
         reader = manifest["twins"][2]["id"]
         endpoint = endpoints[reader]
-        with SilaClient("127.0.0.1", endpoint["port"], insecure=True) as client:
+        with connect(endpoint) as client:
             feature = getattr(client, endpoint["feature"])
             assert feature.SampleLoaded.get() is True
             assert feature.TemperatureC.get() == 42
             assert feature.VolumeMicroliters.get() == 150
+            readout = feature.Read(Sample="sample")
+            assert (readout.TemperatureC, readout.VolumeMicroliters, readout.Mixed) == (
+                42,
+                150,
+                True,
+            )
         # Startup, discovery and execution create no physical adapter.
-        assert len(runtime.steps) == 6
+        assert len(runtime.steps) == 7
 
 
-def test_failed_network_command_leaves_state_and_consumables_unchanged():
+def test_refusals_are_defined_errors_and_leave_state_and_consumables_unchanged():
     _, manifest = workcell()
     manifest["steps"] = manifest["steps"][:2]
     with serve(manifest, port_range(4)) as (runtime, endpoints):
@@ -89,10 +119,18 @@ def test_failed_network_command_leaves_state_and_consumables_unchanged():
         before = deepcopy(runtime.trace)
         heater = manifest["twins"][1]["id"]
         endpoint = endpoints[heater]
-        with SilaClient("127.0.0.1", endpoint["port"], insecure=True) as client:
-            feature = getattr(client, endpoint["feature"])
-            with pytest.raises(Exception, match="transfer the sample"):
-                feature.Heat(TargetTemperature=37)
+        xml = manifest["features"][heater]["xml"]
+        heat = {"device_id": heater, "operation": "heat", "value": 37}
+        with connect(endpoint) as client:
+            with pytest.raises(DefinedExecutionError, match="transfer the sample") as refusal:
+                call(client, endpoint, xml, heat)
+            assert refusal.value.identifier == "InvalidState"
+            # The feature carries the heater's own limits; SiLA refuses the value itself.
+            limit = manifest["twins"][1]["spec"]["limits"]["max_temp_c"]
+            with pytest.raises(ValidationError):
+                call(client, endpoint, xml, {**heat, "value": limit + 1})
+            with pytest.raises(ValueError, match="has no Mix command"):
+                call(client, endpoint, xml, {**heat, "operation": "mix"})
         assert runtime.trace == before and len(runtime.steps) == 2
 
 
