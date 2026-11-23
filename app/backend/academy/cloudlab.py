@@ -13,6 +13,11 @@ outside size, the face a sample goes in through and the part of it, the loading 
 drawn slot and how far a drawer comes out. Otherwise LAYOUT gives a named comparable model's
 datasheet figures, or an Academy estimate with the reason.
 
+A model is drawn for one instrument only, the one it is closest to, across both labs: two
+instruments with different names never show the same twin. An instrument with no model of
+its own kind takes the unused model closest in what it does, and is a box only where
+nothing close is left.
+
 Every value carries its basis, and a value no source gives stays unset. These are a
 comparable model's figures, never the cloud lab's own, so a twin is only as good as its
 weakest value until the learner checks it against the real instrument.
@@ -142,7 +147,8 @@ INSTRUMENTS = {
             "slots": 1,
             "temps": (4, 105),
         },
-        "biorad_cfxopus",
+        # No second thermal cycler is modelled, so a heated block of wells stands in.
+        "scp_digiprepms",
     ),
     "qpcr": (
         "Real-time qPCR instrument",
@@ -196,7 +202,8 @@ INSTRUMENTS = {
             "slots": 48,
             "temps": (5, 90),
         },
-        "thermo_orbitrapexploris",
+        # The Orbitrap is drawn for the AC's Orbitrap; another mass spectrometer stands in.
+        "elementar_isoprimeprecision",
     ),
     "gcms": (
         "Gas chromatograph mass spectrometer",
@@ -345,10 +352,11 @@ INSTRUMENTS = {
 }
 
 
-def datasheet(document, url):
-    return f"datasheet: {document}, {url}, read {RETRIEVED}"
+def datasheet(document, url, read=RETRIEVED):
+    return f"datasheet: {document}, {url}, read {read}"
 
 
+READ = "2026-11-23"  # when the figures added after the first reading were read
 ESTIMATE = "estimate"
 UNSET = "unset"
 
@@ -483,6 +491,68 @@ LAYOUT = {
                 "top",
                 "estimate: SampleXpress sits on top of the magnet and takes cassettes loaded "
                 "on the bench (Bruker press release, 2010)",
+            ),
+        },
+    ),
+    # Instruments no unused model comes close to. Each is sized from the documents of its
+    # own make, or of a named comparable where the lab names no make.
+    "ac-tecan": (
+        "Tecan Fluent 480",
+        {
+            "size": (
+                (1.15, 0.78, 1.977),
+                datasheet(
+                    "Tecan Fluent Operating Manual 399706 V2.8 section 3.3, Fluent 480 overall "
+                    "length 1150 mm taken as width, footprint depth 780 mm, height 1977 mm on "
+                    "its cabinet; the reference names no model, so the smallest Fluent is used",
+                    "https://www.tecan.com/hubfs/Knowledgebase/Manuals/Fluent/399706_en_V2.8.pdf",
+                    READ,
+                ),
+            ),
+        },
+    ),
+    "ac-bead-separator": (
+        "Thermo Scientific KingFisher Duo Prime",
+        {
+            "size": (
+                (0.40, 0.46, 0.34),
+                datasheet(
+                    "KingFisher Duo Prime Technical Manual N16621 rev 1.0, table 6, ca. 400 (W) "
+                    "× 460 (D) × 340 (H) mm",
+                    "https://qa1-assets.thermofisher.cn/TFS-Assets/LSG/manuals/"
+                    "KingFisher_Duo_Prime_User_Manual_5400110.pdf",
+                    READ,
+                ),
+            ),
+            "access": (
+                "front",
+                "estimate: the manual has plates set on a turntable behind a front lid, "
+                "without a face for an outside arm",
+            ),
+        },
+    ),
+    "ac-plate-stacker": (
+        "Agilent BioTek BioStack 3",
+        {
+            "size": (
+                (0.188, 0.526, 0.6),
+                "estimate: Agilent's BioStack technical details 5994-5507EN give the BioStack 3 "
+                "footprint, 18.8 × 52.6 cm, and no height, which varies with the stacks fitted",
+            ),
+        },
+    ),
+    "ac-qpcr": (
+        "Applied Biosystems QuantStudio 7 Pro",
+        {
+            "size": (
+                (0.338, 0.525, 0.547),
+                datasheet(
+                    "QuantStudio 6 and 7 Pro Real-Time PCR Systems specification sheet, 52.5 "
+                    "(D) × 33.8 (W) × 54.7 (H) cm",
+                    "https://qa1-assets.thermofisher.cn/TFS-Assets/GSD/Specification-Sheets/"
+                    "quantstudio-pro-spec-sheet.pdf",
+                    READ,
+                ),
             ),
         },
     ),
@@ -660,8 +730,6 @@ def entry(asset_id, name, experiment, section, published, spec, geometry, lab=EC
             "estimate: an Academy default from what the instrument is; no source read gives "
             "its loading face"
         )
-    if spec.get("access") == "front" and "level_m" not in basis:
-        basis["level_m"] = UNSET  # the planner then presents the plate a third of the way up
     twin = footprint_spec(
         size,
         color,
@@ -670,6 +738,9 @@ def entry(asset_id, name, experiment, section, published, spec, geometry, lab=EC
         "for your instrument before confirming.",
     )
     twin = TwinSpec.model_validate({**twin, **extra}).model_dump(mode="json")
+    # Read off the twin, since a box no document places takes its loading face by default.
+    if twin["access"] == "front" and "level_m" not in basis:
+        basis["level_m"] = UNSET  # the planner then presents the plate a third of the way up
     return {
         "label": f"{lab['provider']} {name}",
         "provider": lab["provider"],
@@ -695,6 +766,8 @@ CLOUDLAB = {
     **{key: entry(key, *row) for key, row in INSTRUMENTS.items()},
     **{key: entry(key, *row, lab=AC) for key, row in ac_equipment.INSTRUMENTS.items()},
 }
+_drawn = [asset["slug"] for asset in CLOUDLAB.values() if asset["slug"]]
+assert len(_drawn) == len(set(_drawn)), "a stand-in model is drawn for one instrument only"
 LABS = {lab["id"]: lab for lab in (ECL, AC)}
 
 

@@ -6,9 +6,9 @@ from academy.cloudlab_anatomy import ANATOMY, anatomy, members
 def test_every_drawn_stand_in_with_named_components_has_an_anatomy():
     drawn = {key for key, asset in CLOUDLAB.items() if asset["slug"]}
     assert {key for key in CLOUDLAB if anatomy(key)} == drawn
-    # 15 cloud lab instruments and 27 Acceleration Consortium ones are drawn.
+    # 15 cloud lab instruments and 26 Acceleration Consortium ones are drawn.
     assert sum(CLOUDLAB[key]["lab"] == "ecl" for key in drawn) == 15
-    assert sum(CLOUDLAB[key]["lab"] == "ac" for key in drawn) == 31
+    assert sum(CLOUDLAB[key]["lab"] == "ac" for key in drawn) == 26
     # An instrument drawn as an estimated box has nothing inside to show.
     assert anatomy("nmr") is None and anatomy("robotic-sample-preparation") is None
     assert set(ANATOMY) <= set(CONTRACTS["stand_ins"])

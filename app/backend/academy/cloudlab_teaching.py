@@ -107,29 +107,6 @@ MOTION = {
             ),
         ],
     ),
-    "thermocycler": (
-        "biorad_cfxopus",
-        {
-            "lid": ("Heated lid", "Presses on the plate so samples do not condense."),
-            "sample_block": ("Block", "Holds the 96-well plate and heats and cools it."),
-        },
-        [
-            (
-                "cycling",
-                "Cycling",
-                {},
-                "The lid is shut and the block heats and cools the plate in cycles.",
-                "heat",
-            ),
-            (
-                "lid-open",
-                "Lid open",
-                {"lid": 1},
-                "The lid slides back to show the block; a plate drops into it from above.",
-                "load",
-            ),
-        ],
-    ),
     "qpcr": (
         "biorad_cfxopus",
         {
@@ -359,29 +336,6 @@ MOTION = {
             ),
         ],
     ),
-    "lcms": (
-        "thermo_orbitrapexploris",
-        {
-            "source_housing": ("Ion source", "Turns the liquid from the column into ions."),
-        },
-        [
-            (
-                "running",
-                "Running",
-                {},
-                "The column's outflow is sprayed into the source and the ions fly into the "
-                "analyser.",
-                "read",
-            ),
-            (
-                "source-out",
-                "Source out",
-                {"source_housing": 1},
-                "The ion source slides out on its rails for cleaning.",
-                None,
-            ),
-        ],
-    ),
     "icp-ms": (
         "shimadzu_icpms2030",
         {
@@ -476,38 +430,27 @@ DOES |= {
     "ac-dsc": "Heats a sample and an empty pan side by side and measures the heat difference.",
     "ac-indenter": "Presses a fine tip into a material and measures how far it goes in.",
 }
-# Where an AC instrument shares its stand-in with a cloud lab one, it moves the same way.
 MOTION |= {
-    ac: MOTION[same]
-    for ac, same in {
-        "ac-cytation-5": "plate-reader",
-        "ac-cytation-c10": "plate-reader",
-        "ac-synergy-neo2": "plate-reader",
-        "ac-qpcr": "qpcr",
-        "ac-uplc-ms": "lcms",
-        "ac-orbitrap-lcms": "lcms",
-        "ac-medchem-lcms": "lcms",
-        "ac-cytomat": "cell-incubator",
-        "ac-scila": "cell-incubator",
-        "ac-bead-separator": "plate-washer",
-        "ac-purification": "flash-chromatography",
-    }.items()
-}
-MOTION |= {
-    "ac-plate-stacker": (
-        "eppendorf_cellxpertc170i",
+    "ac-orbitrap-lcms": (
+        "thermo_orbitrapexploris",
         {
-            "outer_door": ("Door", "Closes the stack off from the room."),
-            "shelf_rack": ("Shelves", "Hold the plates one above another."),
+            "source_housing": ("Ion source", "Turns the liquid from the column into ions."),
         },
         [
-            ("closed", "Closed", {}, "The door is shut; the plates wait in the stack.", "wait"),
             (
-                "door-open",
-                "Door open",
-                {"outer_door": 1},
-                "The door swings open so a plate can go onto a shelf.",
-                "load",
+                "running",
+                "Running",
+                {},
+                "The column's outflow is sprayed into the source and the ions fly into the "
+                "analyser.",
+                "read",
+            ),
+            (
+                "source-out",
+                "Source out",
+                {"source_housing": 1},
+                "The ion source slides out on its rails for cleaning.",
+                None,
             ),
         ],
     ),

@@ -33,8 +33,12 @@ test("AC self-driving lab instruments are met, used and taken apart like cloud l
     detail.getByText("What the equipment reference lists"),
   ).toBeVisible();
   await expect(detail.getByText("SDL2-EQ01, SDL4-EQ01")).toBeVisible();
+  // No model of a Cytation 5 exists, so an imager no other instrument is drawn with
+  // stands in, named as the comparable it is.
   await expect(
-    detail.getByText(/footprint of a comparable|ChemLab-Assets/).first(),
+    detail
+      .getByText(/comparable Thermo Fisher Scientific iBright FL1500/)
+      .first(),
   ).toBeVisible();
   await expect(detail.locator("canvas")).toBeVisible();
   await expect(

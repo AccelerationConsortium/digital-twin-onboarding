@@ -83,6 +83,18 @@ STAND_INS = {
     "opentrons_flex_single_5_1000ul": (None, None, None),
     "syrris_asiadiscovery": (None, None, None),
     "ta_dsc2500": (None, None, None),
+    # Models closest in function to an instrument the dataset has no model of.
+    "agilent_1290infinity": (None, None, None),
+    "binder_fd056": (("W_D_H", (0, 1, 2)), None, None),
+    "binder_kbf115": (("W_D_H", (0, 1, 2)), None, None),
+    "elementar_isoprimeprecision": (("W_D_H", (0, 1, 2)), None, None),
+    "gas_flavourspec25gc": (None, None, None),
+    "gilson_cpc250": (None, None, None),
+    "jasco_fp8350": (None, None, None),
+    "keyence_vkx3000": (None, None, None),
+    "scp_digiprepms": (("W_D_H", (0, 1, 2)), None, None),
+    "teledyne_atomxxyz": (None, None, None),
+    "thermo_ibrightfl1500": (("brochure_L_W_H", (1, 0, 2)), None, None),
 }
 # The components a learner can point at on each stand-in's model: the doors, lids and
 # drawers a sample goes through and what they uncover. Their joints are the motions the
@@ -119,6 +131,17 @@ PARTS = {
     "opentrons_flex_single_5_1000ul": ("gantry_y", "carriage_x", "pipette", "deck"),
     "syrris_asiadiscovery": ("chip_clamp", "collector_x", "chip"),
     "ta_dsc2500": ("lid", "sampler_x", "furnace"),
+    "agilent_1290infinity": ("sampler_door", "sample_drawer", "column_cover"),
+    "binder_fd056": ("door", "rack_1", "fan_wheel"),
+    "binder_kbf115": ("outer_door", "glass_door", "shelves"),
+    "elementar_isoprimeprecision": ("hood", "ion_source", "magnet"),
+    "gas_flavourspec25gc": ("service_cover", "gantry_x", "syringe_z"),
+    "gilson_cpc250": ("collector_x", "collector_y", "rotor"),
+    "jasco_fp8350": ("sample_lid", "sample_cell", "shutter"),
+    "keyence_vkx3000": ("stage_lift", "revolver", "stage_x"),
+    "scp_digiprepms": ("rack_left", "rack_right", "block"),
+    "teledyne_atomxxyz": ("gantry_x", "gantry_z", "sample_elevator"),
+    "thermo_ibrightfl1500": ("sample_drawer", "sample_stage", "touch_screen"),
 }
 # Stand-ins whose model.glb names nodes after neither the slug nor the component, so the
 # anatomy view needs each component's own node names from the contract.
@@ -221,7 +244,7 @@ def mass(manifest):
         return {}
     found = {"value": value, **evidence(label)}
     # Some labels name a manufacturer document without starting with it.
-    if "manufacturer" in label and "engineering" not in label:
+    if label and "manufacturer" in label and "engineering" not in label:
         found["evidence"] = "manufacturer"
     span = manifest.get("documented_mass_range_kg") or manifest.get("mass_uncertainty_kg")
     if span:

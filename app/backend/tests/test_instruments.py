@@ -425,6 +425,15 @@ def test_cloudlab_entries_keep_published_capabilities_apart_from_stand_in_geomet
             assert asset["mesh"] is None and "not this instrument's size" in assumptions
         else:
             assert asset["mesh"] is None and "Academy estimate" in assumptions
+    # No model is drawn under two names: each stand-in belongs to the one instrument it is
+    # closest to; the rest take the nearest unused model, or a box where none is close.
+    drawn = [asset["slug"] for asset in CLOUDLAB.values() if asset["slug"]]
+    assert len(drawn) == len(set(drawn))
+    assert CLOUDLAB["qpcr"]["stand_in"] == "Bio-Rad CFX Opus 96"
+    # With no second thermal cycler modelled, a heated block of wells stands in.
+    assert CLOUDLAB["thermocycler"]["slug"] == "scp_digiprepms"
+    assert CLOUDLAB["ac-qpcr"]["mesh"] is None
+    assert CLOUDLAB["ac-orbitrap-lcms"]["slug"] == "thermo_orbitrapexploris"
     thermocycler = CLOUDLAB["thermocycler"]["spec"]
     assert thermocycler["limits"]["min_temp_c"] == 4 and thermocycler["limits"]["max_temp_c"] == 105
     assert thermocycler["container"] == {"vessel": "plate", "max_volume_ul": 100}
@@ -461,7 +470,7 @@ def test_every_cloudlab_twin_carries_layout_geometry_with_its_basis():
         for value in basis.values():
             assert value.startswith(BASES) or value == "unset", (asset_id, value)
             if value.startswith("datasheet: "):
-                assert "https://" in value and value.endswith("read 2026-11-18")
+                assert "https://" in value and re.search(r"read 2026-11-(18|23)$", value)
         if spec["access"] == "front" and spec["level_m"] is None:
             assert basis["level_m"] == "unset"
         # Sourced figures are a comparable model's, never the cloud lab's own.
@@ -496,7 +505,7 @@ def test_stand_in_twins_take_their_contract_values_and_evidence():
     assert reader["access"] == "front" and reader["opening"]["end"] < 0.5
     assert reader["level_m"] < 0.1 and reader["drawer_m"] == 0.185
     # A PCR plate goes into the block from above, where the contract places it.
-    pcr = CLOUDLAB["thermocycler"]["spec"]
+    pcr = CLOUDLAB["qpcr"]["spec"]
     assert pcr["access"] == "top" and [s["key"] for s in pcr["sites"]] == ["1"]
     assert 0 < pcr["level_m"] < pcr["parts"][0]["size"][1]
     # Samples that arrive by tubing give no loading face; it stays an Academy estimate.
@@ -600,10 +609,10 @@ def test_contract_derivation_turns_the_asset_frame_into_the_twin_frame():
 
 
 def test_cloudlab_geometry_basis_reaches_the_twin_and_its_layout(client):
-    pcr, catalog = add(client, 0, cloudlab_id="thermocycler")
+    pcr, catalog = add(client, 0, cloudlab_id="qpcr")
     reader, catalog = add(client, catalog["version"], cloudlab_id="plate-reader")
     twins = {t["id"]: t for t in catalog["twins"]}
-    for twin_id, asset_id in ((pcr, "thermocycler"), (reader, "plate-reader")):
+    for twin_id, asset_id in ((pcr, "qpcr"), (reader, "plate-reader")):
         asset = twins[twin_id]["asset"]
         assert asset["geometry_basis"] == CLOUDLAB[asset_id]["geometry_basis"]
         assert asset["layout_model"] == CLOUDLAB[asset_id]["layout_model"]
