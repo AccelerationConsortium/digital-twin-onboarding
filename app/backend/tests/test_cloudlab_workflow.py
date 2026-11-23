@@ -28,8 +28,9 @@ def test_instruments_take_part_through_what_their_twins_do():
         assert item["limits"] == spec["limits"]
         assert item["slots"] == site_keys(spec)
         assert len(item["slots"]) == spec["resource"]["slots"]
-    # Every instrument besides the liquid handler draws a ChemLab-Assets stand-in.
-    assert all(i["stand_in"] for k, i in shown.items() if k != "robotic-sample-preparation")
+    # Every instrument besides the liquid handler draws its own ChemLab-Assets stand-in.
+    assert {k for k, i in shown.items() if not i["stand_in"]} == {"robotic-sample-preparation"}
+    assert len({i["stand_in"] for i in shown.values() if i["stand_in"]}) == len(shown) - 1
     assert shown["robotic-sample-preparation"]["consumables"][0]["name"] == "Pipette tips"
 
 

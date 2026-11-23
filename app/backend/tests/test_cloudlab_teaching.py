@@ -53,14 +53,14 @@ def test_states_move_only_the_stand_ins_own_joints_within_their_limits():
         assert len({s[0] for s in states}) == len(states)
 
 
-def test_the_view_moves_thirteen_instruments_and_leaves_the_rest_still():
+def test_the_view_moves_jointed_stand_ins_and_leaves_the_rest_still():
     found = {i["id"]: i for i in instruments()["instruments"]}
     moving = {k for k, i in found.items() if i["motion"]}
-    # Twelve jointed models; the thermocycler and qPCR share one.
+    # A model is drawn for one instrument only, so each jointed model moves one twin.
     assert moving == set(MOTION)
-    assert len({k for k in moving if CLOUDLAB[k]["lab"] == "ecl"}) == 13
-    # AC instruments on a cloud lab stand-in move like it; eight new stand-ins have joints.
-    assert len({k for k in moving if CLOUDLAB[k]["lab"] == "ac"}) == 21
+    assert len({MOTION[k][0] for k in moving}) == len(moving)
+    assert len({k for k in moving if CLOUDLAB[k]["lab"] == "ecl"}) == 11
+    assert len({k for k in moving if CLOUDLAB[k]["lab"] == "ac"}) == 10
     # Stand-ins whose contracts give no joints keep the plain view.
     for asset_id in ("analytical-hplc", "gcms"):
         slug = INSTRUMENTS[asset_id][-1]

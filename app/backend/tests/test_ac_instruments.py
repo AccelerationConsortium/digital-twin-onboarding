@@ -36,13 +36,26 @@ def test_an_ac_twin_names_only_what_the_reference_lists(key):
     assert "Other values are Academy teaching defaults" in assumptions
     # Every one holds a sample, so it can be practised step by step.
     assert "load" in asset["spec"]["operations"]
-    # The closest ChemLab model stands in for every one, so each is drawn.
-    assert geometry in chemlab.MODELS["models"]
-    assert asset["slug"] == geometry and asset["mesh"]
-    assert "MBZUAI" in asset["attribution"]
+    if isinstance(geometry, str):
+        # A ChemLab model no other instrument is drawn with stands in for it.
+        assert geometry in chemlab.MODELS["models"]
+        assert asset["slug"] == geometry and asset["mesh"]
+        assert "MBZUAI" in asset["attribution"]
+    else:
+        # Otherwise it is a box, never another instrument's model under this name.
+        assert asset["slug"] is None and asset["mesh"] is None
+        assert anatomy(key) is None
+        assert asset["geometry_basis"]["size"].startswith(("datasheet:", "estimate"))
 
 
-@pytest.mark.parametrize("key", list(AC))
+DRAWN = [key for key, asset in AC.items() if asset["slug"]]
+
+
+def test_no_model_is_drawn_for_two_ac_instruments():
+    assert len({AC[key]["slug"] for key in DRAWN}) == len(DRAWN) == 26
+
+
+@pytest.mark.parametrize("key", DRAWN)
 def test_every_drawn_ac_instrument_comes_apart(key):
     found = anatomy(key)
     assert found and 5 <= len(found["parts"]) <= 8
