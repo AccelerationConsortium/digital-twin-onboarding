@@ -106,13 +106,13 @@ export default function Landing({
 
       <section className={s.hero}>
         <div className={s.copy}>
-          <p className={s.kicker} style={{ "--i": 0 } as CSSProperties}>
-            Virtual Laboratory Training &amp; Competency Platform
-          </p>
-          <h1 style={{ "--i": 1 } as CSSProperties}>
-            How do we establish that a researcher is <em>ready to operate</em> a
-            scientific instrument before granting them access to it?
+          <h1 style={{ "--i": 0 } as CSSProperties}>
+            Virtual Laboratory <em>Training &amp; Competency</em> Platform
           </h1>
+          <p className={s.lead} style={{ "--i": 2 } as CSSProperties}>
+            How do we establish that a researcher is ready to operate a
+            scientific instrument before granting them access to it?
+          </p>
           <p style={{ "--i": 3 } as CSSProperties}>
             Learn each instrument on a teaching model, practise its faults and
             build a record of what you can do — before any bench time.

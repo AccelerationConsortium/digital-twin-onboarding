@@ -222,17 +222,18 @@
   gap: 40px;
   padding: clamp(48px, 8vh, 96px) 0 clamp(48px, 7vh, 80px);
 }
-.kicker {
-  margin: 0 0 20px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--brand-text);
+.lead {
+  margin: 0 0 14px;
+  max-width: 34ch;
+  font-size: clamp(19px, 1.9vw, 26px);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--ink);
 }
 .copy h1 {
-  font-size: clamp(32px, 4.3vw, 60px);
-  line-height: 1.08;
+  font-size: clamp(38px, 5.6vw, 84px);
+  line-height: 1;
   font-weight: 700;
   letter-spacing: -0.035em;
   text-wrap: balance;
@@ -263,7 +264,7 @@
     background-position: -220% 0;
   }
 }
-.copy p:not(.kicker) {
+.copy p:not(.lead) {
   font-size: clamp(16px, 1.3vw, 19px);
   line-height: 1.7;
   color: var(--ink-2);
