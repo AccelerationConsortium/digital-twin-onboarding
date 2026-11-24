@@ -50,3 +50,43 @@ test("a published workflow is drawn as a workcell the sample travels through", a
   );
   expect(errors).toEqual([]);
 });
+
+test("the floor layout and the 3D workcell always show the same published lab", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByPlaceholder("Your first name").fill("Ada");
+  await page.getByRole("button", { name: "Enter the learning lab" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.getByRole("button", { name: "Learning lab", exact: true }).click();
+  await page.getByRole("link", { name: /Intermediate/ }).click();
+
+  const picker = page.getByRole("group", { name: "Published lab" });
+  const cells = page.getByRole("region", {
+    name: "Published workflows as workcells",
+  });
+  // Choosing a lab above redraws the workcell below.
+  await picker.getByRole("button", { name: "A-Lab" }).click();
+  await expect(
+    cells.getByRole("img", {
+      name: /When pipetting is not the answer as a workcell/,
+    }),
+  ).toBeVisible();
+  // Choosing a workflow below lays out the same lab above.
+  await cells
+    .getByRole("button", { name: /A gantry with another job/ })
+    .click();
+  await expect(
+    picker.getByRole("button", { name: "OT-2 + Jubilee" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    cells.getByRole("img", { name: /A gantry with another job as a workcell/ }),
+  ).toBeVisible();
+  // The choice survives a reload.
+  await page.reload();
+  await expect(
+    cells.getByRole("img", { name: /A gantry with another job as a workcell/ }),
+  ).toBeVisible();
+});

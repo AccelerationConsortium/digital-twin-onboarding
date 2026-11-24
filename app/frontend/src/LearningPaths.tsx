@@ -95,9 +95,10 @@ export default function LearningPaths({
 }: Props) {
   const selected = LEARNING_LEVELS.find((item) => item.id === level)!;
   const [skills] = useSkills();
-  // The published workflow drawn as a workcell on the intermediate level.
+  // The published workflow drawn as a workcell on the intermediate level,
+  // shared with the floor layout above so both always show the same lab.
   const [paper, setPaper] = useState<string>(workflows[0].id);
-  const shown = workflows.find((w) => w.id === paper)!;
+  const shown = workflows.find((w) => w.id === paper) ?? workflows[0];
   const first = latestCourseSession(sessions, "flex-first-transfer");
   const practice = latestCourseSession(sessions, "flex-foundations");
   const design = latestCourseSession(sessions, "workflow-sandbox");
@@ -147,7 +148,11 @@ export default function LearningPaths({
         {level === "beginner" ? (
           <DeckTwin onLesson={onFirstLesson} busy={busy} />
         ) : level === "intermediate" ? (
-          <FloorTwin onNavigate={onNavigate} />
+          <FloorTwin
+            onNavigate={onNavigate}
+            selected={shown.id}
+            onSelect={setPaper}
+          />
         ) : (
           <ChainTwin onNavigate={onNavigate} />
         )}

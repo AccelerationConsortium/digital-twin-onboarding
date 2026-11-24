@@ -49,6 +49,7 @@ export default function PaperCell({ item }: { item: Workflow }) {
   useEffect(() => {
     let current = true;
     setCell(null);
+    setFailed(false);
     setAt(0);
     setPlaying(false);
     api<Cell>(`/marketplace/${item.id}/cell`)
