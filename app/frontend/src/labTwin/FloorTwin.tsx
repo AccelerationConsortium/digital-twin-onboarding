@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   Eye,
@@ -68,8 +68,14 @@ function travel(lab: FloorLab, at: Record<string, Cell>) {
 
 export default function FloorTwin({
   onNavigate,
+  selected,
+  onSelect,
 }: {
   onNavigate: (target: string) => void;
+  /** A published workflow chosen elsewhere on the page, to lay out here too. */
+  selected?: string;
+  /** Told whenever the lab on the floor changes, so the page can follow it. */
+  onSelect?: (workflow: string) => void;
 }) {
   const { saved, update, change, finish } = useProgress(KEY, EMPTY);
   const lab = FLOOR_LABS.find((item) => item.workflow === saved.lab)!;
@@ -151,6 +157,29 @@ export default function FloorTwin({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allPlaced, routeCorrect, outOfReach.length, lab.workflow]);
 
+  const choose = (item: FloorLab) => {
+    update({ lab: item.workflow });
+    setFocus(item.stations[0].id);
+    setPicked(null);
+    setResult(null);
+    setMessage("");
+    setStep(null);
+  };
+  // The page shows one published workflow at a time: report the lab on the
+  // floor, and take up a workflow picked elsewhere (the 3D workcell's list).
+  useEffect(() => {
+    onSelect?.(lab.workflow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lab.workflow]);
+  const asked = useRef(selected);
+  useEffect(() => {
+    if (selected === asked.current) return;
+    asked.current = selected;
+    const next = FLOOR_LABS.find((item) => item.workflow === selected);
+    if (next && next.workflow !== lab.workflow) choose(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
   const stops = lab.route;
   useEffect(() => {
     if (step === null) return;
@@ -189,13 +218,7 @@ export default function FloorTwin({
               key={item.workflow}
               aria-pressed={item.workflow === lab.workflow}
               disabled={step !== null}
-              onClick={() => {
-                update({ lab: item.workflow });
-                setFocus(item.stations[0].id);
-                setPicked(null);
-                setResult(null);
-                setMessage("");
-              }}
+              onClick={() => choose(item)}
             >
               {item.name}
             </button>
