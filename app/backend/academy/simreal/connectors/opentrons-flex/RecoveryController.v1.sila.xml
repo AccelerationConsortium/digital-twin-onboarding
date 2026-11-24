@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.0" Originator="ca.accelerationconsortium" Category="robots"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>RecoveryController</Identifier>
+  <DisplayName>Recovery Controller</DisplayName>
+  <Description>
+    Returns the Flex to a known, ready state after an emergency stop, halt, or fault.
+
+    Recover performs, in order: acknowledge a released E-stop, fully home the
+    robot, reconcile quarantined tip states from the tip sensors, home the gripper
+    jaw, and fully home any Flex Stacker that lost its position. Steps that need a
+    person (a tip of unknown length, an invalid deck ledger, a disconnected
+    module) are reported instead of guessed.
+  </Description>
+  <Command>
+    <Identifier>AcknowledgeEmergencyStop</Identifier>
+    <DisplayName>Acknowledge Emergency Stop</DisplayName>
+    <Description>
+      Acknowledge a released E-stop without moving the robot.
+
+      A Flex keeps a released E-stop latched until it is acknowledged. After
+      acknowledging, the robot still needs a full home (Recover does both).
+    </Description>
+    <Observable>No</Observable>
+    <Response>
+      <Identifier>EmergencyStop</Identifier>
+      <DisplayName>Emergency Stop</DisplayName>
+      <Description>The E-stop state after acknowledging.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>disengaged</Value>
+              <Value>physically engaged</Value>
+              <Value>logically engaged</Value>
+              <Value>not present</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>EmergencyStopEngagedError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>LiftGripperInPlace</Identifier>
+    <DisplayName>Lift Gripper In Place</DisplayName>
+    <Description>
+      Raise the gripper straight up to the top of travel, keeping the jaw closed on a held
+      plate.
+
+      Use it after a plate hit something while being lowered: only the gripper&apos;s
+      vertical axis
+      moves, upwards. Then support the plate by hand and run ReleaseGripperInPlace, or move
+      on to
+      Recover once the plate is safe. Recover is still required afterwards.
+    </Description>
+    <Observable>Yes</Observable>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current gripper-lift progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>GripperRecoveryNotAllowedError</Identifier>
+      <Identifier>GripActionError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>Recover</Identifier>
+    <DisplayName>Recover</DisplayName>
+    <Description>
+      Clear every recovery gate that does not need a person.
+
+      The front door must be closed and the deck must be safe for the gantry to
+      home. Cancelling Recover halts the robot, so a new Recover is required.
+    </Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>PerformedSteps</Identifier>
+      <DisplayName>Performed Steps</DisplayName>
+      <Description>The steps that were performed, in order (empty when nothing was required).</Description>
+      <DataType>
+        <List>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </List>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>The recovery step being performed.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>EmergencyStopEngagedError</Identifier>
+      <Identifier>DoorOpenError</Identifier>
+      <Identifier>ManualStepsRequiredError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>StallDetectedError</Identifier>
+      <Identifier>MachineErrorStateError</Identifier>
+      <Identifier>GripActionError</Identifier>
+      <Identifier>PipetteNotAttachedError</Identifier>
+      <Identifier>StackerNotReadyError</Identifier>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>ReleaseGripperInPlace</Identifier>
+    <DisplayName>Release Gripper In Place</DisplayName>
+    <Description>
+      Open the gripper jaw where it stopped, so a held plate can be taken out before
+      Recover.
+
+      Use it after a failed or stopped plate move left a plate in the jaw: a full home lifts
+      the
+      gripper first and opens the jaw only at the top, so the plate would fall. Support the
+      plate
+      by hand first. Only the jaw moves; Recover is still required afterwards.
+    </Description>
+    <Observable>Yes</Observable>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current jaw-release progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>GripperRecoveryNotAllowedError</Identifier>
+      <Identifier>GripActionError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>PendingRecovery</Identifier>
+    <DisplayName>Pending Recovery</DisplayName>
+    <Description>Subscribe to the steps Recover would perform now and the steps that need a person.</Description>
+    <Observable>Yes</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>AutomaticSteps</Identifier>
+          <DisplayName>Automatic Steps</DisplayName>
+          <Description>Steps Recover performs by itself, in order (empty when nothing is required).</Description>
+          <DataType>
+            <List>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+            </List>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>ManualSteps</Identifier>
+          <DisplayName>Manual Steps</DisplayName>
+          <Description>Steps that need a person before or after Recover.</Description>
+          <DataType>
+            <List>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+            </List>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>EmergencyStopEngagedError</Identifier>
+    <DisplayName>Emergency Stop Engaged Error</DisplayName>
+    <Description>
+      The E-stop is pressed, so recovery cannot start.
+
+      Make the robot safe, release the E-stop by twisting it, and run Recover again.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>GripperRecoveryNotAllowedError</Identifier>
+    <DisplayName>Gripper Recovery Not Allowed Error</DisplayName>
+    <Description>
+      The gripper can only be lifted or released in place while the robot waits for
+      recovery.
+
+      These actions are for a plate left in the jaw by a failed or stopped move. When no
+      recovery
+      is pending, use the usual gripper or labware-movement commands. When a recovery is
+      already
+      running, wait for it to finish.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>GripActionError</Identifier>
+    <DisplayName>Grip Action Error</DisplayName>
+    <Description>
+      The gripper failed to complete a grip, ungrip, or home-jaw action.
+
+      The underlying hardware message is preserved so the failure can be diagnosed.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>OperationHaltedError</Identifier>
+    <DisplayName>Operation Halted Error</DisplayName>
+    <Description>
+      The operation was aborted because an emergency stop or halt was issued while it ran.
+
+      The robot position is no longer trusted. Clear the cause of the halt, fully
+      re-home the robot, follow the RecoveryGuidance reported by RobotStatusProvider,
+      and then re-issue the operation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RecoveryRequiredError</Identifier>
+    <DisplayName>Recovery Required Error</DisplayName>
+    <Description>
+      The connector refused the operation because an earlier failure left the robot
+      recovery-gated.
+
+      The error message lists the ordered recovery actions (for example a full re-home,
+      TipController.ReconcileTipState, or GripperController.HomeJaw). The same guidance
+      is available at any time from the RobotStatusProvider Status property.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareError</Identifier>
+    <DisplayName>Hardware Error</DisplayName>
+    <Description>
+      The Flex hardware reported an error that has no more specific defined error.
+
+      The message preserves the Opentrons error code, name, and detail so the cause
+      can be diagnosed or reported to vendor support. Inspect the robot, resolve the
+      reported condition, re-home, and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>DoorOpenError</Identifier>
+    <DisplayName>Door Open Error</DisplayName>
+    <Description>
+      The front door is open, so the robot will not home automatically.
+
+      Close the front door, make sure nothing is in the gantry&apos;s path, and run Recover
+      again.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>ManualStepsRequiredError</Identifier>
+    <DisplayName>Manual Steps Required Error</DisplayName>
+    <Description>
+      Automatic recovery finished, but some steps need a person.
+
+      The message lists each remaining action (for example removing a tip of unknown
+      length, reconciling the deck ledger, or reconnecting a module). Complete them
+      and run Recover again; the Status property shows what is still required.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RunOwnershipError</Identifier>
+    <DisplayName>Run Ownership Error</DisplayName>
+    <Description>
+      Protocol Engine currently owns the Flex for a prepared or active run.
+
+      Read status through the connector as usual, but do not issue an independent
+      SiLA hardware command. Stop the Protocol Engine run, or add the operation at
+      an explicit UNITELABS mutation checkpoint through the controlled run-mutation
+      HTTP endpoint, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>StallDetectedError</Identifier>
+    <DisplayName>Stall Detected Error</DisplayName>
+    <Description>
+      A stall or collision was detected during the move; motion was halted.
+
+      Clear any obstruction, then re-home before continuing. The underlying
+      hardware message is preserved to aid diagnosis.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>MachineErrorStateError</Identifier>
+    <DisplayName>Machine Error State Error</DisplayName>
+    <Description>
+      The move was accepted but the robot has silently entered a hardware error state.
+
+      A movement command can return without raising while the machine has already
+      entered an error state (for example the E-stop became engaged mid-move). This
+      error surfaces that hidden condition so callers never treat such a move as
+      successful. Clear the fault (release the E-stop), then re-home before
+      continuing. The underlying hardware state is preserved to aid diagnosis.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>PipetteNotAttachedError</Identifier>
+    <DisplayName>Pipette Not Attached Error</DisplayName>
+    <Description>
+      No pipette is attached to the requested mount.
+
+      Attach a Flex pipette, re-scan instruments, and retry the tip operation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>StackerNotReadyError</Identifier>
+    <DisplayName>Stacker Not Ready Error</DisplayName>
+    <Description>
+      The Flex Stacker is not installed, initialized, or safely closed for this operation.
+
+      Confirm the Stacker is mechanically installed, close its hopper door, clear any
+      obstruction, home it if necessary, and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>ModuleNotRespondingError</Identifier>
+    <DisplayName>Module Not Responding Error</DisplayName>
+    <Description>
+      The module did not respond — it may be disconnected or powered off.
+
+      Check that the module is connected to the Flex and powered on, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>ModuleOperationError</Identifier>
+    <DisplayName>Module Operation Error</DisplayName>
+    <Description>
+      The module reported an error while carrying out the requested operation.
+
+      The underlying driver/module message is preserved to aid recovery (e.g.
+      re-seat labware, check the module&apos;s status indicators, or power-cycle it).
+    </Description>
+  </DefinedExecutionError>
+</Feature>

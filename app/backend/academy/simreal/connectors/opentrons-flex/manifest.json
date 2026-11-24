@@ -1,0 +1,105 @@
+{
+  "schema": "simreal.connector/1",
+  "key": "opentrons-flex",
+  "package": "unitelabs-opentrons-flex",
+  "package_version": "0.9.1+lab.1",
+  "source": {
+    "repository": "SissiFeng/otflex-asms",
+    "commit": "6d57c0a57cd18ea420d2816ddfbc089f126cd315",
+    "dirty": null,
+    "commit_stated": true
+  },
+  "server": {
+    "type": "LiquidHandler",
+    "version": "0.9.1_lab_1"
+  },
+  "simulator": "Opentrons 9.0.0 OT3 hardware simulator and module simulators",
+  "imported_at": "2026-11-24T16:04:44Z",
+  "features": [
+    {
+      "id": "ca.accelerationconsortium/modules/AbsorbanceReaderController/v2",
+      "sha256": "51096fddfdc13b585bd5f2f90aba2293c3c56f5b8d65d59b62e6007513bbff23",
+      "file": "AbsorbanceReaderController.v2.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/modules/FlexStackerController/v2",
+      "sha256": "f72348effb1959ea071c4b02934852d738a912edeb1cae53f8ad4366f1e5e78e",
+      "file": "FlexStackerController.v2.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/modules/FlexStackerMaintenanceController/v1",
+      "sha256": "fbbfd07c8b9039b1c3d626136fc3ce71ee28c69e00fd65d0d6830885636db56e",
+      "file": "FlexStackerMaintenanceController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/modules/HeaterShakerController/v3",
+      "sha256": "701f47bcc3014cd3f6d243cff346d0d0b239a8f1b4b58e19c73ea30563d3353a",
+      "file": "HeaterShakerController.v3.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/modules/TemperatureController/v2",
+      "sha256": "ddb6d121f16b4b916c936c189d1673f28f5aca98f5e57d39717ed05ed7785c23",
+      "file": "TemperatureController.v2.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/modules/ThermocyclerController/v2",
+      "sha256": "a6fd834f35b3250f12ca9839b9783a92c7310cb13c0bf68f318c5d6f8c66f673",
+      "file": "ThermocyclerController.v2.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/CalibrationController/v1",
+      "sha256": "1c55f1a62e943c61ac982c84cf7a6d06cabd9ae1b1156009bf65ca7407f9c178",
+      "file": "CalibrationController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/DeckHandoffController/v1",
+      "sha256": "71c018542c77789c4bae397b415187adc9b0999c1f7fbca6289ee057e3069778",
+      "file": "DeckHandoffController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/GripperController/v1",
+      "sha256": "321f265208fe1b74db4dc2f4560498bb3cfa326c9ed4b154d8151be346c0cf68",
+      "file": "GripperController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/LabwareMovementController/v1",
+      "sha256": "da30aac90118f0b5f150e05c348fa308590bccd0e1db2735738c2043c6341a2a",
+      "file": "LabwareMovementController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/LiquidHandlingController/v1",
+      "sha256": "1125414db5800dd9b8031515db163fb56547ab5d146f055ea4d3562569fee389",
+      "file": "LiquidHandlingController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/MotionController/v2",
+      "sha256": "dca5172a3baef824bb04765a2751b3305902f29ca574f95a0c415a1a778a5ea8",
+      "file": "MotionController.v2.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/PipetteController/v1",
+      "sha256": "27db79e00cec7d9ba2712f453329a2ee075e447f80e01dc5236ba39010cf5b72",
+      "file": "PipetteController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/RecoveryController/v1",
+      "sha256": "ef202823f095feac049a175d13b5aa641caa3cf8792d72cf27251ed4618e5841",
+      "file": "RecoveryController.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/RobotStatusProvider/v1",
+      "sha256": "7a13292ffc2e0ef5ca4527a2389f05948b0319003b045ecf0c43a427cbbec1d3",
+      "file": "RobotStatusProvider.v1.sila.xml"
+    },
+    {
+      "id": "ca.accelerationconsortium/robots/TipController/v1",
+      "sha256": "cb1cef5588facdca0742fbd45884b7fdc3d585bdb17c7c3f4a930040822695f6",
+      "file": "TipController.v1.sila.xml"
+    },
+    {
+      "id": "org.silastandard/core/SiLAService/v1",
+      "sha256": "b2d09afa1e4f93b125818c7d51909b7d03316ada729bc62dedb90eaa21e50356",
+      "file": "SiLAService.v1.sila.xml"
+    }
+  ]
+}

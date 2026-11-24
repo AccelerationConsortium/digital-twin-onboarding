@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.0" Originator="ca.accelerationconsortium" Category="robots"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>DeckHandoffController</Identifier>
+  <DisplayName>Deck Handoff Controller</DisplayName>
+  <Description>
+    Registers labware that an external transfer robot places on, or removes from, the Flex
+    deck.
+
+    Only locations in the robot&apos;s local handoff allowlist can be changed, and only
+    one
+    plate at a time: a location must be empty in the deck ledger to register a plate,
+    and must hold that same plate to release it. The allowlist is a local file on the
+    robot, read on every call; it cannot be changed over SiLA. Every change is
+    appended to an audit log next to the ledger.
+  </Description>
+  <Command>
+    <Identifier>RegisterLabware</Identifier>
+    <DisplayName>Register Labware</DisplayName>
+    <Description>Record labware an external robot has just placed at an allowlisted handoff location.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>LocationIdentifier</Identifier>
+      <DisplayName>Location Identifier</DisplayName>
+      <Description>The handoff location the labware was placed at (for example A1).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Pattern>^\S(?:.*\S)?$</Pattern>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>LabwareIdentifier</Identifier>
+      <DisplayName>Labware Identifier</DisplayName>
+      <Description>The labware identifier the gripper plans expect (for example asms-plate).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Pattern>^\S(?:.*\S)?$</Pattern>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Source</Identifier>
+      <DisplayName>Source</DisplayName>
+      <Description>Who placed it (for example Lab_Control_GUI/KX2), kept in the audit log.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Pattern>^\S(?:.*\S)?$</Pattern>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>DeckHandoffState</Identifier>
+      <DisplayName>Deck Handoff State</DisplayName>
+      <Description>The handoff locations after the change.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>LedgerValid</Identifier>
+            <DisplayName>Ledger Valid</DisplayName>
+            <Description>Whether the deck ledger can accept a handoff now.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Locations</Identifier>
+            <DisplayName>Locations</DisplayName>
+            <Description>Every allowlisted handoff location with its recorded labware.</Description>
+            <DataType>
+              <List>
+                <DataType>
+                  <Structure>
+                    <Element>
+                      <Identifier>LocationIdentifier</Identifier>
+                      <DisplayName>Location Identifier</DisplayName>
+                      <Description>The deck location, as the gripper plans name it (for example A1).</Description>
+                      <DataType>
+                        <Basic>String</Basic>
+                      </DataType>
+                    </Element>
+                    <Element>
+                      <Identifier>LabwareIdentifier</Identifier>
+                      <DisplayName>Labware Identifier</DisplayName>
+                      <Description>The labware recorded there, or an empty string when the location is empty.</Description>
+                      <DataType>
+                        <Basic>String</Basic>
+                      </DataType>
+                    </Element>
+                  </Structure>
+                </DataType>
+              </List>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>NotAHandoffLocationError</Identifier>
+      <Identifier>DeckLedgerUnavailableError</Identifier>
+      <Identifier>HandoffLocationOccupiedError</Identifier>
+      <Identifier>HandoffLabwareMismatchError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>ReleaseLabware</Identifier>
+    <DisplayName>Release Labware</DisplayName>
+    <Description>
+      Record that an external robot has just taken labware away from an allowlisted handoff
+      location.
+    </Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>LocationIdentifier</Identifier>
+      <DisplayName>Location Identifier</DisplayName>
+      <Description>The handoff location the labware was taken from (for example A1).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Pattern>^\S(?:.*\S)?$</Pattern>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>LabwareIdentifier</Identifier>
+      <DisplayName>Labware Identifier</DisplayName>
+      <Description>The labware the ledger records there; a mismatch is refused.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Pattern>^\S(?:.*\S)?$</Pattern>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Destination</Identifier>
+      <DisplayName>Destination</DisplayName>
+      <Description>Who took it (for example Lab_Control_GUI/KX2), kept in the audit log.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Pattern>^\S(?:.*\S)?$</Pattern>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>DeckHandoffState</Identifier>
+      <DisplayName>Deck Handoff State</DisplayName>
+      <Description>The handoff locations after the change.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>LedgerValid</Identifier>
+            <DisplayName>Ledger Valid</DisplayName>
+            <Description>Whether the deck ledger can accept a handoff now.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Locations</Identifier>
+            <DisplayName>Locations</DisplayName>
+            <Description>Every allowlisted handoff location with its recorded labware.</Description>
+            <DataType>
+              <List>
+                <DataType>
+                  <Structure>
+                    <Element>
+                      <Identifier>LocationIdentifier</Identifier>
+                      <DisplayName>Location Identifier</DisplayName>
+                      <Description>The deck location, as the gripper plans name it (for example A1).</Description>
+                      <DataType>
+                        <Basic>String</Basic>
+                      </DataType>
+                    </Element>
+                    <Element>
+                      <Identifier>LabwareIdentifier</Identifier>
+                      <DisplayName>Labware Identifier</DisplayName>
+                      <Description>The labware recorded there, or an empty string when the location is empty.</Description>
+                      <DataType>
+                        <Basic>String</Basic>
+                      </DataType>
+                    </Element>
+                  </Structure>
+                </DataType>
+              </List>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>NotAHandoffLocationError</Identifier>
+      <Identifier>DeckLedgerUnavailableError</Identifier>
+      <Identifier>HandoffLocationOccupiedError</Identifier>
+      <Identifier>HandoffLabwareMismatchError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>HandoffLocations</Identifier>
+    <DisplayName>Handoff Locations</DisplayName>
+    <Description>Return the robot&apos;s current handoff allowlist.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <List>
+        <DataType>
+          <Basic>String</Basic>
+        </DataType>
+      </List>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeckLedgerUnavailableError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>HandoffState</Identifier>
+    <DisplayName>Handoff State</DisplayName>
+    <Description>Return ledger validity and the labware recorded at each handoff location.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>LedgerValid</Identifier>
+          <DisplayName>Ledger Valid</DisplayName>
+          <Description>Whether the deck ledger can accept a handoff now.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Locations</Identifier>
+          <DisplayName>Locations</DisplayName>
+          <Description>Every allowlisted handoff location with its recorded labware.</Description>
+          <DataType>
+            <List>
+              <DataType>
+                <Structure>
+                  <Element>
+                    <Identifier>LocationIdentifier</Identifier>
+                    <DisplayName>Location Identifier</DisplayName>
+                    <Description>The deck location, as the gripper plans name it (for example A1).</Description>
+                    <DataType>
+                      <Basic>String</Basic>
+                    </DataType>
+                  </Element>
+                  <Element>
+                    <Identifier>LabwareIdentifier</Identifier>
+                    <DisplayName>Labware Identifier</DisplayName>
+                    <Description>The labware recorded there, or an empty string when the location is empty.</Description>
+                    <DataType>
+                      <Basic>String</Basic>
+                    </DataType>
+                  </Element>
+                </Structure>
+              </DataType>
+            </List>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeckLedgerUnavailableError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>DeckLedgerUnavailableError</Identifier>
+    <DisplayName>Deck Ledger Unavailable Error</DisplayName>
+    <Description>
+      The deck ledger cannot accept a handoff: it is invalid, missing, or not configured.
+
+      An invalid ledger (after an interrupted move or unclean stop) must be reconciled
+      offline with ``flexctl deck HOST reconcile`` after inspecting the deck.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>NotAHandoffLocationError</Identifier>
+    <DisplayName>Not A Handoff Location Error</DisplayName>
+    <Description>
+      The location is not in the robot&apos;s local deck-handoff allowlist.
+
+      Only locations an external transfer robot can reach may be registered remotely.
+      Add the location on the robot (``flexctl handoff HOST set ...``) if it is a real
+      handoff position; every other location changes only through Flex movements or
+      an offline deck reconciliation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HandoffLocationOccupiedError</Identifier>
+    <DisplayName>Handoff Location Occupied Error</DisplayName>
+    <Description>
+      The deck ledger already records labware at this handoff location.
+
+      Release the recorded labware first, or reconcile the deck offline if the
+      ledger does not match the physical deck.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HandoffLabwareMismatchError</Identifier>
+    <DisplayName>Handoff Labware Mismatch Error</DisplayName>
+    <Description>
+      The deck ledger records different labware (or none) at this handoff location.
+
+      Check which plate is physically at the location. Reconcile the deck offline if
+      the ledger is wrong; never release a plate the ledger does not record there.
+    </Description>
+  </DefinedExecutionError>
+</Feature>

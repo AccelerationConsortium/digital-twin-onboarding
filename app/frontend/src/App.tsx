@@ -30,6 +30,7 @@ import {
   Circle,
   Pipette,
   Layers3,
+  Cable,
   Compass,
   Store,
   Waypoints,
@@ -79,6 +80,7 @@ const LearningLab = lazy(() => import("./LearningLab"));
 const ConnectorExplorer = lazy(() => import("./ConnectorExplorer"));
 const ConnectorSetup = lazy(() => import("./ConnectorSetup"));
 const Workcell = lazy(() => import("./Workcell"));
+const SimReal = lazy(() => import("./SimReal"));
 const InstrumentModules = lazy(() => import("./InstrumentModules"));
 const StudyGroups = lazy(() => import("./StudyGroups"));
 const SupervisorReview = lazy(() => import("./SupervisorReview"));
@@ -525,7 +527,7 @@ export default function App() {
         return;
       }
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|access|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|access|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills|sim-real)(?:\/([a-z0-9-]+))?$/,
       );
       if (!route && window.location.hash) return;
       if (leaveGuard.current && !leaveGuard.current()) return stay();
@@ -567,7 +569,7 @@ export default function App() {
       setView("lab");
     } else {
       const route = window.location.hash.match(
-        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|access|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills)(?:\/([a-z0-9-]+))?$/,
+        /^#\/(overview|onboard|twin|readiness|runs|learn|marketplace|discovery|connector|history|groups|reviews|access|qualifications|cloudlab|cloudlab-workflow|portal|sim|workflow-course|practice|drills|instruments|plan|models|connect|skills|sim-real)(?:\/([a-z0-9-]+))?$/,
       );
       if (route) {
         setView(route[1]);
@@ -873,6 +875,16 @@ export default function App() {
                   );
                 })}
             </nav>
+            <div className={s.sidebarLabel}>SIM–REAL</div>
+            <nav aria-label="Sim–Real navigation">
+              <button
+                className={view === "sim-real" ? s.activeNav : ""}
+                aria-current={view === "sim-real" ? "page" : undefined}
+                onClick={() => nav("sim-real")}
+              >
+                <Cable size={18} /> Connector simulation
+              </button>
+            </nav>
             <div className={s.sidebarLabel}>ADVANCED</div>
             <nav aria-label="Advanced navigation">
               <button
@@ -972,7 +984,9 @@ export default function App() {
                                                     ? "Skill tree"
                                                     : view === "sim"
                                                       ? "Simulation lab"
-                                                      : "Learning lab"))}
+                                                      : view === "sim-real"
+                                                        ? "Sim–Real"
+                                                        : "Learning lab"))}
               </span>
               <span>
                 <span className={s.noteDot} />{" "}
@@ -1144,6 +1158,8 @@ export default function App() {
                     nav("sim");
                   }}
                 />
+              ) : view === "sim-real" ? (
+                <SimReal />
               ) : view === "sim" ? (
                 <SimulationLab
                   onOpenInstruments={() => nav("plan/workflow")}

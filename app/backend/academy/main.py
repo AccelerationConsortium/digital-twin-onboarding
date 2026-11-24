@@ -91,6 +91,7 @@ from .simple_twins import (
     ToleranceSummary,
 )
 from .simple_twins import Revision as TwinRevision
+from .simreal.api import router as simreal_router
 from .skill_map import Meet, Skills
 from .store import Conflict, DynamoStore, SQLiteStore
 from .teaching import InvalidTransition, control, execute_step, initial_state, new_session
@@ -131,6 +132,7 @@ def create_app(settings: Settings | None = None, store=None):
         app.state.store, enabled=settings.connector_real_enabled, approved_release=approved_release
     )
     app.include_router(mock_connector_router)
+    app.include_router(simreal_router)
     app.include_router(run_monitor_router)
     app.include_router(connector_router)
     app.include_router(catalog_router)

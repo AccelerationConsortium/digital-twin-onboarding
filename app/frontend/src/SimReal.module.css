@@ -1,0 +1,220 @@
+.page {
+  composes: page from "./CloudLabTraining.module.css";
+}
+.header {
+  composes: header from "./CloudLabTraining.module.css";
+}
+.lede {
+  composes: lede from "./CloudLabTraining.module.css";
+}
+.evidence {
+  composes: synthetic from "./CloudLabTraining.module.css";
+}
+.card {
+  composes: card from "./CloudLabTraining.module.css";
+}
+.primary {
+  composes: primary from "./CloudLabTraining.module.css";
+}
+.secondary {
+  composes: secondary from "./CloudLabTraining.module.css";
+}
+.actions {
+  composes: actions from "./CloudLabTraining.module.css";
+}
+.table {
+  composes: table from "./CloudLabTraining.module.css";
+}
+.upload {
+  composes: upload from "./CloudLabTraining.module.css";
+  margin-bottom: 0;
+}
+.error {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--danger);
+  background: var(--warn-soft);
+  font-size: 14px;
+}
+.connectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.connector {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+.connector h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.connector p,
+.meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.connector details {
+  font-size: 13px;
+}
+.connector summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.commands {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 12px;
+  padding: 0;
+  list-style: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.commands span {
+  color: var(--muted);
+}
+.editor {
+  width: 100%;
+  min-height: 320px;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--ink);
+  font:
+    12px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  resize: vertical;
+}
+.editor:focus-visible {
+  outline: 2px solid var(--focus);
+}
+.field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.problems {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.problems li {
+  padding: 10px 14px;
+  border-left: 3px solid var(--danger);
+  background: var(--warn-soft);
+  font-size: 14px;
+}
+.problems small {
+  display: block;
+  color: var(--muted);
+}
+.status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.status[data-outcome="passed"],
+.status[data-outcome="done"] {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.status[data-outcome="failed"],
+.status[data-outcome="diverged"],
+.status[data-outcome="refused"] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.scroll {
+  max-height: 420px;
+  overflow: auto;
+}
+.scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.command {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  font:
+    12px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  overflow-x: auto;
+  white-space: pre;
+}
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+.summary div {
+  display: grid;
+}
+.summary dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.summary dd {
+  margin: 0;
+  font-weight: 600;
+}
+.runs {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.runs button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.runs button[aria-pressed="true"] {
+  border-color: var(--brand);
+}
+.runs button span:last-child {
+  margin-left: auto;
+  color: var(--muted);
+}
+@media (max-width: 860px) {
+  .connectors {
+    grid-template-columns: 1fr;
+  }
+}
+.scroll + details {
+  margin-top: 14px;
+  font-size: 13px;
+}
