@@ -8,78 +8,207 @@
         "https://www.thermofisher.com/TFS-Assets/LSG/product-images/QS7Pro_F-close-650x600.jpg-650.jpg",
         "https://www.thermofisher.com/TFS-Assets/LSG/product-images/QS7Pro_R_close-650x600.jpg-650.jpg"
       ],
-      "read": "2026-11-23",
-      "unseen": "Back, left side and underside; the rounded corners are drawn square.",
+      "read": "2026-11-25",
+      "unseen": "Back, left side and underside; the curved body is a rounded box and the screen is drawn upright, not tilted.",
       "parts": [
+        {
+          "label": "base",
+          "size": [
+            0.3,
+            0.02,
+            0.4
+          ],
+          "position": [
+            0,
+            0.01,
+            -0.03
+          ],
+          "color": "#d9dcdf"
+        },
         {
           "label": "housing",
           "size": [
             0.338,
-            0.547,
-            0.42
+            0.527,
+            0.46
           ],
           "position": [
             0,
-            0.2735,
-            -0.05
+            0.2835,
+            -0.03
           ],
-          "color": "#eceef0"
+          "color": "#eef0f2",
+          "round": 0.14
+        },
+        {
+          "label": "rim",
+          "size": [
+            0.31,
+            0.5,
+            0.03
+          ],
+          "position": [
+            0,
+            0.285,
+            0.2
+          ],
+          "color": "#232a5c",
+          "round": 0.4
         },
         {
           "label": "front panel",
           "size": [
-            0.3,
-            0.5,
-            0.1
+            0.29,
+            0.48,
+            0.03
           ],
           "position": [
             0,
-            0.27,
-            0.21
+            0.285,
+            0.22
           ],
-          "color": "#4a4d52"
+          "color": "#4b4e53",
+          "round": 0.4
         },
         {
-          "label": "touchscreen",
+          "label": "screen bezel",
           "size": [
-            0.24,
-            0.17,
+            0.25,
+            0.19,
             0.012
           ],
           "position": [
             0,
-            0.4,
-            0.265
+            0.41,
+            0.241
+          ],
+          "color": "#101114"
+        },
+        {
+          "label": "touchscreen",
+          "size": [
+            0.22,
+            0.15,
+            0.008
+          ],
+          "position": [
+            0,
+            0.405,
+            0.249
           ],
           "color": "#1e4fa8"
         },
         {
-          "label": "status light",
+          "label": "camera bar",
           "size": [
             0.06,
+            0.012,
+            0.008
+          ],
+          "position": [
+            0,
+            0.515,
+            0.237
+          ],
+          "color": "#0c0c0d"
+        },
+        {
+          "label": "status light",
+          "size": [
+            0.07,
             0.008,
             0.008
           ],
           "position": [
             0,
-            0.275,
-            0.264
+            0.29,
+            0.238
           ],
           "color": "#2f7bff"
         },
         {
-          "label": "plate drawer",
+          "label": "drawer button",
           "size": [
-            0.22,
-            0.1,
-            0.012
+            0.018,
+            0.018,
+            0.008
           ],
           "position": [
             0,
-            0.14,
-            0.265
+            0.255,
+            0.238
           ],
-          "color": "#5a5d62"
+          "color": "#2a2c30"
+        },
+        {
+          "label": "drawer lip",
+          "size": [
+            0.23,
+            0.008,
+            0.02
+          ],
+          "position": [
+            0,
+            0.214,
+            0.245
+          ],
+          "color": "#3c3e42"
+        },
+        {
+          "label": "plate drawer",
+          "size": [
+            0.23,
+            0.11,
+            0.014
+          ],
+          "position": [
+            0,
+            0.155,
+            0.242
+          ],
+          "color": "#55585d"
+        },
+        {
+          "label": "left grille",
+          "size": [
+            0.012,
+            0.05,
+            0.008
+          ],
+          "position": [
+            -0.125,
+            0.16,
+            0.237
+          ],
+          "color": "#2d2f33"
+        },
+        {
+          "label": "right grille",
+          "size": [
+            0.012,
+            0.05,
+            0.008
+          ],
+          "position": [
+            0.125,
+            0.16,
+            0.237
+          ],
+          "color": "#2d2f33"
+        },
+        {
+          "label": "usb port",
+          "size": [
+            0.012,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.125,
+            0.3,
+            0.237
+          ],
+          "color": "#1b1b1b"
         }
       ]
     },
@@ -90,25 +219,141 @@
         "https://lifesciences.tecan.com/hubfs/page_images/Fluent/Fluent-480-instrument.jpg",
         "https://www.tecan.com/hubfs/__BEE_Inbound_Mockup_Files/images/Tec008348.png"
       ],
-      "read": "2026-11-23",
-      "unseen": "Back and left side. Depth is read from a second Tecan photo of a Fluent whose model is not labelled; the curved hood is drawn square.",
+      "read": "2026-11-25",
+      "unseen": "Back and left side. Depth, the arms and the glass sides are read from a second Tecan photo of a wider Fluent; the curved hood is a rounded box and the labware on the deck is only an arrangement like the photo's.",
       "parts": [
+        {
+          "label": "foot 1",
+          "size": [
+            0.05,
+            0.04,
+            0.05
+          ],
+          "position": [
+            -0.5,
+            0.02,
+            -0.32
+          ],
+          "color": "#8a8d91",
+          "shape": "cylinder"
+        },
+        {
+          "label": "foot 2",
+          "size": [
+            0.05,
+            0.04,
+            0.05
+          ],
+          "position": [
+            0.5,
+            0.02,
+            -0.32
+          ],
+          "color": "#8a8d91",
+          "shape": "cylinder"
+        },
+        {
+          "label": "foot 3",
+          "size": [
+            0.05,
+            0.04,
+            0.05
+          ],
+          "position": [
+            -0.5,
+            0.02,
+            0.32
+          ],
+          "color": "#8a8d91",
+          "shape": "cylinder"
+        },
+        {
+          "label": "foot 4",
+          "size": [
+            0.05,
+            0.04,
+            0.05
+          ],
+          "position": [
+            0.5,
+            0.02,
+            0.32
+          ],
+          "color": "#8a8d91",
+          "shape": "cylinder"
+        },
         {
           "label": "cabinet",
           "size": [
             1.1,
-            0.8,
+            0.76,
             0.74
           ],
           "position": [
             0,
-            0.4,
+            0.42,
             0
           ],
           "color": "#17181a"
         },
         {
-          "label": "deck",
+          "label": "left door",
+          "size": [
+            0.53,
+            0.7,
+            0.012
+          ],
+          "position": [
+            -0.27,
+            0.42,
+            0.376
+          ],
+          "color": "#202124"
+        },
+        {
+          "label": "right door",
+          "size": [
+            0.53,
+            0.7,
+            0.012
+          ],
+          "position": [
+            0.27,
+            0.42,
+            0.376
+          ],
+          "color": "#202124"
+        },
+        {
+          "label": "left door handle",
+          "size": [
+            0.012,
+            0.12,
+            0.012
+          ],
+          "position": [
+            -0.03,
+            0.5,
+            0.388
+          ],
+          "color": "#4a4d52"
+        },
+        {
+          "label": "right door handle",
+          "size": [
+            0.012,
+            0.12,
+            0.012
+          ],
+          "position": [
+            0.03,
+            0.5,
+            0.388
+          ],
+          "color": "#4a4d52"
+        },
+        {
+          "label": "deck band",
           "size": [
             1.15,
             0.1,
@@ -119,88 +364,234 @@
             0.85,
             0
           ],
-          "color": "#e9ebed"
+          "color": "#eceef0",
+          "round": 0.15
         },
         {
-          "label": "labware",
+          "label": "start button",
           "size": [
-            0.7,
-            0.05,
-            0.4
+            0.04,
+            0.04,
+            0.01
           ],
           "position": [
             0,
-            0.925,
-            0.05
+            0.85,
+            0.392
           ],
-          "color": "#7fa6c9"
+          "color": "#3fbf6a"
+        },
+        {
+          "label": "touchscreen",
+          "size": [
+            0.24,
+            0.16,
+            0.02
+          ],
+          "position": [
+            -0.36,
+            0.88,
+            0.415
+          ],
+          "color": "#14161a"
+        },
+        {
+          "label": "screen",
+          "size": [
+            0.2,
+            0.12,
+            0.008
+          ],
+          "position": [
+            -0.36,
+            0.88,
+            0.427
+          ],
+          "color": "#2c5fa8"
+        },
+        {
+          "label": "worktable",
+          "size": [
+            1.09,
+            0.02,
+            0.7
+          ],
+          "position": [
+            0,
+            0.91,
+            0
+          ],
+          "color": "#c9ccd0"
         },
         {
           "label": "back wall",
           "size": [
             1.15,
-            0.6,
-            0.06
+            0.5,
+            0.04
           ],
           "position": [
             0,
-            1.2,
-            -0.36
+            1.15,
+            -0.37
           ],
-          "color": "#dfe3e6"
+          "color": "#e3e6e9"
         },
         {
-          "label": "left panel",
+          "label": "left pillar",
           "size": [
-            0.05,
-            0.6,
-            0.72
+            0.04,
+            0.5,
+            0.04
           ],
           "position": [
-            -0.55,
-            1.2,
-            0
+            -0.555,
+            1.15,
+            0.37
           ],
-          "color": "#b9c7cf"
+          "color": "#9fb3c2"
         },
         {
-          "label": "right panel",
+          "label": "right pillar",
           "size": [
-            0.05,
-            0.6,
-            0.72
+            0.04,
+            0.5,
+            0.04
           ],
           "position": [
-            0.55,
-            1.2,
+            0.555,
+            1.15,
+            0.37
+          ],
+          "color": "#9fb3c2"
+        },
+        {
+          "label": "left glass",
+          "size": [
+            0.012,
+            0.5,
+            0.7
+          ],
+          "position": [
+            -0.569,
+            1.15,
             0
           ],
-          "color": "#b9c7cf"
+          "color": "#a9c4d6",
+          "opacity": 0.3
+        },
+        {
+          "label": "right glass",
+          "size": [
+            0.012,
+            0.5,
+            0.7
+          ],
+          "position": [
+            0.569,
+            1.15,
+            0
+          ],
+          "color": "#a9c4d6",
+          "opacity": 0.3
+        },
+        {
+          "label": "front door",
+          "size": [
+            1.07,
+            0.5,
+            0.012
+          ],
+          "position": [
+            0,
+            1.15,
+            0.384
+          ],
+          "color": "#bfd4e2",
+          "opacity": 0.18
         },
         {
           "label": "hood",
           "size": [
             1.15,
-            0.477,
+            0.52,
             0.78
           ],
           "position": [
             0,
-            1.7385,
+            1.66,
             0
           ],
-          "color": "#c9cdd1"
+          "color": "#d5d8db",
+          "round": 0.12
         },
         {
-          "label": "arm",
+          "label": "hood window",
           "size": [
-            0.1,
-            0.08,
-            0.66
+            0.75,
+            0.2,
+            0.01
           ],
           "position": [
-            0.1,
-            1.44,
+            -0.06,
+            1.75,
+            0.392
+          ],
+          "color": "#15171a"
+        },
+        {
+          "label": "status strip",
+          "size": [
+            0.14,
+            0.015,
+            0.01
+          ],
+          "position": [
+            0.42,
+            1.62,
+            0.392
+          ],
+          "color": "#46d07f"
+        },
+        {
+          "label": "status lamp",
+          "size": [
+            0.03,
+            0.057,
+            0.03
+          ],
+          "position": [
+            0.12,
+            1.9485,
+            0
+          ],
+          "color": "#3a3d42",
+          "shape": "cylinder"
+        },
+        {
+          "label": "arm rail",
+          "size": [
+            1.05,
+            0.05,
+            0.08
+          ],
+          "position": [
+            0,
+            1.37,
+            -0.3
+          ],
+          "color": "#b8bcc0"
+        },
+        {
+          "label": "pipetting arm",
+          "size": [
+            0.09,
+            0.07,
+            0.62
+          ],
+          "position": [
+            -0.05,
+            1.355,
             0
           ],
           "color": "#e6e8ea"
@@ -208,30 +599,444 @@
         {
           "label": "pipetting head",
           "size": [
-            0.12,
-            0.3,
-            0.08
+            0.16,
+            0.16,
+            0.07
           ],
           "position": [
-            0.1,
-            1.27,
+            -0.05,
+            1.24,
             0.05
+          ],
+          "color": "#d0d3d6"
+        },
+        {
+          "label": "gripper arm",
+          "size": [
+            0.09,
+            0.07,
+            0.62
+          ],
+          "position": [
+            0.33,
+            1.355,
+            0
+          ],
+          "color": "#e6e8ea"
+        },
+        {
+          "label": "gripper column",
+          "size": [
+            0.06,
+            0.22,
+            0.06
+          ],
+          "position": [
+            0.33,
+            1.21,
+            0.1
           ],
           "color": "#3a3f45"
         },
         {
-          "label": "touchscreen",
+          "label": "gripper finger 1",
           "size": [
-            0.22,
-            0.15,
+            0.012,
+            0.1,
             0.03
           ],
           "position": [
-            -0.35,
-            0.82,
-            0.405
+            0.285,
+            1.06,
+            0.1
           ],
-          "color": "#1a1d21"
+          "color": "#1c1d20"
+        },
+        {
+          "label": "gripper finger 2",
+          "size": [
+            0.012,
+            0.1,
+            0.03
+          ],
+          "position": [
+            0.375,
+            1.06,
+            0.1
+          ],
+          "color": "#1c1d20"
+        },
+        {
+          "label": "tip 1",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            -0.013
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tip 2",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            0.005
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tip 3",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            0.023
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tip 4",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            0.041
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tip 5",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            0.059
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tip 6",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            0.077
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tip 7",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            0.095
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tip 8",
+          "size": [
+            0.01,
+            0.18,
+            0.01
+          ],
+          "position": [
+            -0.05,
+            1.07,
+            0.113
+          ],
+          "color": "#2a2c30",
+          "shape": "cylinder"
+        },
+        {
+          "label": "labware 1a",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.4,
+            0.9425,
+            -0.17
+          ],
+          "color": "#7fb2d6"
+        },
+        {
+          "label": "labware 1b",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.4,
+            0.9425,
+            0.0
+          ],
+          "color": "#7fb2d6"
+        },
+        {
+          "label": "labware 1c",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.4,
+            0.9425,
+            0.17
+          ],
+          "color": "#7fb2d6"
+        },
+        {
+          "label": "labware 2a",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.24,
+            0.9425,
+            -0.17
+          ],
+          "color": "#7fb2d6"
+        },
+        {
+          "label": "labware 2b",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.24,
+            0.9425,
+            0.0
+          ],
+          "color": "#7fb2d6"
+        },
+        {
+          "label": "labware 2c",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.24,
+            0.9425,
+            0.17
+          ],
+          "color": "#7fb2d6"
+        },
+        {
+          "label": "labware 3a",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.08,
+            0.9425,
+            -0.17
+          ],
+          "color": "#d9534f"
+        },
+        {
+          "label": "labware 3b",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.08,
+            0.9425,
+            0.0
+          ],
+          "color": "#d9534f"
+        },
+        {
+          "label": "labware 3c",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            -0.08,
+            0.9425,
+            0.17
+          ],
+          "color": "#d9534f"
+        },
+        {
+          "label": "labware 4a",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.08,
+            0.9425,
+            -0.17
+          ],
+          "color": "#26282b"
+        },
+        {
+          "label": "labware 4b",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.08,
+            0.9425,
+            0.0
+          ],
+          "color": "#26282b"
+        },
+        {
+          "label": "labware 4c",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.08,
+            0.9425,
+            0.17
+          ],
+          "color": "#26282b"
+        },
+        {
+          "label": "labware 5a",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.24,
+            0.9425,
+            -0.17
+          ],
+          "color": "#26282b"
+        },
+        {
+          "label": "labware 5b",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.24,
+            0.9425,
+            0.0
+          ],
+          "color": "#26282b"
+        },
+        {
+          "label": "labware 5c",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.24,
+            0.9425,
+            0.17
+          ],
+          "color": "#26282b"
+        },
+        {
+          "label": "labware 6a",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.4,
+            0.9425,
+            -0.17
+          ],
+          "color": "#d9534f"
+        },
+        {
+          "label": "labware 6b",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.4,
+            0.9425,
+            0.0
+          ],
+          "color": "#d9534f"
+        },
+        {
+          "label": "labware 6c",
+          "size": [
+            0.09,
+            0.045,
+            0.13
+          ],
+          "position": [
+            0.4,
+            0.9425,
+            0.17
+          ],
+          "color": "#d9534f"
         }
       ]
     },
@@ -241,76 +1046,232 @@
       "photos": [
         "https://www.thermofisher.com/TFS-Assets/LCD/product-images/KingFisher-Duo-Prime-UV.jpg-650.jpg"
       ],
-      "read": "2026-11-23",
-      "unseen": "Both sides and the back; depth is not visible in a front view.",
+      "read": "2026-11-25",
+      "unseen": "Both sides and the back; depth is not visible in a front view, and what is behind the lid is read through tinted plastic.",
       "parts": [
         {
-          "label": "housing",
+          "label": "foot 1",
+          "size": [
+            0.03,
+            0.01,
+            0.03
+          ],
+          "position": [
+            -0.17,
+            0.005,
+            -0.2
+          ],
+          "color": "#2a2b2d"
+        },
+        {
+          "label": "foot 2",
+          "size": [
+            0.03,
+            0.01,
+            0.03
+          ],
+          "position": [
+            0.17,
+            0.005,
+            -0.2
+          ],
+          "color": "#2a2b2d"
+        },
+        {
+          "label": "foot 3",
+          "size": [
+            0.03,
+            0.01,
+            0.03
+          ],
+          "position": [
+            -0.17,
+            0.005,
+            0.2
+          ],
+          "color": "#2a2b2d"
+        },
+        {
+          "label": "foot 4",
+          "size": [
+            0.03,
+            0.01,
+            0.03
+          ],
+          "position": [
+            0.17,
+            0.005,
+            0.2
+          ],
+          "color": "#2a2b2d"
+        },
+        {
+          "label": "lower housing",
           "size": [
             0.4,
-            0.34,
+            0.12,
             0.46
           ],
           "position": [
             0,
-            0.17,
+            0.07,
             0
           ],
-          "color": "#f2f3f4"
+          "color": "#f4f5f6"
         },
         {
-          "label": "top plate",
+          "label": "rear housing",
           "size": [
-            0.36,
-            0.01,
-            0.4
+            0.4,
+            0.198,
+            0.3
           ],
           "position": [
             0,
-            0.345,
-            -0.02
+            0.229,
+            -0.08
           ],
-          "color": "#6b6e72"
+          "color": "#f4f5f6"
+        },
+        {
+          "label": "panel housing",
+          "size": [
+            0.11,
+            0.198,
+            0.16
+          ],
+          "position": [
+            0.145,
+            0.229,
+            0.15
+          ],
+          "color": "#f4f5f6"
+        },
+        {
+          "label": "left wall",
+          "size": [
+            0.02,
+            0.198,
+            0.16
+          ],
+          "position": [
+            -0.19,
+            0.229,
+            0.15
+          ],
+          "color": "#f4f5f6"
+        },
+        {
+          "label": "turntable",
+          "size": [
+            0.25,
+            0.01,
+            0.14
+          ],
+          "position": [
+            -0.045,
+            0.135,
+            0.14
+          ],
+          "color": "#b9c0c6"
+        },
+        {
+          "label": "plate",
+          "size": [
+            0.128,
+            0.02,
+            0.086
+          ],
+          "position": [
+            -0.06,
+            0.15,
+            0.14
+          ],
+          "color": "#dfe9f2"
+        },
+        {
+          "label": "magnet head",
+          "size": [
+            0.13,
+            0.05,
+            0.03
+          ],
+          "position": [
+            -0.06,
+            0.27,
+            0.11
+          ],
+          "color": "#6d7378"
+        },
+        {
+          "label": "tip comb",
+          "size": [
+            0.11,
+            0.07,
+            0.008
+          ],
+          "position": [
+            -0.06,
+            0.21,
+            0.11
+          ],
+          "color": "#e8eef2",
+          "opacity": 0.7
         },
         {
           "label": "front lid",
           "size": [
-            0.25,
-            0.15,
+            0.27,
+            0.2,
             0.012
           ],
           "position": [
             -0.045,
-            0.2,
-            0.232
+            0.235,
+            0.226
           ],
-          "color": "#3f7fa6"
+          "color": "#3f8fc0",
+          "opacity": 0.35
+        },
+        {
+          "label": "top plate",
+          "size": [
+            0.4,
+            0.012,
+            0.46
+          ],
+          "position": [
+            0,
+            0.334,
+            0
+          ],
+          "color": "#6b6e72"
         },
         {
           "label": "lid handle",
           "size": [
-            0.25,
-            0.012,
+            0.27,
+            0.014,
             0.02
           ],
           "position": [
             -0.045,
-            0.282,
+            0.325,
             0.238
           ],
-          "color": "#b8bcc0"
+          "color": "#c3c7cb"
         },
         {
           "label": "control panel",
           "size": [
             0.085,
-            0.13,
-            0.012
+            0.15,
+            0.008
           ],
           "position": [
             0.145,
-            0.215,
-            0.232
+            0.24,
+            0.234
           ],
           "color": "#16181b"
         },
@@ -318,12 +1279,12 @@
           "label": "screen",
           "size": [
             0.065,
-            0.05,
-            0.006
+            0.06,
+            0.008
           ],
           "position": [
             0.145,
-            0.245,
+            0.275,
             0.24
           ],
           "color": "#dfe9f2"
@@ -337,10 +1298,108 @@
           ],
           "position": [
             0.155,
-            0.05,
+            0.06,
             0.232
           ],
           "color": "#111111"
+        },
+        {
+          "label": "usb port",
+          "size": [
+            0.012,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.155,
+            0.1,
+            0.232
+          ],
+          "color": "#333333"
+        },
+        {
+          "label": "key 1",
+          "size": [
+            0.016,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.125,
+            0.215,
+            0.2395
+          ],
+          "color": "#3a3d42"
+        },
+        {
+          "label": "key 2",
+          "size": [
+            0.016,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.145,
+            0.215,
+            0.2395
+          ],
+          "color": "#3a3d42"
+        },
+        {
+          "label": "key 3",
+          "size": [
+            0.016,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.165,
+            0.215,
+            0.2395
+          ],
+          "color": "#3fae5a"
+        },
+        {
+          "label": "key 4",
+          "size": [
+            0.016,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.125,
+            0.19,
+            0.2395
+          ],
+          "color": "#3a3d42"
+        },
+        {
+          "label": "key 5",
+          "size": [
+            0.016,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.145,
+            0.19,
+            0.2395
+          ],
+          "color": "#3a3d42"
+        },
+        {
+          "label": "key 6",
+          "size": [
+            0.016,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.165,
+            0.19,
+            0.2395
+          ],
+          "color": "#c8463c"
         }
       ]
     },
@@ -350,120 +1409,321 @@
       "photos": [
         "https://cdn.sanity.io/images/f5b6mtfn/selectscience-prod/32a7734c60be29bc9cd59e448fac4dd606f17209-2108x2920.jpg"
       ],
-      "read": "2026-11-23",
+      "read": "2026-11-25",
       "unseen": "Back and far side. The photo is on SelectScience, not Agilent's site, which refused reading; it does not say whether this is a BioStack 3 or 4.",
       "parts": [
         {
           "label": "base",
           "size": [
             0.18,
-            0.12,
-            0.4
+            0.11,
+            0.3
           ],
           "position": [
             0,
-            0.06,
-            -0.06
+            0.055,
+            -0.11
           ],
           "color": "#1c1c1e"
         },
         {
-          "label": "rear stack",
+          "label": "carrier rail",
           "size": [
-            0.1,
-            0.44,
-            0.14
+            0.16,
+            0.02,
+            0.26
           ],
           "position": [
-            -0.03,
-            0.38,
-            -0.19
+            0,
+            0.03,
+            0.15
           ],
-          "color": "#1b1b1d"
+          "color": "#1c1c1e"
         },
         {
-          "label": "front stack",
+          "label": "plate carrier",
           "size": [
-            0.1,
-            0.44,
-            0.14
+            0.15,
+            0.012,
+            0.22
           ],
           "position": [
-            -0.03,
-            0.38,
-            -0.04
+            0,
+            0.046,
+            0.16
           ],
-          "color": "#1b1b1d"
+          "color": "#2a2b2d"
+        },
+        {
+          "label": "plate 1",
+          "size": [
+            0.128,
+            0.014,
+            0.086
+          ],
+          "position": [
+            0,
+            0.059,
+            0.105
+          ],
+          "color": "#e8eef2",
+          "opacity": 0.85
+        },
+        {
+          "label": "plate 2",
+          "size": [
+            0.128,
+            0.014,
+            0.086
+          ],
+          "position": [
+            0,
+            0.059,
+            0.215
+          ],
+          "color": "#e8eef2",
+          "opacity": 0.85
         },
         {
           "label": "housing",
           "size": [
             0.188,
-            0.22,
-            0.16
+            0.24,
+            0.14
           ],
           "position": [
             0,
             0.23,
-            0.1
+            0.08
           ],
-          "color": "#f1f2f3"
+          "color": "#f1f2f3",
+          "round": 0.12
         },
         {
           "label": "gripper arm",
           "size": [
-            0.09,
             0.07,
-            0.14
+            0.06,
+            0.16
           ],
           "position": [
-            0.02,
-            0.24,
-            0.22
+            0.03,
+            0.25,
+            0.2
           ],
           "color": "#f1f2f3"
         },
         {
-          "label": "gripper",
+          "label": "wrist",
           "size": [
-            0.08,
-            0.06,
+            0.07,
+            0.07,
             0.07
           ],
           "position": [
-            0.02,
-            0.18,
+            0.03,
+            0.25,
+            0.28
+          ],
+          "color": "#f1f2f3",
+          "shape": "cylinder"
+        },
+        {
+          "label": "label",
+          "size": [
+            0.008,
+            0.03,
+            0.05
+          ],
+          "position": [
+            -0.007,
+            0.25,
+            0.19
+          ],
+          "color": "#2f7fc4"
+        },
+        {
+          "label": "gripper",
+          "size": [
+            0.07,
+            0.05,
+            0.07
+          ],
+          "position": [
+            0.03,
+            0.195,
             0.2
           ],
           "color": "#222325"
         },
         {
-          "label": "plate carrier",
+          "label": "finger 1",
           "size": [
-            0.14,
-            0.015,
-            0.16
+            0.01,
+            0.045,
+            0.02
           ],
           "position": [
-            0,
-            0.1,
-            0.21
+            0.0,
+            0.15,
+            0.2
           ],
-          "color": "#2a2b2d"
+          "color": "#b8bcc0"
         },
         {
-          "label": "plate",
+          "label": "finger 2",
           "size": [
-            0.086,
-            0.015,
-            0.128
+            0.01,
+            0.045,
+            0.02
+          ],
+          "position": [
+            0.06,
+            0.15,
+            0.2
+          ],
+          "color": "#b8bcc0"
+        },
+        {
+          "label": "stack 1 left side",
+          "size": [
+            0.008,
+            0.48,
+            0.12
+          ],
+          "position": [
+            -0.07,
+            0.35,
+            -0.2
+          ],
+          "color": "#18181a"
+        },
+        {
+          "label": "stack 1 right side",
+          "size": [
+            0.008,
+            0.48,
+            0.12
+          ],
+          "position": [
+            0.07,
+            0.35,
+            -0.2
+          ],
+          "color": "#18181a"
+        },
+        {
+          "label": "stack 1 top bar",
+          "size": [
+            0.15,
+            0.02,
+            0.02
           ],
           "position": [
             0,
-            0.115,
-            0.21
+            0.585,
+            -0.15
           ],
-          "color": "#e8eef2"
+          "color": "#111112"
+        },
+        {
+          "label": "stack 1 latch",
+          "size": [
+            0.03,
+            0.03,
+            0.02
+          ],
+          "position": [
+            -0.04,
+            0.125,
+            -0.15
+          ],
+          "color": "#3a3b3d"
+        },
+        {
+          "label": "stack 2 left side",
+          "size": [
+            0.008,
+            0.48,
+            0.12
+          ],
+          "position": [
+            -0.07,
+            0.35,
+            -0.06
+          ],
+          "color": "#18181a"
+        },
+        {
+          "label": "stack 2 right side",
+          "size": [
+            0.008,
+            0.48,
+            0.12
+          ],
+          "position": [
+            0.07,
+            0.35,
+            -0.06
+          ],
+          "color": "#18181a"
+        },
+        {
+          "label": "stack 2 top bar",
+          "size": [
+            0.15,
+            0.02,
+            0.02
+          ],
+          "position": [
+            0,
+            0.585,
+            -0.01
+          ],
+          "color": "#111112"
+        },
+        {
+          "label": "stack 2 latch",
+          "size": [
+            0.03,
+            0.03,
+            0.02
+          ],
+          "position": [
+            -0.04,
+            0.125,
+            -0.01
+          ],
+          "color": "#3a3b3d"
+        },
+        {
+          "label": "plates in stack",
+          "size": [
+            0.128,
+            0.08,
+            0.086
+          ],
+          "position": [
+            0,
+            0.33,
+            -0.06
+          ],
+          "color": "#dfe6ea",
+          "opacity": 0.85
+        },
+        {
+          "label": "stack back plate",
+          "size": [
+            0.15,
+            0.48,
+            0.008
+          ],
+          "position": [
+            0,
+            0.35,
+            -0.264
+          ],
+          "color": "#18181a"
         }
       ]
     },
@@ -473,7 +1733,7 @@
       "photos": [
         "https://www.waters.com/content/dam/waters/en/Photography/Products/Instruments/Separations/uplc/acquity-qda-ii-/Acquity-QDa-II-Detector-with-ACQUITY-Premier-Automation-Portal-straight.jpg.1024.resize/img.jpg"
       ],
-      "read": "2026-11-23",
+      "read": "2026-11-25",
       "unseen": "Sides, back and depth; a straight front view. The reference names no make, so a single-quadrupole LC-MS of this kind was chosen.",
       "parts": [
         {
@@ -484,11 +1744,82 @@
             0.6
           ],
           "position": [
-            0,
+            0.0,
             0.11,
             0
           ],
           "color": "#8e9093"
+        },
+        {
+          "label": "solvent manager door",
+          "size": [
+            0.085,
+            0.208,
+            0.02
+          ],
+          "position": [
+            0.1275,
+            0.11,
+            0.305
+          ],
+          "color": "#7a7c7f",
+          "round": 0.4
+        },
+        {
+          "label": "solvent manager badge",
+          "size": [
+            0.035,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.1275,
+            0.19,
+            0.316
+          ],
+          "color": "#e9eaeb"
+        },
+        {
+          "label": "solvent manager power",
+          "size": [
+            0.014,
+            0.014,
+            0.008
+          ],
+          "position": [
+            -0.14,
+            0.19,
+            0.302
+          ],
+          "color": "#2b2d30"
+        },
+        {
+          "label": "solvent manager light 1",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.115,
+            0.19,
+            0.302
+          ],
+          "color": "#49c46a"
+        },
+        {
+          "label": "solvent manager light 2",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.1,
+            0.19,
+            0.302
+          ],
+          "color": "#49c46a"
         },
         {
           "label": "sample manager",
@@ -498,11 +1829,82 @@
             0.6
           ],
           "position": [
-            0,
+            0.0,
             0.355,
             0
           ],
-          "color": "#9a9c9e"
+          "color": "#96989b"
+        },
+        {
+          "label": "sample manager door",
+          "size": [
+            0.085,
+            0.258,
+            0.02
+          ],
+          "position": [
+            0.1275,
+            0.355,
+            0.305
+          ],
+          "color": "#7a7c7f",
+          "round": 0.4
+        },
+        {
+          "label": "sample manager badge",
+          "size": [
+            0.035,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.1275,
+            0.46,
+            0.316
+          ],
+          "color": "#e9eaeb"
+        },
+        {
+          "label": "sample manager power",
+          "size": [
+            0.014,
+            0.014,
+            0.008
+          ],
+          "position": [
+            -0.14,
+            0.46,
+            0.302
+          ],
+          "color": "#2b2d30"
+        },
+        {
+          "label": "sample manager light 1",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.115,
+            0.46,
+            0.302
+          ],
+          "color": "#49c46a"
+        },
+        {
+          "label": "sample manager light 2",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.1,
+            0.46,
+            0.302
+          ],
+          "color": "#49c46a"
         },
         {
           "label": "column manager",
@@ -512,39 +1914,295 @@
             0.6
           ],
           "position": [
-            0,
+            0.0,
             0.6,
             0
           ],
-          "color": "#9a9c9e"
+          "color": "#96989b"
+        },
+        {
+          "label": "column manager door",
+          "size": [
+            0.085,
+            0.208,
+            0.02
+          ],
+          "position": [
+            0.1275,
+            0.6,
+            0.305
+          ],
+          "color": "#7a7c7f",
+          "round": 0.4
+        },
+        {
+          "label": "column manager badge",
+          "size": [
+            0.035,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.1275,
+            0.68,
+            0.316
+          ],
+          "color": "#e9eaeb"
+        },
+        {
+          "label": "column manager power",
+          "size": [
+            0.014,
+            0.014,
+            0.008
+          ],
+          "position": [
+            -0.14,
+            0.68,
+            0.302
+          ],
+          "color": "#2b2d30"
+        },
+        {
+          "label": "column manager light 1",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.115,
+            0.68,
+            0.302
+          ],
+          "color": "#49c46a"
+        },
+        {
+          "label": "column manager light 2",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.1,
+            0.68,
+            0.302
+          ],
+          "color": "#49c46a"
         },
         {
           "label": "solvent tray",
           "size": [
             0.34,
             0.05,
-            0.5
+            0.56
           ],
           "position": [
             0,
             0.735,
             0
           ],
-          "color": "#7d7f82"
+          "color": "#7f8184",
+          "round": 0.2
         },
         {
-          "label": "detector base",
+          "label": "tray post 1",
           "size": [
-            0.32,
-            0.22,
-            0.55
+            0.012,
+            0.05,
+            0.012
           ],
           "position": [
-            0.34,
-            0.11,
-            0
+            -0.15,
+            0.785,
+            0.25
           ],
-          "color": "#8e9093"
+          "color": "#2a2a2a",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tray post 2",
+          "size": [
+            0.012,
+            0.05,
+            0.012
+          ],
+          "position": [
+            0.15,
+            0.785,
+            0.25
+          ],
+          "color": "#2a2a2a",
+          "shape": "cylinder"
+        },
+        {
+          "label": "tray rail",
+          "size": [
+            0.31,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0,
+            0.81,
+            0.25
+          ],
+          "color": "#2a2a2a"
+        },
+        {
+          "label": "sample window",
+          "size": [
+            0.02,
+            0.1,
+            0.008
+          ],
+          "position": [
+            0.1275,
+            0.33,
+            0.318
+          ],
+          "color": "#0d0d0e"
+        },
+        {
+          "label": "sample door handle",
+          "size": [
+            0.03,
+            0.09,
+            0.012
+          ],
+          "position": [
+            0.06,
+            0.35,
+            0.306
+          ],
+          "color": "#e4e5e6"
+        },
+        {
+          "label": "valve 1",
+          "size": [
+            0.03,
+            0.03,
+            0.012
+          ],
+          "position": [
+            -0.125,
+            0.15,
+            0.306
+          ],
+          "color": "#6a6c6f"
+        },
+        {
+          "label": "valve 2",
+          "size": [
+            0.03,
+            0.03,
+            0.012
+          ],
+          "position": [
+            -0.08,
+            0.15,
+            0.306
+          ],
+          "color": "#6a6c6f"
+        },
+        {
+          "label": "valve 3",
+          "size": [
+            0.03,
+            0.03,
+            0.012
+          ],
+          "position": [
+            -0.035,
+            0.15,
+            0.306
+          ],
+          "color": "#6a6c6f"
+        },
+        {
+          "label": "valve 4",
+          "size": [
+            0.03,
+            0.03,
+            0.012
+          ],
+          "position": [
+            0.01,
+            0.15,
+            0.306
+          ],
+          "color": "#6a6c6f"
+        },
+        {
+          "label": "vent 1",
+          "size": [
+            0.18,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.055,
+            0.035,
+            0.302
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "vent 2",
+          "size": [
+            0.18,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.055,
+            0.049,
+            0.302
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "vent 3",
+          "size": [
+            0.18,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.055,
+            0.063,
+            0.302
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "vent 4",
+          "size": [
+            0.18,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.055,
+            0.077,
+            0.302
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "vent 5",
+          "size": [
+            0.18,
+            0.008,
+            0.008
+          ],
+          "position": [
+            -0.055,
+            0.091,
+            0.302
+          ],
+          "color": "#3c3d40"
         },
         {
           "label": "mass detector",
@@ -555,24 +2213,321 @@
           ],
           "position": [
             0.34,
-            0.305,
+            0.085,
             0
           ],
-          "color": "#6f7174"
+          "color": "#85878a"
+        },
+        {
+          "label": "mass detector door",
+          "size": [
+            0.08,
+            0.158,
+            0.02
+          ],
+          "position": [
+            0.46,
+            0.085,
+            0.28
+          ],
+          "color": "#7a7c7f",
+          "round": 0.4
+        },
+        {
+          "label": "mass detector badge",
+          "size": [
+            0.035,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.46,
+            0.14,
+            0.291
+          ],
+          "color": "#e9eaeb"
+        },
+        {
+          "label": "mass detector power",
+          "size": [
+            0.014,
+            0.014,
+            0.008
+          ],
+          "position": [
+            0.21,
+            0.14,
+            0.277
+          ],
+          "color": "#2b2d30"
+        },
+        {
+          "label": "mass detector light 1",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.235,
+            0.14,
+            0.277
+          ],
+          "color": "#49c46a"
+        },
+        {
+          "label": "mass detector light 2",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.25,
+            0.14,
+            0.277
+          ],
+          "color": "#49c46a"
+        },
+        {
+          "label": "detector top unit",
+          "size": [
+            0.32,
+            0.2,
+            0.55
+          ],
+          "position": [
+            0.34,
+            0.27,
+            0
+          ],
+          "color": "#8e9093"
+        },
+        {
+          "label": "detector top unit door",
+          "size": [
+            0.08,
+            0.188,
+            0.02
+          ],
+          "position": [
+            0.46,
+            0.27,
+            0.28
+          ],
+          "color": "#7a7c7f",
+          "round": 0.4
+        },
+        {
+          "label": "detector top unit badge",
+          "size": [
+            0.035,
+            0.016,
+            0.008
+          ],
+          "position": [
+            0.46,
+            0.34,
+            0.291
+          ],
+          "color": "#e9eaeb"
+        },
+        {
+          "label": "detector top unit power",
+          "size": [
+            0.014,
+            0.014,
+            0.008
+          ],
+          "position": [
+            0.21,
+            0.34,
+            0.277
+          ],
+          "color": "#2b2d30"
+        },
+        {
+          "label": "detector top unit light 1",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.235,
+            0.34,
+            0.277
+          ],
+          "color": "#49c46a"
+        },
+        {
+          "label": "detector top unit light 2",
+          "size": [
+            0.008,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.25,
+            0.34,
+            0.277
+          ],
+          "color": "#49c46a"
+        },
+        {
+          "label": "detector lid",
+          "size": [
+            0.32,
+            0.012,
+            0.55
+          ],
+          "position": [
+            0.34,
+            0.376,
+            0
+          ],
+          "color": "#3b3c3f"
+        },
+        {
+          "label": "detector panel",
+          "size": [
+            0.045,
+            0.1,
+            0.008
+          ],
+          "position": [
+            0.36,
+            0.08,
+            0.277
+          ],
+          "color": "#e9eaeb"
+        },
+        {
+          "label": "detector vent 1",
+          "size": [
+            0.12,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.27,
+            0.03,
+            0.277
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "detector vent 2",
+          "size": [
+            0.12,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.27,
+            0.044,
+            0.277
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "detector vent 3",
+          "size": [
+            0.12,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.27,
+            0.058,
+            0.277
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "detector vent 4",
+          "size": [
+            0.12,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.27,
+            0.072,
+            0.277
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "detector vent 5",
+          "size": [
+            0.12,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.27,
+            0.086,
+            0.277
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "detector vent 6",
+          "size": [
+            0.12,
+            0.008,
+            0.008
+          ],
+          "position": [
+            0.27,
+            0.1,
+            0.277
+          ],
+          "color": "#3c3d40"
+        },
+        {
+          "label": "portal stand",
+          "size": [
+            0.2,
+            0.12,
+            0.4
+          ],
+          "position": [
+            -0.28,
+            0.06,
+            0.02
+          ],
+          "color": "#77797c"
         },
         {
           "label": "automation portal",
           "size": [
-            0.22,
+            0.24,
             0.16,
             0.45
           ],
           "position": [
             -0.29,
-            0.19,
+            0.2,
             0.05
           ],
-          "color": "#a4a6a8"
+          "color": "#a4a6a8",
+          "round": 0.35
+        },
+        {
+          "label": "portal deck",
+          "size": [
+            0.14,
+            0.01,
+            0.2
+          ],
+          "position": [
+            -0.3,
+            0.284,
+            0.05
+          ],
+          "color": "#2d2e30"
         }
       ]
     }

@@ -605,6 +605,8 @@ def sketched(asset_id, box):
                 "size": [round(p["size"][i] * scale[i], 4) for i in range(3)],
                 "position": [round((p["position"][i] - origin[i]) * scale[i], 4) for i in range(3)],
                 "color": p["color"],
+                # How a part is drawn: a cylinder standing on end, see-through, or rounded.
+                **{key: p[key] for key in ("shape", "opacity", "round") if key in p},
             }
             for p in parts
         ],
