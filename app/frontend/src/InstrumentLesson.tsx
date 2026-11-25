@@ -595,7 +595,12 @@ function Studio({
               </span>
             </div>
             {item.mesh ? (
-              <TwinExplorer mesh={item.mesh} twin={twin} />
+              <TwinExplorer
+                mesh={item.mesh}
+                twin={twin}
+                access={item.access}
+                step={shown ? { operation: shown.operation, at: cursor } : null}
+              />
             ) : (
               <div className={l.noModel}>
                 <Box size={26} aria-hidden="true" />

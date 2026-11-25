@@ -119,4 +119,16 @@ test("an instrument no library model resembles is drawn as a sketch of its produ
   ).toBeVisible();
   // A sketch has no parts catalogued to take apart.
   await expect(page.getByRole("region", { name: "Anatomy" })).toHaveCount(0);
+
+  // A model with no joints still shows each step of a run that has something to show.
+  const view = instrument.locator("[data-state]");
+  await expect(view).not.toHaveAttribute("data-cue");
+  const advance = page.getByRole("button", { name: "Advance one step" });
+  await advance.click();
+  await expect(view).toHaveAttribute("data-cue", "load");
+  await advance.click();
+  await expect(view).toHaveAttribute("data-cue", "mix");
+  // Waiting has nothing to draw.
+  await advance.click();
+  await expect(view).not.toHaveAttribute("data-cue");
 });
