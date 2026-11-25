@@ -66,7 +66,10 @@ def test_a_photo_sketch_fills_the_twins_box_and_says_where_it_is_from(key):
     asset, pinned = AC[key], SKETCHES["sketches"][key]
     mesh, (width, height, depth) = asset["mesh"], asset["spec"]["parts"][0]["size"]
     assert mesh["kind"] == "sketch" and mesh["asset"] == key and asset["stand_in"] is None
-    assert 5 <= len(mesh["parts"]) <= 12
+    assert 12 <= len(mesh["parts"]) <= 80
+    for part in mesh["parts"]:
+        assert part.get("shape", "cylinder") == "cylinder"
+        assert 0 < part.get("opacity", 1) <= 1 and 0 < part.get("round", 0.1) <= 0.5
     parts = [
         Part.model_validate({k: p[k] for k in ("size", "position", "color")}) for p in mesh["parts"]
     ]

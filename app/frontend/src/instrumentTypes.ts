@@ -99,12 +99,17 @@ export type Residual = {
 /** The registered model drawn in place of the planning box. */
 export type Mesh = {
   kind: "glb" | "ot2" | "balance" | "ur5e" | "sketch";
-  /** A sketch's boxes: Y up, standing on Y=0, front toward +Z, in metres. */
+  /** A sketch's parts: Y up, standing on Y=0, front toward +Z, in metres. */
   parts?: {
     label: string;
     size: [number, number, number];
     position: [number, number, number];
     color: string;
+    /** A cylinder stands on end inside its size; anything else is a box. */
+    shape?: "cylinder";
+    opacity?: number;
+    /** Corner radius as a share of the part's smallest side. */
+    round?: number;
   }[];
   url?: string;
   sha256?: string;

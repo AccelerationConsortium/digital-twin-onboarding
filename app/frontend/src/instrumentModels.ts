@@ -1,6 +1,7 @@
 // Registered 3D models drawn in place of a twin's planning box. Every file is checked
 // against its pinned sha256; a missing or changed file leaves the box in place.
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { api } from "./api";
 import type { Mesh, TwinSpec } from "./instrumentTypes";
@@ -80,30 +81,49 @@ export function instrumentModel(mesh: Mesh): Promise<THREE.Object3D> {
   return templates.get(key)!;
 }
 
-/** A photo sketch's boxes as a Z-up model, each edged so that neighbours read apart. */
+/**
+ * A photo sketch's parts as a Z-up model: boxes, edged so that neighbours read apart,
+ * and where the photo shows them, rounded bodies, upright cylinders and glass.
+ */
 function buildSketch(mesh: Mesh) {
   const group = new THREE.Group();
   for (const part of mesh.parts ?? []) {
     const [w, h, d] = part.size;
     const [x, y, z] = part.position;
-    const geometry = new THREE.BoxGeometry(w, d, h);
+    const round = (part.round ?? 0) * Math.min(w, h, d);
+    const geometry =
+      part.shape === "cylinder"
+        ? new THREE.CylinderGeometry(0.5, 0.5, 1, 24)
+            .rotateX(Math.PI / 2)
+            .scale(w, d, h)
+        : round
+          ? new RoundedBoxGeometry(w, d, h, 3, round)
+          : new THREE.BoxGeometry(w, d, h);
+    const glass = (part.opacity ?? 1) < 1;
     const box = new THREE.Mesh(
       geometry,
-      new THREE.MeshStandardMaterial({ color: part.color, roughness: 0.7 }),
+      new THREE.MeshStandardMaterial({
+        color: part.color,
+        roughness: glass ? 0.2 : 0.7,
+        transparent: glass,
+        opacity: part.opacity ?? 1,
+        depthWrite: !glass,
+      }),
     );
     box.name = part.label;
     // The twin's front is +Z with Y up; a Z-up model's front is -Y.
     box.position.set(x, -z, y);
-    box.add(
-      new THREE.LineSegments(
-        new THREE.EdgesGeometry(geometry),
-        new THREE.LineBasicMaterial({
-          color: 0x000000,
-          transparent: true,
-          opacity: 0.35,
-        }),
-      ),
-    );
+    if (!round)
+      box.add(
+        new THREE.LineSegments(
+          new THREE.EdgesGeometry(geometry, 40),
+          new THREE.LineBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: glass ? 0.15 : 0.35,
+          }),
+        ),
+      );
     group.add(box);
   }
   return group;
