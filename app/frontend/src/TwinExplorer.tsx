@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Mesh } from "./instrumentTypes";
 import { stage } from "./modelViews";
+import { cued, cues } from "./stepCues";
 import { blend, rig, type Motion, type Pose, type Rig } from "./twinMotion";
 import s from "./TwinExplorer.module.css";
 
@@ -53,10 +54,15 @@ export default function TwinExplorer({
   mesh,
   twin,
   tall = false,
+  step = null,
+  access = "top",
 }: {
   mesh: Mesh;
   twin: Twin;
   tall?: boolean;
+  /** The step of a run on show: its action and its place in the run. */
+  step?: { operation: string; at: number } | null;
+  access?: "top" | "front";
 }) {
   const { motion, state, pose, part, press, pick } = twin;
   const host = useRef<HTMLDivElement>(null);
@@ -68,6 +74,8 @@ export default function TwinExplorer({
   const pickRef = useRef(pick);
   pickRef.current = pick;
   focus.current.selected = part;
+  const stepRef = useRef(step);
+  stepRef.current = step;
   useEffect(() => {
     target.current = pose;
   }, [pose]);
@@ -77,6 +85,8 @@ export default function TwinExplorer({
     const el = host.current;
     if (!el) return;
     let moved: Rig | null = null;
+    let drawn: ReturnType<typeof cues> | null = null;
+    let cueAt: number | null = null;
     let shown: Pose = target.current;
     let from: Pose = shown;
     let goal: Pose = shown;
@@ -125,6 +135,7 @@ export default function TwinExplorer({
       ready: (st) => {
         camera = st.camera;
         model = st.model;
+        drawn = cues(st.scene, st.holder, access);
         if (!motion) return;
         moved = rig(st.model, motion);
         moved.set(shown);
@@ -134,6 +145,13 @@ export default function TwinExplorer({
         el.addEventListener("pointerleave", onLeave);
       },
       frame: (st) => {
+        // A new step of the run starts its cue; the same step plays on.
+        const at = stepRef.current?.at ?? null;
+        if (at !== cueAt) {
+          cueAt = at;
+          drawn?.play(stepRef.current?.operation ?? null);
+        }
+        drawn?.frame(still.matches);
         if (!moved) return;
         const now = performance.now();
         if (!same(goal, target.current)) {
@@ -187,6 +205,7 @@ export default function TwinExplorer({
     });
     return () => {
       teardown();
+      drawn?.dispose();
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointerup", onUp);
@@ -203,7 +222,11 @@ export default function TwinExplorer({
     : (current?.says ?? "");
   return (
     <div className={s.explorer} data-tall={tall || undefined}>
-      <div className={s.stage} data-state={view}>
+      <div
+        className={s.stage}
+        data-state={view}
+        data-cue={(step && cued(step.operation) && step.operation) || undefined}
+      >
         <div ref={host} className={s.canvas} />
         {motion && view === "ready" && (
           <div className={s.labels}>
