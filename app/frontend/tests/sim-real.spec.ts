@@ -136,6 +136,15 @@ test("a workflow is checked against the connectors and its run is kept", async (
   await expect(page.getByRole("alert")).toHaveText(
     "The report is for another plan",
   );
+  // The arm's gripper is simulated, so this plan has no run on instruments; a report
+  // that claims one is not kept as a simulated run.
+  await expect(
+    runs.getByText("UR5e arm runs only in simulation."),
+  ).toBeVisible();
+  await upload({ ...report, evidence: "instrument" });
+  await expect(page.getByRole("alert")).toHaveText(
+    "Only simulated runs are kept here; this report is not one",
+  );
   await upload(report);
   await expect(runs.getByRole("list", { name: "Kept runs" })).toContainText(
     "passed",
@@ -154,4 +163,22 @@ test("a workflow is checked against the connectors and its run is kept", async (
   await kept.click();
   await page.getByRole("button", { name: "Delete this run" }).click();
   await expect(kept).toHaveCount(0);
+
+  // A plan of the Flex alone can go on to the Flex itself, from where it is installed.
+  const alone = structuredClone(example);
+  alone.devices = [example.devices[0]];
+  alone.layout.placements = [];
+  alone.labware = [];
+  alone.steps = [example.steps[0]];
+  await page.getByLabel("Workflow JSON").fill(JSON.stringify(alone));
+  await page.getByRole("button", { name: "Check workflow" }).click();
+  const instrument = page.getByRole("region", { name: "Runs" });
+  await expect(
+    instrument.getByRole("heading", { name: "On the instrument" }),
+  ).toBeVisible();
+  await expect(
+    instrument.getByText(
+      "academy-sim-real run plan.json --real flex=<address> --report report.json",
+    ),
+  ).toBeVisible();
 });

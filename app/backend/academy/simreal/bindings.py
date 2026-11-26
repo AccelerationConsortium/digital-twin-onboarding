@@ -26,6 +26,7 @@ FLEX_MODULES = (
     "thermocycler",
     "gripper",
 )
+FLEX_PIPETTES = ("p50_single_flex", "p50_multi_flex", "p1000_single_flex", "p1000_multi_flex")
 FLEX_SLOTS = [f"{row}{column}" for row in "ABCD" for column in "123"]
 
 PROFILES = {
@@ -51,6 +52,9 @@ PROFILES = {
         },
         "simulator": "Opentrons 9.0.0 OT3 hardware simulator and module simulators",
         "startup_seconds": 90,
+        # The same connector runs on the robot as a service; a real run connects to it
+        # there instead of starting one. A binding without this has no real run.
+        "real": {"port": 50051},
     },
     "ur5e": {
         "name": "UR5e arm",
@@ -69,24 +73,67 @@ PROFILES = {
         "start_degrees": [0.0, -85.9437, -85.9437, 0.0, 85.9437, 0.0],
     },
 }
+NO_REAL = {"ur5e": "its plate gripper exists only in simulation"}
 
 
 class BindingError(ValueError):
     """A connector binding is missing, or a workflow asks it for something it cannot do."""
 
 
+def _gripper_plan(plan):
+    """Whether a Flex gripper plan names what a `MoveLabware` moves, from where, to where."""
+
+    def named(value):
+        return isinstance(value, str) and bool(value)
+
+    return (
+        isinstance(plan, dict)
+        and named(plan.get("identifier"))
+        and named(plan.get("labware_identifier"))
+        and all(
+            isinstance(plan.get(end), dict) and named(plan[end].get("identifier"))
+            for end in ("source", "destination")
+        )
+    )
+
+
 def flex_options(options):
-    """Checked simulation options of a Flex: modules, handoff slots, deck ledger, gripper plans."""
+    """Checked simulation options of a Flex: modules, pipettes, handoff slots, deck ledger,
+    gripper plans."""
     options = options or {}
-    unknown = set(options) - {"modules", "handoff", "occupancy", "plans", "module_slots"}
+    unknown = set(options) - {
+        "modules",
+        "pipettes",
+        "handoff",
+        "occupancy",
+        "plans",
+        "module_slots",
+    }
     if unknown:
         raise BindingError(f"Unknown Flex option {sorted(unknown)[0]}")
+    # Options are free JSON in a workflow, so each is held to its shape before it is read.
+    for name, kind in (("modules", list), ("handoff", list), ("plans", list)):
+        if not isinstance(options.get(name, []), kind):
+            raise BindingError(f"Flex {name} is a list")
+    for name in ("occupancy", "module_slots", "pipettes"):
+        if not isinstance(options.get(name, {}), dict):
+            raise BindingError(f"Flex {name} is an object")
     modules = list(options.get("modules", []))
-    if any(m not in FLEX_MODULES for m in modules) or len(set(modules)) != len(modules):
+    if any(not isinstance(m, str) or m not in FLEX_MODULES for m in modules) or len(
+        set(modules)
+    ) != len(modules):
         raise BindingError(f"Flex modules are {', '.join(FLEX_MODULES)}, each at most once")
+    pipettes = dict(options.get("pipettes", {}))
+    if any(
+        mount not in ("left", "right") or not isinstance(name, str) or name not in FLEX_PIPETTES
+        for mount, name in pipettes.items()
+    ):
+        raise BindingError(f"Flex pipettes go on left or right and are {', '.join(FLEX_PIPETTES)}")
     handoff = list(options.get("handoff", []))
     occupancy = dict(options.get("occupancy", {}))
     slots = dict(options.get("module_slots", {}))
+    if any(not isinstance(plate, str) or not plate for plate in occupancy.values()):
+        raise BindingError("Flex occupancy names the plate in each slot")
     for slot in [*handoff, *occupancy, *slots.values()]:
         if slot not in FLEX_SLOTS:
             raise BindingError(f"The Flex deck has no slot {slot}")
@@ -95,10 +142,16 @@ def flex_options(options):
     if any(m not in modules for m in slots):
         raise BindingError("Give a slot only to a module the Flex carries")
     plans = list(options.get("plans", []))
-    if any(not isinstance(p, dict) or not p.get("identifier") for p in plans):
-        raise BindingError("Every gripper plan needs an identifier")
+    if not all(_gripper_plan(p) for p in plans):
+        raise BindingError(
+            "Every gripper plan needs an identifier, a labware_identifier, and a source and "
+            "a destination with an identifier each"
+        )
+    if len({p["identifier"] for p in plans}) != len(plans):
+        raise BindingError("Give every gripper plan its own identifier")
     return {
         "modules": modules,
+        "pipettes": pipettes,
         "handoff": handoff,
         "occupancy": occupancy,
         "plans": plans,
@@ -168,6 +221,9 @@ def launch_files(key, port, name, opts):
             "plans": opts["plans"],
         },
     }
+    if opts["pipettes"]:
+        # Left out when empty: a connector release without the setting still starts.
+        files["config.json"]["simulated_pipettes"] = opts["pipettes"]
     if opts["handoff"]:
         files["config.json"]["deck_handoff_config"] = "{workdir}/handoff.json"
         files["handoff.json"] = {
@@ -251,6 +307,7 @@ def catalog():
             "simulator": p["simulator"],
             "library": [{"collection": c, "id": i} for c, i in p["library"]],
             "imported": pinned is not None,
+            "real": "real" in p,
         }
         if pinned:
             entry.update(

@@ -10,6 +10,12 @@ FLEX, UR5E = "opentrons-flex", "ur5e"
 SHAKER = "ca.accelerationconsortium/modules/HeaterShakerController/v3"
 GRIPPER = "io.unitelabs/robot/PlateGripperController/v1"
 NAMES = {"flex": "Flex", "arm": "Arm", "reader": "Reader"}
+GRIPPER_PLAN = {
+    "identifier": "d1-to-d2",
+    "labware_identifier": "assay-plate",
+    "source": {"identifier": "D1"},
+    "destination": {"identifier": "D2"},
+}
 
 
 def workflow(**changes):
@@ -111,6 +117,16 @@ def test_a_binding_is_found_from_the_library_and_options_are_checked():
         {"handoff": ["E1"]},
         {"module_slots": {"heater_shaker": "D1"}},
         {"speed": 1},
+        {"modules": "gripper"},
+        {"modules": [{}]},
+        {"occupancy": ["D1"]},
+        {"occupancy": {"D1": 7}},
+        {"plans": {"identifier": "p"}},
+        {"plans": [{"identifier": "p"}]},
+        {"plans": [GRIPPER_PLAN, GRIPPER_PLAN]},
+        {"pipettes": ["p1000_single_flex"]},
+        {"pipettes": {"gripper": "p1000_single_flex"}},
+        {"pipettes": {"left": "p300_single_gen2"}},
     ):
         with pytest.raises(bindings.BindingError):
             bindings.options(FLEX, bad)
@@ -119,6 +135,11 @@ def test_a_binding_is_found_from_the_library_and_options_are_checked():
     files = bindings.launch_files(FLEX, 50001, "Flex", bindings.options(FLEX, {"handoff": ["D1"]}))
     assert files["config.json"]["use_simulator"] is True
     assert files["handoff.json"]["locations"] == ["D1"]
+    assert "simulated_pipettes" not in files["config.json"]
+    piped = bindings.options(FLEX, {"pipettes": {"left": "p1000_single_flex"}})
+    assert bindings.launch_files(FLEX, 50001, "Flex", piped)["config.json"][
+        "simulated_pipettes"
+    ] == {"left": "p1000_single_flex"}
     assert bindings.launch_files(UR5E, 50002, "Arm", {})["config.json"]["simulation_mode"] is True
 
 
@@ -470,6 +491,49 @@ def test_cycles_are_unrolled_and_later_cycles_skip_the_first_travel():
     assert second[0] == "c2.to-reader.lower.prepare" and len(second) == len(first) - 2
 
 
+def test_a_plan_holds_a_bounded_number_of_commands_and_its_run_fits_one_record():
+    most = compiled(workflow(cycles=50))
+    assert most["valid"], most["problems"]
+    assert len(most["steps"]) <= compiler.MAX_COMMANDS
+    # The longest run a plan allows is still one stored item.
+    kept = report.check(most, passed(most))
+    assert len(json.dumps(kept)) <= report.MAX_RECORD_BYTES
+
+    data = workflow(cycles=50)
+    again = [{**deepcopy(s), "id": f"{s['id']}-again"} for s in data["steps"][1:3]]
+    data["steps"][3:3] = again
+    over = compiled(data)
+    assert not over["valid"] and len(over["steps"]) == compiler.MAX_COMMANDS
+    assert "Run fewer cycles" in over["problems"][0]["message"]
+
+    many = workflow()
+    many["steps"] = [
+        {**deepcopy(many["steps"][1 + n % 2]), "id": f"t{n}"}
+        for n in range(compiler.MAX_TRANSFERS + 1)
+    ]
+    assert "at most 12 transfers" in compiled(many)["problems"][0]["message"]
+
+
+def test_a_gripper_plan_is_checked_before_a_command_reads_it():
+    move = {
+        "id": "move",
+        "kind": "command",
+        "device": "flex",
+        "feature": "LabwareMovementController",
+        "command": "MoveLabware",
+        "parameters": {"PlanIdentifier": "d1-to-d2"},
+    }
+    data = workflow(steps=[move])
+    data["devices"][0]["options"] = {"modules": ["gripper"], "plans": [{"identifier": "d1-to-d2"}]}
+    found = compiled(data)
+    assert not found["valid"] and "gripper plan needs" in found["problems"][0]["message"]
+
+    data["devices"][0]["options"]["plans"] = [GRIPPER_PLAN]
+    found = compiled(data)
+    assert found["valid"], found["problems"]
+    assert found["steps"][0]["world"]["labware"]["assay-plate"]["site"] == "D2"
+
+
 def test_workflow_ids_and_devices_are_validated():
     data = workflow()
     data["devices"].append(deepcopy(data["devices"][0]))
@@ -550,10 +614,114 @@ def test_a_report_is_kept_only_for_its_own_plan_and_pinned_connectors(plan):
         report.check(edited, passed(plan))
 
 
+@pytest.mark.parametrize(
+    ("change", "reason"),
+    [
+        ({"steps": ["warm"]}, "steps are missing"),
+        ({"cycles": [{}]}, "not a count"),
+        ({"cycles": [1]}, "cycles are missing"),
+        ({"cycles": [{"cycle": "1", "steps": 1}]}, "not a count"),
+        ({"connectors": {"flex": 1, "arm": 2}}, "does not name the plan's connectors"),
+        ({"connectors": []}, "does not name the plan's connectors"),
+        ({"world": {"note": "A" * report.MAX_WORLD_BYTES}}, "final world"),
+        ({"world": ["A"]}, "final world"),
+    ],
+)
+def test_a_report_in_another_shape_is_refused_by_name(plan, change, reason):
+    with pytest.raises(report.ReportError, match=reason):
+        report.check(plan, {**passed(plan), **change})
+
+
+def test_what_a_report_keeps_is_bounded(plan):
+    padded = passed(plan)
+    padded["steps"][0].update(device="d" * 500, error="e" * 5000, wall_s="soon")
+    padded["connectors"]["arm"].update(features=["x"])
+    with pytest.raises(report.ReportError, match="was not compiled against"):
+        report.check(plan, padded)
+    padded["connectors"]["arm"].update(features={}, commit="c" * 500, dirty="no")
+    record = report.check(plan, padded)
+    assert len(record["steps"][0]["device"]) == 40 and len(record["steps"][0]["error"]) == 400
+    assert record["steps"][0]["wall_s"] is None
+    assert len(record["connectors"]["arm"]["commit"]) == 40
+    assert record["connectors"]["arm"]["dirty"] is None
+
+    wide = passed(plan)
+    wide["steps"][0]["differences"] = [{"field": "x" * report.MAX_DIFFERENCES_BYTES}]
+    with pytest.raises(report.ReportError, match="differences"):
+        report.check(plan, wide)
+
+    for broken in ({"schema": compiler.PLAN}, {**plan, "devices": [{"connector": "nope"}]}):
+        with pytest.raises(report.ReportError):
+            report.check(broken, passed(plan))
+
+
+def test_a_run_on_an_instrument_is_not_kept_as_a_simulated_one(plan):
+    with pytest.raises(report.ReportError, match="Only simulated runs are kept here"):
+        report.check(plan, {**passed(plan), "evidence": "instrument"})
+
+
+def test_a_pipetting_sequence_compiles_in_the_flex_connectors_own_commands():
+    # Deck coordinates are the connector's vocabulary; these are not a taught deck.
+    tip, well, trash = ({"X": x, "Y": 100.0, "Z": 60.0} for x in (50.0, 200.0, 350.0))
+
+    def flex(name, feature, command, **parameters):
+        return step(id=name, device="flex", feature=feature, command=command, parameters=parameters)
+
+    def over(name, point):
+        return flex(name, "MotionController", "MoveTo", Mount="left", Speed=100.0, **point)
+
+    made = compiled(
+        workflow(
+            devices=[workflow()["devices"][0]],
+            layout={"bench": {"width": 2.4, "depth": 1.6}, "placements": []},
+            labware=[],
+            steps=[
+                flex(
+                    "tip",
+                    "TipController",
+                    "PickUpTip",
+                    Mount="left",
+                    Location=tip,
+                    TipLength=95.6,
+                    PrepAfter=True,
+                ),
+                over("to-source", well),
+                flex("draw", "MotionController", "Aspirate", Mount="left", Volume=50.0, Rate=1.0),
+                over("to-target", {**well, "Y": 180.0}),
+                flex(
+                    "give",
+                    "MotionController",
+                    "Dispense",
+                    Mount="left",
+                    Volume=50.0,
+                    Rate=1.0,
+                    PushOut=0.0,
+                ),
+                flex(
+                    "drop", "TipController", "DropTip", Mount="left", Location=trash, HomeAfter=True
+                ),
+            ],
+        )
+    )
+    assert made["valid"], made["problems"]
+    assert [s["command"] for s in made["steps"]] == [
+        "PickUpTip",
+        "MoveTo",
+        "Aspirate",
+        "MoveTo",
+        "Dispense",
+        "DropTip",
+    ]
+    assert [d["connector"] for d in made["devices"]] == [FLEX]
+    short = compiled(workflow(steps=[flex("draw", "MotionController", "Aspirate", Mount="left")]))
+    assert not short["valid"] and "Volume" in short["problems"][0]["message"]
+
+
 def test_routes_list_connectors_compile_and_keep_runs(client, plan):
     found = client.get("/api/sim-real/v1/connectors").json()
     assert found["evidence"] == "simulation"
     by_key = {c["key"]: c for c in found["connectors"]}
+    assert by_key[FLEX]["real"] and not by_key[UR5E]["real"]
     assert by_key[UR5E]["imported"] and by_key[FLEX]["library"] == [
         {"collection": "chemlab", "id": "opentrons_flex_single_5_1000ul"}
     ]
@@ -585,6 +753,8 @@ def test_routes_list_connectors_compile_and_keep_runs(client, plan):
     forged = {**body, "run_id": "6c5b2f3a-6f0e-4c53-9d5e-0b1c7c1a9d11"}
     forged["report"] = {**forged["report"], "plan_digest": "0" * 64}
     assert client.post("/api/sim-real/v1/runs", json=forged).status_code == 422
+    malformed = {**forged, "report": {**body["report"], "cycles": [{}]}}
+    assert client.post("/api/sim-real/v1/runs", json=malformed).status_code == 422
     assert client.delete(f"/api/sim-real/v1/runs/{run_id}").status_code == 204
     assert client.get(f"/api/sim-real/v1/runs/{run_id}").status_code == 404
     assert client.get("/api/sim-real/v1/runs").json()["runs"] == []

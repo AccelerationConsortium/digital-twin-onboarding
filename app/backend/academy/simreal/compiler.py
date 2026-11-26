@@ -27,7 +27,9 @@ from . import bindings, fdl, motion, world
 WORKFLOW = "simreal.workflow/1"
 PLAN = "simreal.plan/1"
 EVIDENCE = "simulation"
-MAX_TRANSFERS = 12
+MAX_TRANSFERS = 12  # in a workflow's steps; cycles repeat them
+# Across all cycles. A run's kept report has a line for each, and has to fit one stored item.
+MAX_COMMANDS = 1200
 
 Id = Annotated[str, Field(pattern=r"^[a-z][a-z0-9-]{0,23}$")]
 LabwareId = Annotated[str, Field(pattern=r"^[a-z][a-z0-9-]{0,39}$")]
@@ -573,9 +575,12 @@ def compile_workflow(workflow):
                 )
     except (PlanError, world.WorldError) as exc:
         fail(None, exc.layer, str(exc))
-    transfers = sum(s.kind == "transfer" for s in workflow.steps) * workflow.cycles
-    if not problems and transfers > MAX_TRANSFERS * workflow.cycles:
-        fail(None, "constraint", f"A workflow holds at most {MAX_TRANSFERS} transfers")
+    if not problems and sum(s.kind == "transfer" for s in workflow.steps) > MAX_TRANSFERS:
+        fail(
+            None,
+            "constraint",
+            f"A workflow's steps hold at most {MAX_TRANSFERS} transfers; cycles repeat them",
+        )
     cache = {}
     if not problems:
         for cycle in range(1, workflow.cycles + 1):
@@ -595,6 +600,15 @@ def compile_workflow(workflow):
                             world.apply(state, effect, names)
                         item["world"] = world.snapshot(state)
                     steps += made
+                    if len(steps) > MAX_COMMANDS:
+                        # Said as soon as it is known, before the remaining cycles are planned.
+                        steps = steps[:MAX_COMMANDS]
+                        fail(
+                            None,
+                            "constraint",
+                            f"{workflow.cycles} cycles of this workflow need more than "
+                            f"{MAX_COMMANDS} commands, the most a plan holds. Run fewer cycles.",
+                        )
                 except bindings.BindingError as exc:
                     fail(step.id, "state", f"Step {step.id}: {exc}")
                 except (PlanError, world.WorldError) as exc:

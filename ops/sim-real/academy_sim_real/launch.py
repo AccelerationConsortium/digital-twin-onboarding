@@ -1,8 +1,10 @@
-"""Start an installed instrument connector in its simulation mode on a loopback port.
+"""Start an installed instrument connector in its simulation mode on a loopback port, or
+connect to the one already running on an instrument.
 
-A connector is somebody else's program in its own Python environment, so it runs as a
-child process. Before anything is sent to it the runner checks, over SiLA, that it says it
-is simulating and that the features it serves are the pinned ones.
+A connector is somebody else's program in its own Python environment, so a simulated one
+runs as a child process. Before anything is sent to either, the runner checks over SiLA
+that it says it is simulating, or that it says it is not, and that the features it serves
+are the pinned ones.
 """
 
 import asyncio
@@ -24,7 +26,8 @@ COMMAND_SECONDS = 600  # the longest one simulated command may take
 
 
 class LaunchError(RuntimeError):
-    """A connector could not be started, or is not the simulated release that was pinned."""
+    """A connector could not be started or reached, or is not the pinned release in the
+    mode that was asked for."""
 
 
 @dataclass
@@ -94,15 +97,17 @@ def free_port():
 
 @dataclass
 class Connector:
-    """One running simulated connector and a SiLA client connected to it."""
+    """One running connector and a SiLA client connected to it."""
 
     key: str
     device: str
     port: int
     client: Client
-    process: asyncio.subprocess.Process
-    log: Path
+    process: asyncio.subprocess.Process | None  # None for one this runner did not start
+    log: Path | None
     served: dict = field(default_factory=dict)  # feature id -> Feature Definition XML
+    server: dict = field(default_factory=dict)
+    host: str = "127.0.0.1"
     _features: dict = field(default_factory=dict)
 
     async def feature(self, identifier):
@@ -161,6 +166,70 @@ def drift(key, served):
     return problems
 
 
+async def _verified(connector, simulating, pinned):
+    """The connector, once it reports the mode that was asked for and serves the pinned release."""
+    profile = bindings.profile(connector.key)
+    connector.served, connector.server = await _served(connector.client)
+    probe = profile["simulating"]
+    if probe["feature"] not in connector.served:
+        raise LaunchError(
+            f"The {profile['name']} connector does not serve {probe['feature']}, so it "
+            f"cannot be shown to be {'simulating' if simulating else 'driving an instrument'}"
+        )
+    reported = await connector.read(probe["feature"], probe["property"])
+    if simulating and reported is not True:
+        raise LaunchError(
+            f"The {profile['name']} connector does not report simulation; nothing was sent"
+        )
+    if not simulating and reported is not False:
+        raise LaunchError(
+            f"The {profile['name']} connector there reports simulation, not an instrument; "
+            "nothing was sent"
+        )
+    if pinned:
+        problems = drift(connector.key, connector.served)
+        if problems:
+            raise LaunchError(
+                f"The {profile['name']} connector is not the pinned release: " + "; ".join(problems)
+            )
+    return connector
+
+
+def address(key, text):
+    """Host and port of a connector running on its instrument, from `host[:port]`."""
+    profile = bindings.profile(key)
+    if "real" not in profile:
+        reason = bindings.NO_REAL.get(key, "no real run is bound for it")
+        raise LaunchError(f"The {profile['name']} connector has no real run: {reason}")
+    host, _, port = str(text).strip().rpartition(":")
+    if not host:
+        host, port = port, profile["real"]["port"]
+    if not host or not str(port).isdigit() or not 0 < int(port) < 65536:
+        raise LaunchError(f"Give an instrument's connector as host[:port]; got {text}")
+    return host, int(port)
+
+
+@contextlib.asynccontextmanager
+async def attached(key, where, *, device=None, pinned=True):
+    """The connector already running on an instrument, verified; left running on exit."""
+    profile = bindings.profile(key)
+    host, port = address(key, where)
+    client = Client(ClientConfig(host, port, tls=False, default_timeout=120_000))
+    try:
+        try:
+            await asyncio.wait_for(client.open(), timeout=20)
+        except Exception as exc:  # whatever the client raises, nothing is there to command
+            raise LaunchError(
+                f"No {profile['name']} connector answers at {host}:{port}: {exc}"
+            ) from exc
+        yield await _verified(
+            Connector(key, device or key, port, client, None, None, host=host), False, pinned
+        )
+    finally:
+        with contextlib.suppress(Exception):
+            await client.close()
+
+
 @contextlib.asynccontextmanager
 async def running(key, installation, workdir, *, device=None, options=None, pinned=True):
     """A connector started in simulation, verified, and stopped again on exit."""
@@ -208,27 +277,9 @@ async def running(key, installation, workdir, *, device=None, options=None, pinn
                 raise LaunchError(f"The {profile['name']} connector did not start; see {log}")
             await asyncio.sleep(0.25)
         await asyncio.wait_for(client.open(), timeout=60)
-        served, server = await _served(client)
-        connector = Connector(key, device or key, port, client, process, log, served)
-        connector.server = server
-        probe = profile["simulating"]
-        if probe["feature"] not in served:
-            raise LaunchError(
-                f"The {profile['name']} connector does not serve {probe['feature']}, so it "
-                "cannot be shown to be simulating"
-            )
-        if await connector.read(probe["feature"], probe["property"]) is not True:
-            raise LaunchError(
-                f"The {profile['name']} connector does not report simulation; nothing was sent"
-            )
-        if pinned:
-            problems = drift(key, served)
-            if problems:
-                raise LaunchError(
-                    f"The {profile['name']} connector is not the pinned release: "
-                    + "; ".join(problems)
-                )
-        yield connector
+        yield await _verified(
+            Connector(key, device or key, port, client, process, log), True, pinned
+        )
     finally:
         with contextlib.suppress(Exception):
             await client.close()

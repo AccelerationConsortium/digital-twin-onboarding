@@ -99,3 +99,183 @@ async def test_a_plan_changed_after_compiling_is_not_run():
     plan = {"schema": "simreal.plan/1", "valid": True, "steps": [], "digest": "0" * 64}
     with pytest.raises(launch.LaunchError, match="changed after it was compiled"):
         await runner.run_plan(plan, {})
+
+
+# --- the same plan on an instrument's own connector ---------------------------------
+
+FLEX_ONLY = {
+    "schema": "simreal.workflow/1",
+    "name": "Warm the shaker",
+    "devices": [
+        {
+            "id": "flex",
+            "library": {"collection": "chemlab", "id": "opentrons_flex_single_5_1000ul"},
+            "options": {"modules": ["heater_shaker"]},
+        }
+    ],
+    "layout": {"bench": {"width": 2.4, "depth": 1.6}, "placements": []},
+    "labware": [],
+    "steps": [
+        {
+            "id": "warm",
+            "kind": "command",
+            "device": "flex",
+            "feature": "HeaterShakerController",
+            "command": "SetTemperature",
+            "parameters": {"Temperature": 37.0},
+        }
+    ],
+}
+
+
+@pytest.fixture(scope="module")
+def flex_plan():
+    from academy.simreal import compiler
+
+    plan = compiler.compile_workflow(compiler.Workflow.model_validate(FLEX_ONLY))
+    assert plan["valid"], plan["problems"]
+    return plan
+
+
+def passed(plan):
+    return {
+        "schema": runner.REPORT,
+        "evidence": "simulation",
+        "plan_digest": plan["digest"],
+        "outcome": "passed",
+    }
+
+
+@pytest.fixture
+async def standing(tmp_path, monkeypatch):
+    """A stand-in connector somebody else started, as an instrument's connector is."""
+    import asyncio
+    import os
+    import socket
+
+    started = []
+
+    async def start(simulating):
+        port = launch.free_port()
+        config = tmp_path / f"standing-{port}.json"
+        config.write_text(json.dumps({"sila_server": {"port": port}}))
+        process = await asyncio.create_subprocess_exec(
+            sys.executable,
+            str(FAKE),
+            str(config),
+            env={**os.environ, "FAKE_SIMULATING": "1" if simulating else "0"},
+        )
+        started.append(process)
+        for _ in range(200):
+            try:
+                socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
+                return process, port
+            except OSError:
+                await asyncio.sleep(0.1)
+        pytest.fail("the stand-in connector did not start")
+
+    monkeypatch.setitem(
+        bindings.PROFILES, "ur5e", {**bindings.PROFILES["ur5e"], "real": {"port": 1}}
+    )
+    yield start
+    for process in started:
+        if process.returncode is None:
+            process.terminate()
+            await process.wait()
+
+
+async def test_an_instrument_connector_is_joined_and_left_running(standing):
+    process, port = await standing(simulating=False)
+    async with launch.attached("ur5e", f"127.0.0.1:{port}", device="arm", pinned=False) as found:
+        assert found.process is None and found.host == "127.0.0.1" and found.port == port
+        assert await found.read(SIMULATION, "SimulationMode") is False
+    assert process.returncode is None
+
+
+async def test_a_simulating_connector_is_not_taken_for_an_instrument(standing):
+    _, port = await standing(simulating=True)
+    with pytest.raises(launch.LaunchError, match="reports simulation, not an instrument"):
+        async with launch.attached("ur5e", f"127.0.0.1:{port}", pinned=False):
+            pytest.fail("the connector was handed out")
+
+
+async def test_an_instrument_connector_is_held_to_the_pinned_release(standing, monkeypatch):
+    monkeypatch.setenv("FAKE_EXTRA", "1")
+    _, port = await standing(simulating=False)
+    with pytest.raises(launch.LaunchError, match="org.example/test/Extra/v1 is not in the pinned"):
+        async with launch.attached("ur5e", f"127.0.0.1:{port}"):
+            pytest.fail("the connector was handed out")
+
+
+def test_only_a_connector_with_a_real_run_has_an_instrument_address():
+    assert launch.address("opentrons-flex", "10.0.0.5") == ("10.0.0.5", 50051)
+    assert launch.address("opentrons-flex", "flex.local:50052") == ("flex.local", 50052)
+    with pytest.raises(launch.LaunchError, match="host\\[:port\\]"):
+        launch.address("opentrons-flex", "10.0.0.5:http")
+    with pytest.raises(launch.LaunchError, match="UR5e arm connector has no real run"):
+        launch.address("ur5e", "10.0.0.6")
+
+
+def test_a_real_run_names_every_instrument_of_the_plan(flex_plan):
+    assert runner.instruments(flex_plan, ["flex=10.0.0.5"]) == {"flex": "10.0.0.5"}
+    with pytest.raises(launch.LaunchError, match="Give the address of flex's connector"):
+        runner.instruments(flex_plan, [])
+    with pytest.raises(launch.LaunchError, match="device=host"):
+        runner.instruments(flex_plan, ["reader=10.0.0.5"])
+
+
+async def test_an_instrument_takes_a_plan_only_after_it_passed_in_simulation(flex_plan):
+    where = {"flex": f"127.0.0.1:{launch.free_port()}"}
+    for rehearsal in (
+        None,
+        {**passed(flex_plan), "outcome": "failed"},
+        {**passed(flex_plan), "plan_digest": "0" * 64},
+        {**passed(flex_plan), "evidence": runner.INSTRUMENT},
+    ):
+        with pytest.raises(launch.LaunchError, match="only after that plan passed in simulation"):
+            await runner.run_real(flex_plan, where, rehearsal)
+    with pytest.raises(launch.LaunchError, match="No Opentrons Flex connector answers"):
+        await runner.run_real(flex_plan, where, passed(flex_plan))
+
+
+async def test_a_real_run_stops_at_a_connector_that_is_not_the_instrument(standing, flex_plan):
+    _, port = await standing(simulating=False)
+    # Something answers there, but not a Flex: it cannot say whether it simulates.
+    with pytest.raises(launch.LaunchError, match="cannot be shown to be driving an instrument"):
+        await runner.run_real(flex_plan, {"flex": f"127.0.0.1:{port}"}, passed(flex_plan))
+
+
+def test_the_command_line_sends_nothing_without_a_simulation(flex_plan, tmp_path, capsys):
+    from academy_sim_real import cli
+
+    plan = tmp_path / "plan.json"
+    plan.write_text(json.dumps(flex_plan))
+    assert cli.main(["run", str(plan), "--real", "flex=10.0.0.5"]) == 2
+    assert "No installation given for the opentrons-flex connector" in capsys.readouterr().err
+    assert cli.main(["run", str(plan), "--real", "arm=10.0.0.5"]) == 2
+
+
+async def test_an_instrument_is_not_told_about_a_simulated_scene(flex_plan):
+    sent = []
+
+    class Flex:
+        key = "opentrons-flex"
+
+        async def read(self, feature, name):
+            return {"Valid": True, "OccupiedLocations": []}
+
+        async def execute(self, feature, command, arguments):
+            sent.append(command)
+            return {}
+
+    scene = {**flex_plan["steps"][0], "id": "scene", "simulation_only": True}
+    plan = {**flex_plan, "steps": [scene, *flex_plan["steps"]]}
+    for simulated, commands in ((False, ["SetTemperature"]), (True, ["SetTemperature"] * 2)):
+        sent.clear()
+        report = runner._report(plan, runner.INSTRUMENT)
+        await runner._steps(plan, {"flex": Flex()}, report, simulated=simulated)
+        assert sent == commands and report["outcome"] == "passed"
+        assert [s["status"] for s in report["steps"]] == [
+            "done" if simulated else "skipped",
+            "done",
+        ]

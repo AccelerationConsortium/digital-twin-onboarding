@@ -1,4 +1,5 @@
-"""Command line: pin connector releases and run Sim–Real plans in simulation."""
+"""Command line: pin connector releases, run Sim–Real plans in simulation and, after a
+passed simulation, on the instruments' own connectors."""
 
 import argparse
 import asyncio
@@ -35,6 +36,18 @@ def main(argv=None):
     run.add_argument("plan", type=Path)
     run.add_argument("--report", type=Path, help="Write the run report here instead of stdout")
     run.add_argument("--workdir", type=Path, help="Keep connector files and logs here")
+    run.add_argument(
+        "--real",
+        action="append",
+        default=[],
+        metavar="DEVICE=HOST[:PORT]",
+        help="After the simulation passes, run the plan on this instrument's connector",
+    )
+    run.add_argument(
+        "--confirm",
+        metavar="DIGEST",
+        help="The first 12 characters of the plan digest, instead of typing them when asked",
+    )
     args = parser.parse_args(argv)
     try:
         installed = installations(args.connector)
@@ -63,14 +76,32 @@ def main(argv=None):
             for problem in plan["problems"]:
                 print(f"problem: {problem['message']}", file=sys.stderr)
             return 0 if plan["valid"] else 1
-        from .runner import run_plan
+        from .runner import instruments, run_plan, run_real
 
         plan = json.loads(args.plan.read_text())
+        where = instruments(plan, args.real) if args.real else None
         report = asyncio.run(run_plan(plan, installed, workdir=args.workdir))
+        if where and report["outcome"] != "passed":
+            print(
+                f"The simulation {report['outcome']}; nothing was sent to an instrument",
+                file=sys.stderr,
+            )
+        elif where:
+            key = plan["digest"][:12]
+            print(f"Simulation passed: {len(plan['steps'])} commands, plan {key}", file=sys.stderr)
+            for device, target in where.items():
+                print(f"  {device} -> the instrument's connector at {target}", file=sys.stderr)
+            typed = args.confirm
+            if typed is None and sys.stdin.isatty():
+                typed = input(f"Type {key} to send them to the instrument: ").strip()
+            if typed != key:
+                print("Not confirmed; nothing was sent to an instrument", file=sys.stderr)
+                return 2
+            report = asyncio.run(run_real(plan, where, report))
         text = json.dumps(report, indent=2)
         if args.report:
             args.report.write_text(text + "\n")
-            print(f"{report['outcome']}: {args.report}")
+            print(f"{report['evidence']} {report['outcome']}: {args.report}")
         else:
             print(text)
         return 0 if report["outcome"] == "passed" else 1

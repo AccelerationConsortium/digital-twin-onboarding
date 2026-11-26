@@ -19,6 +19,7 @@ type Connector = {
   repository: string;
   simulator: string;
   imported: boolean;
+  real: boolean;
   package_version?: string;
   source?: { commit: string | null; dirty: boolean | null };
   features?: Feature[];
@@ -37,6 +38,7 @@ type Plan = {
   valid: boolean;
   digest?: string;
   cycles?: number;
+  devices?: { id: string; connector: string | null }[];
   problems: { step: string | null; layer: string; message: string }[];
   steps: PlanStep[];
   motions: {
@@ -176,6 +178,12 @@ export default function SimReal() {
       setRun(null);
       setRuns((list) => list.filter((item) => item.run_id !== id));
     });
+
+  // A real run is whole: every connector of the plan reaches its instrument, or none does.
+  const driven = plan?.devices?.filter((device) => device.connector) ?? [];
+  const simulatedOnly = driven
+    .map((device) => connectors?.find((c) => c.key === device.connector))
+    .find((connector) => connector && !connector.real);
 
   return (
     <div className={s.page}>
@@ -390,6 +398,28 @@ export default function SimReal() {
             <span className={s.meta}>Check the workflow first.</span>
           )}
         </div>
+        {plan?.valid && driven.length > 0 && (
+          <div className={s.real}>
+            <h3>On the instrument</h3>
+            {simulatedOnly ? (
+              <p className={s.meta}>
+                {simulatedOnly.name} runs only in simulation.
+              </p>
+            ) : (
+              <>
+                <pre className={s.command}>
+                  academy-sim-real run plan.json{" "}
+                  {driven.map((d) => `--real ${d.id}=<address>`).join(" ")}{" "}
+                  --report report.json
+                </pre>
+                <p className={s.meta}>
+                  Simulates first, then asks before anything is sent. Its report
+                  is not kept here.
+                </p>
+              </>
+            )}
+          </div>
+        )}
         {runs.length > 0 && (
           <ul className={s.runs} aria-label="Kept runs">
             {runs.map((item) => (

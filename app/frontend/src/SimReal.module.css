@@ -218,3 +218,14 @@
   margin-top: 14px;
   font-size: 13px;
 }
+.real {
+  display: grid;
+  gap: 8px;
+}
+.real h3,
+.real p {
+  margin: 0;
+}
+.real h3 {
+  font-size: 15px;
+}
