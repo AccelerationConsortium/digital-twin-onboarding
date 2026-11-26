@@ -1,0 +1,852 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.0" Originator="io.unitelabs" Category="robot"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>RobotController</Identifier>
+  <DisplayName>Robot Controller</DisplayName>
+  <Description>Inspect robot state and control UR programs.</Description>
+  <Command>
+    <Identifier>ControlActiveMotion</Identifier>
+    <DisplayName>Control Active Motion</DisplayName>
+    <Description>Request optional stop or pause at the next reachable action boundary.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>RequestId</Identifier>
+      <DisplayName>Request Id</DisplayName>
+      <Description>Exact active connector-owned motion request.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Action</Identifier>
+      <DisplayName>Action</DisplayName>
+      <Description>stop or pause_after_action; never starts or resumes movement.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Report</Identifier>
+      <DisplayName>Report</DisplayName>
+      <Description>Request acknowledgement; completion must be read from progress and receipt.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>InspectMotionRequest</Identifier>
+    <DisplayName>Inspect Motion Request</DisplayName>
+    <Description>Inspect an earlier motion receipt without replaying it or clearing a fault.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>RequestId</Identifier>
+      <DisplayName>Request Id</DisplayName>
+      <Description>Identifier of an earlier motion request.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Receipt</Identifier>
+      <DisplayName>Receipt</DisplayName>
+      <Description>Existing persisted or session receipt as JSON.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>LoadProgram</Identifier>
+    <DisplayName>Load Program</DisplayName>
+    <Description>Load a program while stopped.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Program</Identifier>
+      <DisplayName>Program</DisplayName>
+      <Description>The .urp program path in the controller.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <DefinedExecutionErrors>
+      <Identifier>OutcomeUnknown</Identifier>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>MotionPreflight</Identifier>
+    <DisplayName>Motion Preflight</DisplayName>
+    <Description>Check stationary state and joint limits without sending motion.</Description>
+    <Observable>No</Observable>
+    <Response>
+      <Identifier>Report</Identifier>
+      <DisplayName>Report</DisplayName>
+      <Description>JSON checks, actual pose and separate simulation/hardware availability.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>MoveBasePositiveFiveDegrees</Identifier>
+    <DisplayName>Move Base Positive Five Degrees</DisplayName>
+    <Description>
+      Move Base positively by five degrees at at most one degree per second, then verify
+      settling.
+    </Description>
+    <Observable>No</Observable>
+    <Response>
+      <Identifier>Receipt</Identifier>
+      <DisplayName>Receipt</DisplayName>
+      <Description>The measured motion receipt, or a clearly marked simulation result.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+      <Identifier>OutcomeUnknown</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>MoveElbowPositiveFiveDegrees</Identifier>
+    <DisplayName>Move Elbow Positive Five Degrees</DisplayName>
+    <Description>
+      Move Elbow positively by five degrees at at most one degree per second, then verify
+      settling.
+    </Description>
+    <Observable>No</Observable>
+    <Response>
+      <Identifier>Receipt</Identifier>
+      <DisplayName>Receipt</DisplayName>
+      <Description>The measured motion receipt, or a clearly marked simulation result.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+      <Identifier>OutcomeUnknown</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>MoveJoint</Identifier>
+    <DisplayName>Move Joint</DisplayName>
+    <Description>Test one relative joint move at at most ten degrees per second, then stop.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Joint</Identifier>
+      <DisplayName>Joint</DisplayName>
+      <Description>Base, Shoulder, Elbow, Wrist1, Wrist2 or Wrist3.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>DeltaDegrees</Identifier>
+      <DisplayName>Delta Degrees</DisplayName>
+      <Description>Signed relative angle, magnitude between 0.5 and 10 degrees.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>RequestId</Identifier>
+      <DisplayName>Request Id</DisplayName>
+      <Description>Unique ID; reuse cannot repeat a real movement.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Receipt</Identifier>
+      <DisplayName>Receipt</DisplayName>
+      <Description>Measured motion record, or a clearly marked simulation result.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+      <Identifier>OutcomeUnknown</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>MoveJointAtSpeed</Identifier>
+    <DisplayName>Move Joint At Speed</DisplayName>
+    <Description>Move one joint at a selected command speed, then verify it has stopped.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Joint</Identifier>
+      <DisplayName>Joint</DisplayName>
+      <Description>Base, Shoulder, Elbow, Wrist1, Wrist2 or Wrist3.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>DeltaDegrees</Identifier>
+      <DisplayName>Delta Degrees</DisplayName>
+      <Description>Relative angle with magnitude from 0.5 through 10 degrees.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>SpeedDegreesPerSecond</Identifier>
+      <DisplayName>Speed Degrees Per Second</DisplayName>
+      <Description>Command speed from 1 through 40 degrees per second.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>RequestId</Identifier>
+      <DisplayName>Request Id</DisplayName>
+      <Description>Unique persistent request identifier; do not reuse for another movement.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>The reviewed backend mode; a changed mode rejects the move.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpiresAtUnixSeconds</Identifier>
+      <DisplayName>Expires At Unix Seconds</DisplayName>
+      <Description>Latest permitted dispatch time; expired requests never start.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Receipt</Identifier>
+      <DisplayName>Receipt</DisplayName>
+      <Description>Measured motion record, or a clearly marked simulation result.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+      <Identifier>OutcomeUnknown</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>Pause</Identifier>
+    <DisplayName>Pause</DisplayName>
+    <Description>Pause the running program.</Description>
+    <Observable>No</Observable>
+    <DefinedExecutionErrors>
+      <Identifier>OutcomeUnknown</Identifier>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>Play</Identifier>
+    <DisplayName>Play</DisplayName>
+    <Description>Start or resume the loaded program.</Description>
+    <Observable>No</Observable>
+    <DefinedExecutionErrors>
+      <Identifier>OutcomeUnknown</Identifier>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>PrepareActionChain</Identifier>
+    <DisplayName>Prepare Action Chain</DisplayName>
+    <Description>Prepare a continuous six-axis chain without sending movement.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>WaypointsJson</Identifier>
+      <DisplayName>Waypoints Json</DisplayName>
+      <Description>JSON list of 1-24 poses with six absolute degrees, duration, optional hold and name.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Speed</Identifier>
+      <DisplayName>Speed</DisplayName>
+      <Description>Peak joint-speed cap, 1-40 degrees per second.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode; changes reject preparation.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Plan</Identifier>
+      <DisplayName>Plan</DisplayName>
+      <Description>Server-owned preview, sampled ranges and derivative checks, expiring after 180 seconds.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>PrepareActionChainAtSpeed</Identifier>
+    <DisplayName>Prepare Action Chain At Speed</DisplayName>
+    <Description>Calculate travel times and prepare a continuous chain from one speed setting.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>WaypointsJson</Identifier>
+      <DisplayName>Waypoints Json</DisplayName>
+      <Description>JSON list of 1-24 poses with six absolute degrees, optional name and hold; no duration.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Speed</Identifier>
+      <DisplayName>Speed</DisplayName>
+      <Description>
+        Peak joint-speed cap, 1-40 degrees per second; also determines automatic acceleration
+        bounds.
+      </Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode; changes reject preparation.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Plan</Identifier>
+      <DisplayName>Plan</DisplayName>
+      <Description>
+        Checked trajectory with calculated travel times, measured starting pose and one-shot
+        expiry.
+      </Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>PrepareContinuousDance</Identifier>
+    <DisplayName>Prepare Continuous Dance</DisplayName>
+    <Description>Preview a continuous six-axis routine and capture its start reference.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Speed</Identifier>
+      <DisplayName>Speed</DisplayName>
+      <Description>Peak joint-speed cap in degrees per second, 1-40.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Duration</Identifier>
+      <DisplayName>Duration</DisplayName>
+      <Description>Nominal controller duration in seconds, 20-120.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Plan</Identifier>
+      <DisplayName>Plan</DisplayName>
+      <Description>JSON trajectory preview, ranges, derivatives and reference identifier.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>PrepareLowSpeedDance</Identifier>
+    <DisplayName>Prepare Low Speed Dance</DisplayName>
+    <Description>Preview the quarter-amplitude first-test routine with a three degree/second cap.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Duration</Identifier>
+      <DisplayName>Duration</DisplayName>
+      <Description>Nominal controller duration in seconds, 20-120.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Plan</Identifier>
+      <DisplayName>Plan</DisplayName>
+      <Description>Checked low-speed plan; does not enable or execute physical motion.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>PrepareReset</Identifier>
+    <DisplayName>Prepare Reset</DisplayName>
+    <Description>Preview an explicit smooth return to a captured reference, without moving.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>CheckpointId</Identifier>
+      <DisplayName>Checkpoint Id</DisplayName>
+      <Description>Reference captured by a dance preview in this connector session.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Speed</Identifier>
+      <DisplayName>Speed</DisplayName>
+      <Description>Peak speed cap in degrees per second, 1-40.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Duration</Identifier>
+      <DisplayName>Duration</DisplayName>
+      <Description>Nominal duration in seconds, 20-120.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Plan</Identifier>
+      <DisplayName>Plan</DisplayName>
+      <Description>JSON reset trajectory requiring a separate explicit execution.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>ReadMotionTrace</Identifier>
+    <DisplayName>Read Motion Trace</DisplayName>
+    <Description>Read recorded motion telemetry without starting or retrying movement.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>RequestId</Identifier>
+      <DisplayName>Request Id</DisplayName>
+      <Description>Existing motion identifier in this connector&apos;s receipt directory.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Trace</Identifier>
+      <DisplayName>Trace</DisplayName>
+      <Description>JSON samples labelled as simulated or measured.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>RunContinuousMotion</Identifier>
+    <DisplayName>Run Continuous Motion</DisplayName>
+    <Description>Execute one reviewed continuous dance, reset or action chain, with no automatic replay.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>PlanId</Identifier>
+      <DisplayName>Plan Id</DisplayName>
+      <Description>Unexpired prepared trajectory identifier.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>RequestId</Identifier>
+      <DisplayName>Request Id</DisplayName>
+      <Description>Unique request identifier for persistent reservation.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpiresAtUnixSeconds</Identifier>
+      <DisplayName>Expires At Unix Seconds</DisplayName>
+      <Description>Latest permitted dispatch time.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>RemoteControlConfirmed</Identifier>
+      <DisplayName>Remote Control Confirmed</DisplayName>
+      <Description>Operator confirmation for real mode only.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Receipt</Identifier>
+      <DisplayName>Receipt</DisplayName>
+      <Description>Explicit simulation result or monitored hardware receipt.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+      <Identifier>OutcomeUnknown</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SendCommand</Identifier>
+    <DisplayName>Send Command</DisplayName>
+    <Description>Send one command from the supported Dashboard subset.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Command</Identifier>
+      <DisplayName>Command</DisplayName>
+      <Description>A Dashboard command such as robotmode, load demo.urp, or play.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response</Identifier>
+      <DisplayName>Response</DisplayName>
+      <Description>The controller response.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>OutcomeUnknown</Identifier>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SolveTcp</Identifier>
+    <DisplayName>Solve Tcp</DisplayName>
+    <Description>Calculate nominal TCP kinematics or a pickup rehearsal draft without moving.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>PayloadJson</Identifier>
+      <DisplayName>Payload Json</DisplayName>
+      <Description>JSON operation forward, inverse or task, seed radians and explicit TCP offset.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Report</Identifier>
+      <DisplayName>Report</DisplayName>
+      <Description>Nominal solution or task waypoints; no collision or calibration acceptance.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>Stop</Identifier>
+    <DisplayName>Stop</DisplayName>
+    <Description>Stop the program. This is not an emergency stop.</Description>
+    <Observable>No</Observable>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>OutcomeUnknown</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SuggestActionChainTiming</Identifier>
+    <DisplayName>Suggest Action Chain Timing</DisplayName>
+    <Description>Calculate timing suggestions without changing poses or preparing execution.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>WaypointsJson</Identifier>
+      <DisplayName>Waypoints Json</DisplayName>
+      <Description>JSON list of six-axis waypoints with absolute degrees, duration and optional hold/name.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Speed</Identifier>
+      <DisplayName>Speed</DisplayName>
+      <Description>Requested peak joint-speed cap, 1-40 degrees per second.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Report</Identifier>
+      <DisplayName>Report</DisplayName>
+      <Description>Kinematic timing alternatives and predicted derivatives; no changes applied.</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>ControlOutcomeUnknown</Identifier>
+    <DisplayName>Control Outcome Unknown</DisplayName>
+    <Description>Report whether a control request requires reconciliation.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>Boolean</Basic>
+    </DataType>
+  </Property>
+  <Property>
+    <Identifier>JointPositions</Identifier>
+    <DisplayName>Joint Positions</DisplayName>
+    <Description>Read six actual joint angles in radians, from Base through Wrist 3.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <List>
+        <DataType>
+          <Basic>Real</Basic>
+        </DataType>
+      </List>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>LoadedProgram</Identifier>
+    <DisplayName>Loaded Program</DisplayName>
+    <Description>Read the loaded program path, or an empty string.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>MotionControlsEnabled</Identifier>
+    <DisplayName>Motion Controls Enabled</DisplayName>
+    <Description>Report whether explicit joint testing is enabled in the current backend.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>Boolean</Basic>
+    </DataType>
+  </Property>
+  <Property>
+    <Identifier>MotionProgress</Identifier>
+    <DisplayName>Motion Progress</DisplayName>
+    <Description>Read run-bound controller progress independently of the execution lock.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+  </Property>
+  <Property>
+    <Identifier>ProgramState</Identifier>
+    <DisplayName>Program State</DisplayName>
+    <Description>Read STOPPED, PLAYING, or PAUSED.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>RobotMode</Identifier>
+    <DisplayName>Robot Mode</DisplayName>
+    <Description>Read the robot mode.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>Running</Identifier>
+    <DisplayName>Running</DisplayName>
+    <Description>Read whether a program is running.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>Boolean</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>SafetyStatus</Identifier>
+    <DisplayName>Safety Status</DisplayName>
+    <Description>Read the controller safety state.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>SoftwareVersion</Identifier>
+    <DisplayName>Software Version</DisplayName>
+    <Description>Read the controller software version.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>SpeedSliderFraction</Identifier>
+    <DisplayName>Speed Slider Fraction</DisplayName>
+    <Description>Read the pendant speed fraction; it also scales the commanded movement speed.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>Real</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>ToolPose</Identifier>
+    <DisplayName>Tool Pose</DisplayName>
+    <Description>Read actual TCP position in metres and orientation as a rotation vector in radians.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <List>
+        <DataType>
+          <Basic>Real</Basic>
+        </DataType>
+      </List>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>CommandRejected</Identifier>
+    <DisplayName>Command Rejected</DisplayName>
+    <Description>If input, mode or stationary preflight is invalid.</Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>DeviceUnavailable</Identifier>
+    <DisplayName>Device Unavailable</DisplayName>
+    <Description>If actual state cannot be read.</Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>OutcomeUnknown</Identifier>
+    <DisplayName>Outcome Unknown</DisplayName>
+    <Description>If a control response was lost or unrecognized.</Description>
+  </DefinedExecutionError>
+</Feature>

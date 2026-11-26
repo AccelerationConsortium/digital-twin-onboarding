@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.3" Originator="ca.accelerationconsortium" Category="robots"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>GripperController</Identifier>
+  <DisplayName>Gripper Controller</DisplayName>
+  <Description>SiLA2 feature for the Flex gripper: grip, ungrip, and home the jaw.</Description>
+  <Command>
+    <Identifier>Grip</Identifier>
+    <DisplayName>Grip</DisplayName>
+    <Description>Close the jaw to grip labware.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Force</Identifier>
+      <DisplayName>Force</DisplayName>
+      <Description>Grip force in Newtons (5-25 N).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>5</MinimalInclusive>
+            <MaximalInclusive>25</MaximalInclusive>
+            <Unit>
+              <Label>N</Label>
+              <Factor>1</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Kilogram</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+              <UnitComponent>
+                <SIUnit>Second</SIUnit>
+                <Exponent>-2</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current gripper progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>GripperNotAttachedError</Identifier>
+      <Identifier>GripActionError</Identifier>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>DirectGripperControlDisabledError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>HomeJaw</Identifier>
+    <DisplayName>Home Jaw</DisplayName>
+    <Description>Home the gripper jaw to its reference position.</Description>
+    <Observable>Yes</Observable>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current gripper progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>GripperNotAttachedError</Identifier>
+      <Identifier>GripActionError</Identifier>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>Ungrip</Identifier>
+    <DisplayName>Ungrip</DisplayName>
+    <Description>Open the jaw fully to release labware.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Force</Identifier>
+      <DisplayName>Force</DisplayName>
+      <Description>Release force in Newtons (5-25 N).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>5</MinimalInclusive>
+            <MaximalInclusive>25</MaximalInclusive>
+            <Unit>
+              <Label>N</Label>
+              <Factor>1</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Kilogram</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+              <UnitComponent>
+                <SIUnit>Second</SIUnit>
+                <Exponent>-2</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current gripper progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>GripperNotAttachedError</Identifier>
+      <Identifier>GripActionError</Identifier>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>DirectGripperControlDisabledError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>JawWidth</Identifier>
+    <DisplayName>Jaw Width</DisplayName>
+    <Description>Return the current sensor-estimated jaw width in millimetres.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Constrained>
+        <DataType>
+          <Basic>Real</Basic>
+        </DataType>
+        <Constraints>
+          <MinimalInclusive>0</MinimalInclusive>
+          <Unit>
+            <Label>mm</Label>
+            <Factor>0.001</Factor>
+            <Offset>0</Offset>
+            <UnitComponent>
+              <SIUnit>Meter</SIUnit>
+              <Exponent>1</Exponent>
+            </UnitComponent>
+          </Unit>
+        </Constraints>
+      </Constrained>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>GripperNotAttachedError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>Status</Identifier>
+    <DisplayName>Status</DisplayName>
+    <Description>Gripper attachment status and identity.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>Attached</Identifier>
+          <DisplayName>Attached</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Model</Identifier>
+          <DisplayName>Model</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>GripperId</Identifier>
+          <DisplayName>Gripper Id</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>State</Identifier>
+          <DisplayName>State</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>RunOwnershipError</Identifier>
+    <DisplayName>Run Ownership Error</DisplayName>
+    <Description>
+      Protocol Engine currently owns the Flex for a prepared or active run.
+
+      Read status through the connector as usual, but do not issue an independent
+      SiLA hardware command. Stop the Protocol Engine run, or add the operation at
+      an explicit UNITELABS mutation checkpoint through the controlled run-mutation
+      HTTP endpoint, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>GripperNotAttachedError</Identifier>
+    <DisplayName>Gripper Not Attached Error</DisplayName>
+    <Description>
+      No gripper is attached, so the requested gripper action cannot run.
+
+      Attach the Flex gripper to the rear mount and re-scan instruments before retrying.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>GripActionError</Identifier>
+    <DisplayName>Grip Action Error</DisplayName>
+    <Description>
+      The gripper failed to complete a grip, ungrip, or home-jaw action.
+
+      The underlying hardware message is preserved so the failure can be diagnosed.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>NotHomedError</Identifier>
+    <DisplayName>Not Homed Error</DisplayName>
+    <Description>
+      The robot&apos;s position is unknown, so the move was refused.
+
+      Home the robot (or the affected mount) before requesting a move. If a halt
+      interrupted gripper motion, fully home the robot and then run HomeJaw before
+      resuming other hardware actuation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>OperationHaltedError</Identifier>
+    <DisplayName>Operation Halted Error</DisplayName>
+    <Description>
+      The operation was aborted because an emergency stop or halt was issued while it ran.
+
+      The robot position is no longer trusted. Clear the cause of the halt, fully
+      re-home the robot, follow the RecoveryGuidance reported by RobotStatusProvider,
+      and then re-issue the operation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RecoveryRequiredError</Identifier>
+    <DisplayName>Recovery Required Error</DisplayName>
+    <Description>
+      The connector refused the operation because an earlier failure left the robot
+      recovery-gated.
+
+      The error message lists the ordered recovery actions (for example a full re-home,
+      TipController.ReconcileTipState, or GripperController.HomeJaw). The same guidance
+      is available at any time from the RobotStatusProvider Status property.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareError</Identifier>
+    <DisplayName>Hardware Error</DisplayName>
+    <Description>
+      The Flex hardware reported an error that has no more specific defined error.
+
+      The message preserves the Opentrons error code, name, and detail so the cause
+      can be diagnosed or reported to vendor support. Inspect the robot, resolve the
+      reported condition, re-home, and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>DirectGripperControlDisabledError</Identifier>
+    <DisplayName>Direct Gripper Control Disabled Error</DisplayName>
+    <Description>
+      Direct gripper actuation is disabled while the durable labware plan registry is
+      active.
+
+      Use LabwareMovementController for allowlisted moves. To perform maintenance,
+      stop the connector and explicitly disable the local labware movement configuration.
+    </Description>
+  </DefinedExecutionError>
+</Feature>

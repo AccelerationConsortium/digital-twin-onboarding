@@ -1,0 +1,1643 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="3.3" Originator="ca.accelerationconsortium" Category="modules"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>HeaterShakerController</Identifier>
+  <DisplayName>Heater Shaker Controller</DisplayName>
+  <Description>
+    SiLA2 feature for Heater-Shaker module.
+
+    Provides commands for:
+    - Temperature control (heating)
+    - Shaking control (orbital motion)
+    - Labware latch control
+  </Description>
+  <Command>
+    <Identifier>CloseLatch</Identifier>
+    <DisplayName>Close Latch</DisplayName>
+    <Description>Close the labware latch.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Latch status after closing.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>opening</Value>
+              <Value>idle open</Value>
+              <Value>closing</Value>
+              <Value>idle closed</Value>
+              <Value>idle unknown</Value>
+              <Value>unknown</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>DeactivateHeater</Identifier>
+    <DisplayName>Deactivate Heater</DisplayName>
+    <Description>Turn off the heater.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Current and target temperature after deactivation.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Current</Identifier>
+            <DisplayName>Current</DisplayName>
+            <Description>Measured plate temperature.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Target</Identifier>
+            <DisplayName>Target</DisplayName>
+            <Description>Requested target, or zero when TargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description>Whether the heater currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>GetDeviceInfo</Identifier>
+    <DisplayName>Get Device Info</DisplayName>
+    <Description>Get device information.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Serial number, model, and firmware version.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>SerialNumber</Identifier>
+            <DisplayName>Serial Number</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Model</Identifier>
+            <DisplayName>Model</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>FirmwareVersion</Identifier>
+            <DisplayName>Firmware Version</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>GetLatchStatus</Identifier>
+    <DisplayName>Get Latch Status</DisplayName>
+    <Description>Get the current latch status.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Latch status (idle_open, idle_closed, opening, closing, etc.).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>opening</Value>
+              <Value>idle open</Value>
+              <Value>closing</Value>
+              <Value>idle closed</Value>
+              <Value>idle unknown</Value>
+              <Value>unknown</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>GetSpeed</Identifier>
+    <DisplayName>Get Speed</DisplayName>
+    <Description>Get the current shaking speed.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Current and target rotation speed.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Current</Identifier>
+            <DisplayName>Current</DisplayName>
+            <Description>Measured rotation speed.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Target</Identifier>
+            <DisplayName>Target</DisplayName>
+            <Description>Requested target, or zero when TargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description>Whether the shaker currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>GetStatus</Identifier>
+    <DisplayName>Get Status</DisplayName>
+    <Description>Get complete module status.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Temperature, rotation speed, and latch status.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>CurrentTemperature</Identifier>
+            <DisplayName>Current Temperature</DisplayName>
+            <Description>Measured plate temperature.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetTemperature</Identifier>
+            <DisplayName>Target Temperature</DisplayName>
+            <Description>Requested target, or zero when TemperatureTargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TemperatureTargetActive</Identifier>
+            <DisplayName>Temperature Target Active</DisplayName>
+            <Description>Whether the heater currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>CurrentSpeed</Identifier>
+            <DisplayName>Current Speed</DisplayName>
+            <Description>Measured rotation speed.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetSpeed</Identifier>
+            <DisplayName>Target Speed</DisplayName>
+            <Description>Requested target, or zero when SpeedTargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>SpeedTargetActive</Identifier>
+            <DisplayName>Speed Target Active</DisplayName>
+            <Description>Whether the shaker currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>LatchStatus</Identifier>
+            <DisplayName>Latch Status</DisplayName>
+            <Description>Current labware latch state.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>opening</Value>
+                    <Value>idle open</Value>
+                    <Value>closing</Value>
+                    <Value>idle closed</Value>
+                    <Value>idle unknown</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>GetTemperature</Identifier>
+    <DisplayName>Get Temperature</DisplayName>
+    <Description>Get the current temperature.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Current and target temperature.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Current</Identifier>
+            <DisplayName>Current</DisplayName>
+            <Description>Measured plate temperature.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Target</Identifier>
+            <DisplayName>Target</DisplayName>
+            <Description>Requested target, or zero when TargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description>Whether the heater currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>OpenLatch</Identifier>
+    <DisplayName>Open Latch</DisplayName>
+    <Description>Open the labware latch.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Latch status after opening.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>opening</Value>
+              <Value>idle open</Value>
+              <Value>closing</Value>
+              <Value>idle closed</Value>
+              <Value>idle unknown</Value>
+              <Value>unknown</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SetSpeed</Identifier>
+    <DisplayName>Set Speed</DisplayName>
+    <Description>Set the shaking speed.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Speed</Identifier>
+      <DisplayName>Speed</DisplayName>
+      <Description>
+        Target shaking speed (valid range 200-3000 revolutions per minute).
+        Use StopShaking to stop and home the shaker.
+      </Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Integer</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>200</MinimalInclusive>
+            <MaximalInclusive>3000</MaximalInclusive>
+            <Unit>
+              <Label>rpm</Label>
+              <Factor>0.016666666666666666</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Second</SIUnit>
+                <Exponent>-1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Current and target rotation speed.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Current</Identifier>
+            <DisplayName>Current</DisplayName>
+            <Description>Measured rotation speed.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Target</Identifier>
+            <DisplayName>Target</DisplayName>
+            <Description>Requested target, or zero when TargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description>Whether the shaker currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SetTemperature</Identifier>
+    <DisplayName>Set Temperature</DisplayName>
+    <Description>Set the target temperature.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Temperature</Identifier>
+      <DisplayName>Temperature</DisplayName>
+      <Description>
+        Target temperature in Celsius (valid range 0-95 C).
+        Targets below ambient may be physically unreachable.
+      </Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>0</MinimalInclusive>
+            <MaximalInclusive>95</MaximalInclusive>
+            <Unit>
+              <Label>°C</Label>
+              <Factor>1</Factor>
+              <Offset>273.15</Offset>
+              <UnitComponent>
+                <SIUnit>Kelvin</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Current and target temperature.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Current</Identifier>
+            <DisplayName>Current</DisplayName>
+            <Description>Measured plate temperature.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Target</Identifier>
+            <DisplayName>Target</DisplayName>
+            <Description>Requested target, or zero when TargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description>Whether the heater currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>InvalidHeaterShakerTemperatureError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>StopShaking</Identifier>
+    <DisplayName>Stop Shaking</DisplayName>
+    <Description>Stop shaking and return to home position.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Current and target RPM after stopping.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Current</Identifier>
+            <DisplayName>Current</DisplayName>
+            <Description>Measured rotation speed.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Target</Identifier>
+            <DisplayName>Target</DisplayName>
+            <Description>Requested target, or zero when TargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Integer</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>rpm</Label>
+                    <Factor>0.016666666666666666</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Second</SIUnit>
+                      <Exponent>-1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description>Whether the shaker currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>WaitForTemperature</Identifier>
+    <DisplayName>Wait For Temperature</DisplayName>
+    <Description>Wait until the heater reaches a target temperature.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Temperature</Identifier>
+      <DisplayName>Temperature</DisplayName>
+      <Description>Temperature in Celsius to wait for.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>0</MinimalInclusive>
+            <MaximalInclusive>95</MaximalInclusive>
+            <Unit>
+              <Label>°C</Label>
+              <Factor>1</Factor>
+              <Offset>273.15</Offset>
+              <UnitComponent>
+                <SIUnit>Kelvin</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>Current and target temperature.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Current</Identifier>
+            <DisplayName>Current</DisplayName>
+            <Description>Measured plate temperature.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Target</Identifier>
+            <DisplayName>Target</DisplayName>
+            <Description>Requested target, or zero when TargetActive is false.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description>Whether the heater currently has an active target.</Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current heater wait progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>InvalidHeaterShakerTemperatureError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>DeviceInfo</Identifier>
+    <DisplayName>Device Info</DisplayName>
+    <Description>Return the attached module serial number, model, and firmware version.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>SerialNumber</Identifier>
+          <DisplayName>Serial Number</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Model</Identifier>
+          <DisplayName>Model</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>FirmwareVersion</Identifier>
+          <DisplayName>Firmware Version</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>Status</Identifier>
+    <DisplayName>Status</DisplayName>
+    <Description>Subscribe to temperature, speed, target, and latch-state changes.</Description>
+    <Observable>Yes</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>CurrentTemperature</Identifier>
+          <DisplayName>Current Temperature</DisplayName>
+          <Description>Measured plate temperature.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>Real</Basic>
+              </DataType>
+              <Constraints>
+                <Unit>
+                  <Label>°C</Label>
+                  <Factor>1</Factor>
+                  <Offset>273.15</Offset>
+                  <UnitComponent>
+                    <SIUnit>Kelvin</SIUnit>
+                    <Exponent>1</Exponent>
+                  </UnitComponent>
+                </Unit>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>TargetTemperature</Identifier>
+          <DisplayName>Target Temperature</DisplayName>
+          <Description>Requested target, or zero when TemperatureTargetActive is false.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>Real</Basic>
+              </DataType>
+              <Constraints>
+                <Unit>
+                  <Label>°C</Label>
+                  <Factor>1</Factor>
+                  <Offset>273.15</Offset>
+                  <UnitComponent>
+                    <SIUnit>Kelvin</SIUnit>
+                    <Exponent>1</Exponent>
+                  </UnitComponent>
+                </Unit>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>TemperatureTargetActive</Identifier>
+          <DisplayName>Temperature Target Active</DisplayName>
+          <Description>Whether the heater currently has an active target.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>CurrentSpeed</Identifier>
+          <DisplayName>Current Speed</DisplayName>
+          <Description>Measured rotation speed.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>Integer</Basic>
+              </DataType>
+              <Constraints>
+                <Unit>
+                  <Label>rpm</Label>
+                  <Factor>0.016666666666666666</Factor>
+                  <Offset>0</Offset>
+                  <UnitComponent>
+                    <SIUnit>Second</SIUnit>
+                    <Exponent>-1</Exponent>
+                  </UnitComponent>
+                </Unit>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>TargetSpeed</Identifier>
+          <DisplayName>Target Speed</DisplayName>
+          <Description>Requested target, or zero when SpeedTargetActive is false.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>Integer</Basic>
+              </DataType>
+              <Constraints>
+                <Unit>
+                  <Label>rpm</Label>
+                  <Factor>0.016666666666666666</Factor>
+                  <Offset>0</Offset>
+                  <UnitComponent>
+                    <SIUnit>Second</SIUnit>
+                    <Exponent>-1</Exponent>
+                  </UnitComponent>
+                </Unit>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>SpeedTargetActive</Identifier>
+          <DisplayName>Speed Target Active</DisplayName>
+          <Description>Whether the shaker currently has an active target.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>LatchStatus</Identifier>
+          <DisplayName>Latch Status</DisplayName>
+          <Description>Current labware latch state.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>opening</Value>
+                  <Value>idle open</Value>
+                  <Value>closing</Value>
+                  <Value>idle closed</Value>
+                  <Value>idle unknown</Value>
+                  <Value>unknown</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>ModuleNotRespondingError</Identifier>
+    <DisplayName>Module Not Responding Error</DisplayName>
+    <Description>
+      The module did not respond — it may be disconnected or powered off.
+
+      Check that the module is connected to the Flex and powered on, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>ModuleOperationError</Identifier>
+    <DisplayName>Module Operation Error</DisplayName>
+    <Description>
+      The module reported an error while carrying out the requested operation.
+
+      The underlying driver/module message is preserved to aid recovery (e.g.
+      re-seat labware, check the module&apos;s status indicators, or power-cycle it).
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RunOwnershipError</Identifier>
+    <DisplayName>Run Ownership Error</DisplayName>
+    <Description>
+      Protocol Engine currently owns the Flex for a prepared or active run.
+
+      Read status through the connector as usual, but do not issue an independent
+      SiLA hardware command. Stop the Protocol Engine run, or add the operation at
+      an explicit UNITELABS mutation checkpoint through the controlled run-mutation
+      HTTP endpoint, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareError</Identifier>
+    <DisplayName>Hardware Error</DisplayName>
+    <Description>
+      The Flex hardware reported an error that has no more specific defined error.
+
+      The message preserves the Opentrons error code, name, and detail so the cause
+      can be diagnosed or reported to vendor support. Inspect the robot, resolve the
+      reported condition, re-home, and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>InvalidHeaterShakerTemperatureError</Identifier>
+    <DisplayName>Invalid Heater Shaker Temperature Error</DisplayName>
+    <Description>
+      The requested Heater-Shaker target is outside its supported operating range.
+
+      Provide a finite value between 0 and 95 degrees Celsius and retry. Targets
+      below the surrounding ambient temperature are accepted by the module API
+      but may be physically unreachable because the device does not actively cool.
+    </Description>
+  </DefinedExecutionError>
+</Feature>

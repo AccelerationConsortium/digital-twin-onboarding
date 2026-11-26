@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.1" Originator="ca.accelerationconsortium" Category="robots"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>TipController</Identifier>
+  <DisplayName>Tip Controller</DisplayName>
+  <Description>Controls and verifies tip attachment on Opentrons Flex pipettes.</Description>
+  <Command>
+    <Identifier>DropTip</Identifier>
+    <DisplayName>Drop Tip</DisplayName>
+    <Description>
+      Approach an absolute deck position vertically, drop the attached tip, and verify it.
+
+      All mounts are raised to the top of travel, the pipette moves horizontally to
+      directly above the location, then descends straight down; the mount is raised
+      again after the release. Movement and release execute under one hardware lock.
+      The supplied location must be a safe trash or return-tip position.
+    </Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Mount</Identifier>
+      <DisplayName>Mount</DisplayName>
+      <Description>Pipette mount to operate (LEFT or RIGHT).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>left</Value>
+              <Value>right</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Location</Identifier>
+      <DisplayName>Location</DisplayName>
+      <Description>Absolute deck position where release must occur.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>X</Identifier>
+            <DisplayName>X</DisplayName>
+            <Description>Target X coordinate in millimetres.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Y</Identifier>
+            <DisplayName>Y</DisplayName>
+            <Description>Target Y coordinate in millimetres.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Z</Identifier>
+            <DisplayName>Z</DisplayName>
+            <Description>Target Z coordinate in millimetres.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>HomeAfter</Identifier>
+      <DisplayName>Home After</DisplayName>
+      <Description>Home the pipette plunger after releasing the tip.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>TipPresence</Identifier>
+      <DisplayName>Tip Presence</DisplayName>
+      <Description>ABSENT after the hardware sensor verifies the drop.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>absent</Value>
+              <Value>present</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current tip-drop progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description>Current lifecycle phase of the operation.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description>Operator-facing progress or recovery message.</Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>MovementOutOfBoundsError</Identifier>
+      <Identifier>StallDetectedError</Identifier>
+      <Identifier>MachineErrorStateError</Identifier>
+      <Identifier>TipDropError</Identifier>
+      <Identifier>TipNotAttachedError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>PipetteNotAttachedError</Identifier>
+      <Identifier>TipStateError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>GetTipPresence</Identifier>
+    <DisplayName>Get Tip Presence</DisplayName>
+    <Description>Read the tip-presence sensor on one attached pipette.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Mount</Identifier>
+      <DisplayName>Mount</DisplayName>
+      <Description>Pipette mount to read (LEFT or RIGHT).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>left</Value>
+              <Value>right</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>TipPresence</Identifier>
+      <DisplayName>Tip Presence</DisplayName>
+      <Description>PRESENT when a tip is attached; otherwise ABSENT.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>absent</Value>
+              <Value>present</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>PipetteNotAttachedError</Identifier>
+      <Identifier>TipStateError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>PickUpTip</Identifier>
+    <DisplayName>Pick Up Tip</DisplayName>
+    <Description>
+      Approach an absolute deck position vertically, pick up a tip, lift it clear, and
+      verify it.
+
+      All mounts are raised to the top of travel, the pipette moves horizontally to
+      directly above the location, then descends straight down; after pickup the
+      mount is raised again, so the tip never sweeps through labware. Movement and
+      pickup execute under one hardware lock, so another client cannot move the
+      robot between positioning and pickup. Presses and depth increments use the
+      hardware model&apos;s validated defaults.
+    </Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Mount</Identifier>
+      <DisplayName>Mount</DisplayName>
+      <Description>Pipette mount to operate (LEFT or RIGHT).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>left</Value>
+              <Value>right</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Location</Identifier>
+      <DisplayName>Location</DisplayName>
+      <Description>Absolute deck position where pickup must occur.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>X</Identifier>
+            <DisplayName>X</DisplayName>
+            <Description>Target X coordinate in millimetres.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Y</Identifier>
+            <DisplayName>Y</DisplayName>
+            <Description>Target Y coordinate in millimetres.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Z</Identifier>
+            <DisplayName>Z</DisplayName>
+            <Description>Target Z coordinate in millimetres.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>TipLength</Identifier>
+      <DisplayName>Tip Length</DisplayName>
+      <Description>Physical tip length in millimetres.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalExclusive>0</MinimalExclusive>
+            <MaximalInclusive>100</MaximalInclusive>
+            <Unit>
+              <Label>mm</Label>
+              <Factor>0.001</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>PrepAfter</Identifier>
+      <DisplayName>Prep After</DisplayName>
+      <Description>Prepare the plunger for aspiration after pickup.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>TipPresence</Identifier>
+      <DisplayName>Tip Presence</DisplayName>
+      <Description>PRESENT after the hardware sensor verifies the pickup.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>absent</Value>
+              <Value>present</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current tip-pickup progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description>Current lifecycle phase of the operation.</Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description>Operator-facing progress or recovery message.</Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>MovementOutOfBoundsError</Identifier>
+      <Identifier>StallDetectedError</Identifier>
+      <Identifier>MachineErrorStateError</Identifier>
+      <Identifier>TipPickupError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>PipetteNotAttachedError</Identifier>
+      <Identifier>TipStateError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>ReconcileTipState</Identifier>
+    <DisplayName>Reconcile Tip State</DisplayName>
+    <Description>
+      Align the software tip model with the tip sensor and lift the tip quarantine for one
+      mount.
+
+      Run this after physically inspecting the pipette when RobotStatusProvider
+      reports TipReconciliationRequired. The robot does not move. TipLength is
+      used only when the sensor reports a tip that the software model does not
+      know about; otherwise the recorded tip length is kept.
+    </Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>Mount</Identifier>
+      <DisplayName>Mount</DisplayName>
+      <Description>Pipette mount to reconcile (LEFT or RIGHT).</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>left</Value>
+              <Value>right</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>TipLength</Identifier>
+      <DisplayName>Tip Length</DisplayName>
+      <Description>Physical length of a tip that may be attached, in millimetres.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalExclusive>0</MinimalExclusive>
+            <MaximalInclusive>100</MaximalInclusive>
+            <Unit>
+              <Label>mm</Label>
+              <Factor>0.001</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>TipPresence</Identifier>
+      <DisplayName>Tip Presence</DisplayName>
+      <Description>The sensor state the software model now matches.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>absent</Value>
+              <Value>present</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>PipetteNotAttachedError</Identifier>
+      <Identifier>TipStateError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <DefinedExecutionError>
+    <Identifier>NotHomedError</Identifier>
+    <DisplayName>Not Homed Error</DisplayName>
+    <Description>
+      The robot&apos;s position is unknown, so the move was refused.
+
+      Home the robot (or the affected mount) before requesting a move. If a halt
+      interrupted gripper motion, fully home the robot and then run HomeJaw before
+      resuming other hardware actuation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>OperationHaltedError</Identifier>
+    <DisplayName>Operation Halted Error</DisplayName>
+    <Description>
+      The operation was aborted because an emergency stop or halt was issued while it ran.
+
+      The robot position is no longer trusted. Clear the cause of the halt, fully
+      re-home the robot, follow the RecoveryGuidance reported by RobotStatusProvider,
+      and then re-issue the operation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RecoveryRequiredError</Identifier>
+    <DisplayName>Recovery Required Error</DisplayName>
+    <Description>
+      The connector refused the operation because an earlier failure left the robot
+      recovery-gated.
+
+      The error message lists the ordered recovery actions (for example a full re-home,
+      TipController.ReconcileTipState, or GripperController.HomeJaw). The same guidance
+      is available at any time from the RobotStatusProvider Status property.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareError</Identifier>
+    <DisplayName>Hardware Error</DisplayName>
+    <Description>
+      The Flex hardware reported an error that has no more specific defined error.
+
+      The message preserves the Opentrons error code, name, and detail so the cause
+      can be diagnosed or reported to vendor support. Inspect the robot, resolve the
+      reported condition, re-home, and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>MovementOutOfBoundsError</Identifier>
+    <DisplayName>Movement Out Of Bounds Error</DisplayName>
+    <Description>
+      The requested move would take the mount outside the deck working volume.
+
+      Check the target coordinates against the Flex deck envelope and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>StallDetectedError</Identifier>
+    <DisplayName>Stall Detected Error</DisplayName>
+    <Description>
+      A stall or collision was detected during the move; motion was halted.
+
+      Clear any obstruction, then re-home before continuing. The underlying
+      hardware message is preserved to aid diagnosis.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>MachineErrorStateError</Identifier>
+    <DisplayName>Machine Error State Error</DisplayName>
+    <Description>
+      The move was accepted but the robot has silently entered a hardware error state.
+
+      A movement command can return without raising while the machine has already
+      entered an error state (for example the E-stop became engaged mid-move). This
+      error surfaces that hidden condition so callers never treat such a move as
+      successful. Clear the fault (release the E-stop), then re-home before
+      continuing. The underlying hardware state is preserved to aid diagnosis.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>TipDropError</Identifier>
+    <DisplayName>Tip Drop Error</DisplayName>
+    <Description>
+      The pipette failed to release its attached tip.
+
+      Check the drop location and for a jammed tip, then clear any obstruction and
+      retry from a safe position.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>TipNotAttachedError</Identifier>
+    <DisplayName>Tip Not Attached Error</DisplayName>
+    <Description>
+      The requested drop was refused because no tip is attached.
+
+      Confirm the physical tip state and perform a verified pickup before retrying
+      the drop operation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RunOwnershipError</Identifier>
+    <DisplayName>Run Ownership Error</DisplayName>
+    <Description>
+      Protocol Engine currently owns the Flex for a prepared or active run.
+
+      Read status through the connector as usual, but do not issue an independent
+      SiLA hardware command. Stop the Protocol Engine run, or add the operation at
+      an explicit UNITELABS mutation checkpoint through the controlled run-mutation
+      HTTP endpoint, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>PipetteNotAttachedError</Identifier>
+    <DisplayName>Pipette Not Attached Error</DisplayName>
+    <Description>
+      No pipette is attached to the requested mount.
+
+      Attach a Flex pipette, re-scan instruments, and retry the tip operation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>TipStateError</Identifier>
+    <DisplayName>Tip State Error</DisplayName>
+    <Description>
+      The measured tip state did not match the requested tip operation.
+
+      Inspect the pipette and tip sensor, reconcile the physical tip state, and
+      re-home before retrying if a collision or unexpected attachment occurred.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>TipPickupError</Identifier>
+    <DisplayName>Tip Pickup Error</DisplayName>
+    <Description>
+      The pipette failed to pick up a tip at its current position.
+
+      Check pipette alignment, tip compatibility, and tip-rack seating, then move
+      to the intended tip well and retry.
+    </Description>
+  </DefinedExecutionError>
+</Feature>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.0" MaturityLevel="Verified" Originator="org.silastandard" Category="core"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>SimulationController</Identifier>
+  <DisplayName>Simulation Controller</DisplayName>
+  <Description>Switch between the configured controller and a simulated device while stopped.</Description>
+  <Command>
+    <Identifier>StartRealMode</Identifier>
+    <DisplayName>Start Real Mode</DisplayName>
+    <Description>Connect to the configured controller while the simulated program is stopped.</Description>
+    <Observable>No</Observable>
+    <DefinedExecutionErrors>
+      <Identifier>StartRealModeFailed</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>StartSimulationMode</Identifier>
+    <DisplayName>Start Simulation Mode</DisplayName>
+    <Description>Enter simulation while the current program is stopped.</Description>
+    <Observable>No</Observable>
+    <DefinedExecutionErrors>
+      <Identifier>StartSimulationModeFailed</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>SimulationMode</Identifier>
+    <DisplayName>SimulationMode</DisplayName>
+    <Description>Report the active backend.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>Boolean</Basic>
+    </DataType>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>StartRealModeFailed</Identifier>
+    <DisplayName>Start Real Mode Failed</DisplayName>
+    <Description>If the configured controller cannot be reached or the program is active.</Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>StartSimulationModeFailed</Identifier>
+    <DisplayName>Start Simulation Mode Failed</DisplayName>
+    <Description>If the robot cannot be confirmed stopped.</Description>
+  </DefinedExecutionError>
+</Feature>

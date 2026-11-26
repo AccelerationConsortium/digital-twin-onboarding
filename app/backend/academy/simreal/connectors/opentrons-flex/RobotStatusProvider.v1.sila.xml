@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.1" Originator="ca.accelerationconsortium" Category="robots"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>RobotStatusProvider</Identifier>
+  <DisplayName>Robot Status Provider</DisplayName>
+  <Description>
+    Reports whether the Flex is ready, busy, owned by a protocol run, or needs recovery.
+
+    Status is read from cached state and never waits for a running hardware
+    operation, so it can be observed continuously while the robot moves.
+  </Description>
+  <Property>
+    <Identifier>RecentEvents</Identifier>
+    <DisplayName>Recent Events</DisplayName>
+    <Description>
+      Subscribe to the most recent connector events, oldest first.
+
+      Includes significant state changes, failed commands, halts, recovery steps,
+      and restarts, so a client can see why the connector changed state.
+    </Description>
+    <Observable>Yes</Observable>
+    <DataType>
+      <List>
+        <DataType>
+          <Structure>
+            <Element>
+              <Identifier>Sequence</Identifier>
+              <DisplayName>Sequence</DisplayName>
+              <Description>Increasing event number since the connector started.</Description>
+              <DataType>
+                <Basic>Integer</Basic>
+              </DataType>
+            </Element>
+            <Element>
+              <Identifier>Time</Identifier>
+              <DisplayName>Time</DisplayName>
+              <Description>When the event happened (UTC).</Description>
+              <DataType>
+                <Basic>Timestamp</Basic>
+              </DataType>
+            </Element>
+            <Element>
+              <Identifier>Category</Identifier>
+              <DisplayName>Category</DisplayName>
+              <Description>What kind of event it is.</Description>
+              <DataType>
+                <Constrained>
+                  <DataType>
+                    <Basic>String</Basic>
+                  </DataType>
+                  <Constraints>
+                    <Set>
+                      <Value>state</Value>
+                      <Value>error</Value>
+                      <Value>halt</Value>
+                      <Value>recovery</Value>
+                      <Value>module</Value>
+                      <Value>lifecycle</Value>
+                    </Set>
+                  </Constraints>
+                </Constrained>
+              </DataType>
+            </Element>
+            <Element>
+              <Identifier>Source</Identifier>
+              <DisplayName>Source</DisplayName>
+              <Description>The command, component, or controller that reported it.</Description>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+            </Element>
+            <Element>
+              <Identifier>Message</Identifier>
+              <DisplayName>Message</DisplayName>
+              <Description>What happened, including the error type for errors.</Description>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+            </Element>
+          </Structure>
+        </DataType>
+      </List>
+    </DataType>
+  </Property>
+  <Property>
+    <Identifier>Status</Identifier>
+    <DisplayName>Status</DisplayName>
+    <Description>
+      Subscribe to the complete connector status; a new value is sent whenever anything
+      changes.
+    </Description>
+    <Observable>Yes</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>State</Identifier>
+          <DisplayName>State</DisplayName>
+          <Description>Summary of whether the Flex can accept a new command.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>ready</Value>
+                  <Value>busy</Value>
+                  <Value>protocol run active</Value>
+                  <Value>recovering</Value>
+                  <Value>recovery required</Value>
+                  <Value>emergency stop</Value>
+                  <Value>hardware error</Value>
+                  <Value>initializing</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Simulating</Identifier>
+          <DisplayName>Simulating</DisplayName>
+          <Description>True when the connector drives the Opentrons simulator.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>EmergencyStop</Identifier>
+          <DisplayName>Emergency Stop</DisplayName>
+          <Description>Emergency-stop pendant state.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>disengaged</Value>
+                  <Value>physically engaged</Value>
+                  <Value>logically engaged</Value>
+                  <Value>not present</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>DoorOpen</Identifier>
+          <DisplayName>Door Open</DisplayName>
+          <Description>True when the front door is open.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>HardwareErrorMessage</Identifier>
+          <DisplayName>Hardware Error Message</DisplayName>
+          <Description>Operator guidance for an active hardware error state, empty when healthy.</Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>HardwareBusy</Identifier>
+          <DisplayName>Hardware Busy</DisplayName>
+          <Description>True while an operation holds the shared hardware.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>RehomeRequired</Identifier>
+          <DisplayName>Rehome Required</DisplayName>
+          <Description>True until a full robot home completes after a halt or restart.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>GripperHomeRequired</Identifier>
+          <DisplayName>Gripper Home Required</DisplayName>
+          <Description>True until GripperController.HomeJaw completes after an interrupted grip.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>TipReconciliationRequired</Identifier>
+          <DisplayName>Tip Reconciliation Required</DisplayName>
+          <Description>Pipette mounts whose tip state must be reconciled.</Description>
+          <DataType>
+            <List>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+            </List>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>RecoveryGuidance</Identifier>
+          <DisplayName>Recovery Guidance</DisplayName>
+          <Description>Ordered recovery actions, empty when no recovery is required.</Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>ProtocolRun</Identifier>
+          <DisplayName>Protocol Run</DisplayName>
+          <Description>Protocol Engine ownership of the Flex.</Description>
+          <DataType>
+            <Structure>
+              <Element>
+                <Identifier>RunIdentifier</Identifier>
+                <DisplayName>Run Identifier</DisplayName>
+                <Description>Run identifier, or empty when no run exists.</Description>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+              </Element>
+              <Element>
+                <Identifier>RunStatus</Identifier>
+                <DisplayName>Run Status</DisplayName>
+                <Description>Protocol Engine run status (for example idle, running, paused, succeeded).</Description>
+                <DataType>
+                  <Constrained>
+                    <DataType>
+                      <Basic>String</Basic>
+                    </DataType>
+                    <Constraints>
+                      <Set>
+                        <Value>idle</Value>
+                        <Value>running</Value>
+                        <Value>paused</Value>
+                        <Value>stop-requested</Value>
+                        <Value>stopped</Value>
+                        <Value>finishing</Value>
+                        <Value>failed</Value>
+                        <Value>succeeded</Value>
+                        <Value>blocked-by-open-door</Value>
+                        <Value>awaiting-recovery</Value>
+                        <Value>awaiting-recovery-blocked-by-open-door</Value>
+                        <Value>awaiting-recovery-paused</Value>
+                        <Value>initializing</Value>
+                        <Value>unknown</Value>
+                      </Set>
+                    </Constraints>
+                  </Constrained>
+                </DataType>
+              </Element>
+              <Element>
+                <Identifier>DirectControlAllowed</Identifier>
+                <DisplayName>Direct Control Allowed</DisplayName>
+                <Description>Whether independent SiLA hardware commands are currently accepted.</Description>
+                <DataType>
+                  <Basic>Boolean</Basic>
+                </DataType>
+              </Element>
+            </Structure>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>DeckLedgerConfigured</Identifier>
+          <DisplayName>Deck Ledger Configured</DisplayName>
+          <Description>True when allowlisted labware movement tracks deck occupancy.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>DeckLedgerValid</Identifier>
+          <DisplayName>Deck Ledger Valid</DisplayName>
+          <Description>False after an interrupted move until an operator reconciles the deck.</Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Modules</Identifier>
+          <DisplayName>Modules</DisplayName>
+          <Description>Modules registered at connector startup and whether they are still attached.</Description>
+          <DataType>
+            <List>
+              <DataType>
+                <Structure>
+                  <Element>
+                    <Identifier>ModuleType</Identifier>
+                    <DisplayName>Module Type</DisplayName>
+                    <Description>Opentrons module type.</Description>
+                    <DataType>
+                      <Basic>String</Basic>
+                    </DataType>
+                  </Element>
+                  <Element>
+                    <Identifier>SerialNumber</Identifier>
+                    <DisplayName>Serial Number</DisplayName>
+                    <Description>Module serial number.</Description>
+                    <DataType>
+                      <Basic>String</Basic>
+                    </DataType>
+                  </Element>
+                  <Element>
+                    <Identifier>Connected</Identifier>
+                    <DisplayName>Connected</DisplayName>
+                    <Description>True while the robot still reports the module as attached.</Description>
+                    <DataType>
+                      <Basic>Boolean</Basic>
+                    </DataType>
+                  </Element>
+                </Structure>
+              </DataType>
+            </List>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>UnregisteredModules</Identifier>
+          <DisplayName>Unregistered Modules</DisplayName>
+          <Description>Attached modules that appeared after startup; restart the connector to use them.</Description>
+          <DataType>
+            <List>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+            </List>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>WebServer</Identifier>
+          <DisplayName>Web Server</DisplayName>
+          <Description>State of the embedded Opentrons HTTP robot-server.</Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>not configured</Value>
+                  <Value>starting</Value>
+                  <Value>running</Value>
+                  <Value>stopped</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>RestartPending</Identifier>
+          <DisplayName>Restart Pending</DisplayName>
+          <Description>
+            Why the connector is restarting itself (for example to register a new module), else
+            empty.
+          </Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>StateReason</Identifier>
+          <DisplayName>State Reason</DisplayName>
+          <Description>Why the connector is in its current state and what resolves it; empty when ready.</Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>StateSince</Identifier>
+          <DisplayName>State Since</DisplayName>
+          <Description>When the current state was entered (UTC).</Description>
+          <DataType>
+            <Basic>Timestamp</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>LastError</Identifier>
+          <DisplayName>Last Error</DisplayName>
+          <Description>The most recent failed command, halt, or hardware error with its time; empty if none.</Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Warnings</Identifier>
+          <DisplayName>Warnings</DisplayName>
+          <Description>Standing configuration or persistence problems an operator should fix.</Description>
+          <DataType>
+            <List>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+            </List>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>PreviousExit</Identifier>
+          <DisplayName>Previous Exit</DisplayName>
+          <Description>How the previous connector process ended, when it did not shut down cleanly.</Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>StartedAt</Identifier>
+          <DisplayName>Started At</DisplayName>
+          <Description>When this connector process started (UTC).</Description>
+          <DataType>
+            <Basic>Timestamp</Basic>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+  </Property>
+</Feature>

@@ -1,0 +1,23 @@
+[project]
+name = "academy-sim-real"
+version = "0.1.0"
+description = "Runs Sim–Real plans against the real instrument connectors in their simulation mode. Loopback only."
+requires-python = ">=3.12,<3.15"
+dependencies = ["matterix-academy", "unitelabs-cdk==0.16.0"]
+
+[project.scripts]
+academy-sim-real = "academy_sim_real.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10", "pytest-asyncio>=0.24,<2"]
+
+[tool.uv.sources]
+matterix-academy = { path = "../..", editable = true }
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"

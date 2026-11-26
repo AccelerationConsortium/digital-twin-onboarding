@@ -1,0 +1,667 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="2.1" Originator="ca.accelerationconsortium" Category="modules"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>TemperatureController</Identifier>
+  <DisplayName>Temperature Controller</DisplayName>
+  <Description>Heat, cool, and hold samples with a Temperature Module GEN2.</Description>
+  <Command>
+    <Identifier>Deactivate</Identifier>
+    <DisplayName>Deactivate</DisplayName>
+    <Description>Stop heating or cooling and turn off the module fan.</Description>
+    <Observable>Yes</Observable>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Status</Identifier>
+            <DisplayName>Status</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>idle</Value>
+                    <Value>heating</Value>
+                    <Value>cooling</Value>
+                    <Value>holding</Value>
+                    <Value>error</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>CurrentTemperature</Identifier>
+            <DisplayName>Current Temperature</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetTemperature</Identifier>
+            <DisplayName>Target Temperature</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SetTemperature</Identifier>
+    <DisplayName>Set Temperature</DisplayName>
+    <Description>Start heating or cooling toward a target and return without waiting.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Temperature</Identifier>
+      <DisplayName>Temperature</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>4</MinimalInclusive>
+            <MaximalInclusive>95</MaximalInclusive>
+            <Unit>
+              <Label>°C</Label>
+              <Factor>1</Factor>
+              <Offset>273.15</Offset>
+              <UnitComponent>
+                <SIUnit>Kelvin</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Status</Identifier>
+            <DisplayName>Status</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>idle</Value>
+                    <Value>heating</Value>
+                    <Value>cooling</Value>
+                    <Value>holding</Value>
+                    <Value>error</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>CurrentTemperature</Identifier>
+            <DisplayName>Current Temperature</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetTemperature</Identifier>
+            <DisplayName>Target Temperature</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>InvalidTemperatureTargetError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SetTemperatureAndWait</Identifier>
+    <DisplayName>Set Temperature And Wait</DisplayName>
+    <Description>Set a target and wait until the module reports that it is holding it.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Temperature</Identifier>
+      <DisplayName>Temperature</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>4</MinimalInclusive>
+            <MaximalInclusive>95</MaximalInclusive>
+            <Unit>
+              <Label>°C</Label>
+              <Factor>1</Factor>
+              <Offset>273.15</Offset>
+              <UnitComponent>
+                <SIUnit>Kelvin</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Status</Identifier>
+            <DisplayName>Status</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>idle</Value>
+                    <Value>heating</Value>
+                    <Value>cooling</Value>
+                    <Value>holding</Value>
+                    <Value>error</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>CurrentTemperature</Identifier>
+            <DisplayName>Current Temperature</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetTemperature</Identifier>
+            <DisplayName>Target Temperature</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>°C</Label>
+                    <Factor>1</Factor>
+                    <Offset>273.15</Offset>
+                    <UnitComponent>
+                      <SIUnit>Kelvin</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>TargetActive</Identifier>
+            <DisplayName>Target Active</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>InvalidTemperatureTargetError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>DeviceInfo</Identifier>
+    <DisplayName>Device Info</DisplayName>
+    <Description>Return the attached module serial number, model, and firmware version.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>SerialNumber</Identifier>
+          <DisplayName>Serial Number</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Model</Identifier>
+          <DisplayName>Model</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>FirmwareVersion</Identifier>
+          <DisplayName>Firmware Version</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>Status</Identifier>
+    <DisplayName>Status</DisplayName>
+    <Description>Subscribe to temperature, target, and operating-state changes.</Description>
+    <Observable>Yes</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>Status</Identifier>
+          <DisplayName>Status</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>idle</Value>
+                  <Value>heating</Value>
+                  <Value>cooling</Value>
+                  <Value>holding</Value>
+                  <Value>error</Value>
+                  <Value>unknown</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>CurrentTemperature</Identifier>
+          <DisplayName>Current Temperature</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>Real</Basic>
+              </DataType>
+              <Constraints>
+                <Unit>
+                  <Label>°C</Label>
+                  <Factor>1</Factor>
+                  <Offset>273.15</Offset>
+                  <UnitComponent>
+                    <SIUnit>Kelvin</SIUnit>
+                    <Exponent>1</Exponent>
+                  </UnitComponent>
+                </Unit>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>TargetTemperature</Identifier>
+          <DisplayName>Target Temperature</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>Real</Basic>
+              </DataType>
+              <Constraints>
+                <Unit>
+                  <Label>°C</Label>
+                  <Factor>1</Factor>
+                  <Offset>273.15</Offset>
+                  <UnitComponent>
+                    <SIUnit>Kelvin</SIUnit>
+                    <Exponent>1</Exponent>
+                  </UnitComponent>
+                </Unit>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>TargetActive</Identifier>
+          <DisplayName>Target Active</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>ModuleNotRespondingError</Identifier>
+    <DisplayName>Module Not Responding Error</DisplayName>
+    <Description>
+      The module did not respond — it may be disconnected or powered off.
+
+      Check that the module is connected to the Flex and powered on, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>ModuleOperationError</Identifier>
+    <DisplayName>Module Operation Error</DisplayName>
+    <Description>
+      The module reported an error while carrying out the requested operation.
+
+      The underlying driver/module message is preserved to aid recovery (e.g.
+      re-seat labware, check the module&apos;s status indicators, or power-cycle it).
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RunOwnershipError</Identifier>
+    <DisplayName>Run Ownership Error</DisplayName>
+    <Description>
+      Protocol Engine currently owns the Flex for a prepared or active run.
+
+      Read status through the connector as usual, but do not issue an independent
+      SiLA hardware command. Stop the Protocol Engine run, or add the operation at
+      an explicit UNITELABS mutation checkpoint through the controlled run-mutation
+      HTTP endpoint, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareError</Identifier>
+    <DisplayName>Hardware Error</DisplayName>
+    <Description>
+      The Flex hardware reported an error that has no more specific defined error.
+
+      The message preserves the Opentrons error code, name, and detail so the cause
+      can be diagnosed or reported to vendor support. Inspect the robot, resolve the
+      reported condition, re-home, and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>InvalidTemperatureTargetError</Identifier>
+    <DisplayName>Invalid Temperature Target Error</DisplayName>
+    <Description>
+      The requested target is not a finite temperature supported by the module.
+
+      Provide a finite value between 4 and 95 degrees Celsius and retry. Values
+      such as NaN and positive or negative infinity are never sent to hardware.
+    </Description>
+  </DefinedExecutionError>
+</Feature>

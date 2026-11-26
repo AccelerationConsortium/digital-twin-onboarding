@@ -1,0 +1,50 @@
+{
+  "schema": "simreal.connector/1",
+  "key": "ur5e",
+  "package": "unitelabs-ur5e-connector",
+  "package_version": "0.1.0",
+  "source": {
+    "repository": "AccelerationConsortium/ur5e-sila-connector",
+    "commit": "26eaca56b26bd7600a523c34194d2b888ead1d5b",
+    "dirty": false,
+    "commit_stated": false
+  },
+  "server": {
+    "type": "ExampleServer",
+    "version": "0.1"
+  },
+  "simulator": "Connector's kinematic joint interpolation and simulated plate gripper",
+  "imported_at": "2026-11-24T20:54:57Z",
+  "features": [
+    {
+      "id": "io.unitelabs/robot/PlateGripperController/v1",
+      "sha256": "1bb10313da628c1354efa768995039108519efc996c1c4a7c07659a7eed3dbc7",
+      "file": "PlateGripperController.v1.sila.xml"
+    },
+    {
+      "id": "io.unitelabs/robot/RobotController/v1",
+      "sha256": "e776878d736e9dd7cfef11de9ebad3145431f638659622efc0c40e9d634633a2",
+      "file": "RobotController.v1.sila.xml"
+    },
+    {
+      "id": "org.silastandard/core/ConnectionConfigurationService/v1",
+      "sha256": "cc8fab05829c9a2f1ea93d5c62b5481dd80e6eb8a948ddc30f99b6160df4a48b",
+      "file": "ConnectionConfigurationService.v1.sila.xml"
+    },
+    {
+      "id": "org.silastandard/core/LockController/v2",
+      "sha256": "d51f3df6e490ffda41862c2361fd972e4c11be5ed7e686bc23f2223833431ea7",
+      "file": "LockController.v2.sila.xml"
+    },
+    {
+      "id": "org.silastandard/core/SiLAService/v1",
+      "sha256": "b2d09afa1e4f93b125818c7d51909b7d03316ada729bc62dedb90eaa21e50356",
+      "file": "SiLAService.v1.sila.xml"
+    },
+    {
+      "id": "org.silastandard/core/SimulationController/v1",
+      "sha256": "02746914531760e09f7cfa16e538b42bd62ff35e2dd86797097badf308104eb4",
+      "file": "SimulationController.v1.sila.xml"
+    }
+  ]
+}

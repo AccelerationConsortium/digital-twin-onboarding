@@ -1,0 +1,518 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.2" Originator="ca.accelerationconsortium" Category="robots"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>CalibrationController</Identifier>
+  <DisplayName>Calibration Controller</DisplayName>
+  <Description>SiLA2 feature for Flex automatic pipette, gripper-jaw, and deck calibration.</Description>
+  <Command>
+    <Identifier>CalibrateDeck</Identifier>
+    <DisplayName>Calibrate Deck</DisplayName>
+    <Description>Run automatic deck (belt) calibration using the pipette on ``mount``.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Mount</Identifier>
+      <DisplayName>Mount</DisplayName>
+      <Description>Pipette mount whose attached pipette drives the routine.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>left</Value>
+              <Value>right</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>PipetteId</Identifier>
+      <DisplayName>Pipette Id</DisplayName>
+      <Description>Serial of the pipette on that mount (from PipetteController).</Description>
+      <DataType>
+        <Basic>String</Basic>
+      </DataType>
+    </Parameter>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current calibration progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>CalibrationProbeNotAttachedError</Identifier>
+      <Identifier>CalibrationFailedError</Identifier>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>CalibrateGripperJaw</Identifier>
+    <DisplayName>Calibrate Gripper Jaw</DisplayName>
+    <Description>
+      Run automatic gripper-jaw calibration for one jaw.
+
+      Requires the calibration probe attached to the named gripper jaw.
+    </Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Jaw</Identifier>
+      <DisplayName>Jaw</DisplayName>
+      <Description>Which jaw (FRONT or REAR) carries the probe.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>front</Value>
+              <Value>rear</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Slot</Identifier>
+      <DisplayName>Slot</DisplayName>
+      <Description>Deck slot holding the calibration square.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Integer</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>1</MinimalInclusive>
+            <MaximalInclusive>12</MaximalInclusive>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>The measured jaw offset (x, y, z) in mm.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>X</Identifier>
+            <DisplayName>X</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Y</Identifier>
+            <DisplayName>Y</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Z</Identifier>
+            <DisplayName>Z</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current calibration progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>CalibrationProbeNotAttachedError</Identifier>
+      <Identifier>CalibrationFailedError</Identifier>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>CalibratePipette</Identifier>
+    <DisplayName>Calibrate Pipette</DisplayName>
+    <Description>
+      Run automatic pipette-offset calibration.
+
+      Requires the conductive calibration probe attached to the pipette nozzle.
+    </Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>Mount</Identifier>
+      <DisplayName>Mount</DisplayName>
+      <Description>Pipette mount to calibrate.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+          <Constraints>
+            <Set>
+              <Value>left</Value>
+              <Value>right</Value>
+            </Set>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>Slot</Identifier>
+      <DisplayName>Slot</DisplayName>
+      <Description>Deck slot holding the calibration square.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Integer</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>1</MinimalInclusive>
+            <MaximalInclusive>12</MaximalInclusive>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description>The measured pipette offset (x, y, z) in mm.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>X</Identifier>
+            <DisplayName>X</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Y</Identifier>
+            <DisplayName>Y</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Z</Identifier>
+            <DisplayName>Z</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>Real</Basic>
+                </DataType>
+                <Constraints>
+                  <Unit>
+                    <Label>mm</Label>
+                    <Factor>0.001</Factor>
+                    <Offset>0</Offset>
+                    <UnitComponent>
+                      <SIUnit>Meter</SIUnit>
+                      <Exponent>1</Exponent>
+                    </UnitComponent>
+                  </Unit>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>Update</Identifier>
+      <DisplayName>Update</DisplayName>
+      <Description>Current calibration progress update.</Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>CalibrationProbeNotAttachedError</Identifier>
+      <Identifier>CalibrationFailedError</Identifier>
+      <Identifier>NotHomedError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>OperationHaltedError</Identifier>
+      <Identifier>RecoveryRequiredError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <DefinedExecutionError>
+    <Identifier>RunOwnershipError</Identifier>
+    <DisplayName>Run Ownership Error</DisplayName>
+    <Description>
+      Protocol Engine currently owns the Flex for a prepared or active run.
+
+      Read status through the connector as usual, but do not issue an independent
+      SiLA hardware command. Stop the Protocol Engine run, or add the operation at
+      an explicit UNITELABS mutation checkpoint through the controlled run-mutation
+      HTTP endpoint, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>CalibrationProbeNotAttachedError</Identifier>
+    <DisplayName>Calibration Probe Not Attached Error</DisplayName>
+    <Description>
+      The calibration probe is required for this routine but is not attached.
+
+      Attach the conductive calibration probe to the pipette nozzle (or the named
+      gripper jaw) and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>CalibrationFailedError</Identifier>
+    <DisplayName>Calibration Failed Error</DisplayName>
+    <Description>
+      An automatic calibration routine failed to find or verify a position.
+
+      The underlying hardware/geometry message is preserved so the measured
+      deviation and probe coordinates are available for troubleshooting.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>NotHomedError</Identifier>
+    <DisplayName>Not Homed Error</DisplayName>
+    <Description>
+      The robot&apos;s position is unknown, so the move was refused.
+
+      Home the robot (or the affected mount) before requesting a move. If a halt
+      interrupted gripper motion, fully home the robot and then run HomeJaw before
+      resuming other hardware actuation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>OperationHaltedError</Identifier>
+    <DisplayName>Operation Halted Error</DisplayName>
+    <Description>
+      The operation was aborted because an emergency stop or halt was issued while it ran.
+
+      The robot position is no longer trusted. Clear the cause of the halt, fully
+      re-home the robot, follow the RecoveryGuidance reported by RobotStatusProvider,
+      and then re-issue the operation.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RecoveryRequiredError</Identifier>
+    <DisplayName>Recovery Required Error</DisplayName>
+    <Description>
+      The connector refused the operation because an earlier failure left the robot
+      recovery-gated.
+
+      The error message lists the ordered recovery actions (for example a full re-home,
+      TipController.ReconcileTipState, or GripperController.HomeJaw). The same guidance
+      is available at any time from the RobotStatusProvider Status property.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareError</Identifier>
+    <DisplayName>Hardware Error</DisplayName>
+    <Description>
+      The Flex hardware reported an error that has no more specific defined error.
+
+      The message preserves the Opentrons error code, name, and detail so the cause
+      can be diagnosed or reported to vendor support. Inspect the robot, resolve the
+      reported condition, re-home, and retry.
+    </Description>
+  </DefinedExecutionError>
+</Feature>

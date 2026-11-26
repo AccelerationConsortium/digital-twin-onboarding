@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="1.0" Originator="io.unitelabs" Category="robot"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>PlateGripperController</Identifier>
+  <DisplayName>Plate Gripper Controller</DisplayName>
+  <Description>
+    Grip and release SBS microplates with a parallel gripper on the arm&apos;s flange.
+
+    The gripper runs in simulation only until a hardware driver is configured;
+    real mode refuses every command. It never moves the arm.
+  </Description>
+  <Command>
+    <Identifier>GripPlate</Identifier>
+    <DisplayName>Grip Plate</DisplayName>
+    <Description>Close the fingers on a plate of the expected width while the arm is stationary.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>WidthMillimeters</Identifier>
+      <DisplayName>Width Millimeters</DisplayName>
+      <Description>Plate width across the fingers; 85.48 for an SBS plate gripped on its long sides.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>60</MinimalInclusive>
+            <MaximalInclusive>140</MaximalInclusive>
+            <Unit>
+              <Label>mm</Label>
+              <Factor>0.001</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ForceNewtons</Identifier>
+      <DisplayName>Force Newtons</DisplayName>
+      <Description>Grip force limit.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>5</MinimalInclusive>
+            <MaximalInclusive>60</MaximalInclusive>
+            <Unit>
+              <Label>N</Label>
+              <Factor>1</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Kilogram</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+              <UnitComponent>
+                <SIUnit>Second</SIUnit>
+                <Exponent>-2</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode; a change rejects the command.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>OpeningMillimeters</Identifier>
+      <DisplayName>Opening Millimeters</DisplayName>
+      <Description>The opening the fingers stopped at on the plate.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>ReleasePlate</Identifier>
+    <DisplayName>Release Plate</DisplayName>
+    <Description>Open the fingers, leaving a held plate where it is.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>OpeningMillimeters</Identifier>
+      <DisplayName>Opening Millimeters</DisplayName>
+      <Description>Opening to stop at; wider than the held plate.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>60</MinimalInclusive>
+            <MaximalInclusive>140</MaximalInclusive>
+            <Unit>
+              <Label>mm</Label>
+              <Factor>0.001</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>ExpectedSimulationMode</Identifier>
+      <DisplayName>Expected Simulation Mode</DisplayName>
+      <Description>Reviewed backend mode; a change rejects the command.</Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>OpeningMillimeters</Identifier>
+      <DisplayName>Opening Millimeters</DisplayName>
+      <Description>The opening reached.</Description>
+      <DataType>
+        <Basic>Real</Basic>
+      </DataType>
+    </Response>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>SetSimulatedObject</Identifier>
+    <DisplayName>Set Simulated Object</DisplayName>
+    <Description>Tell the simulated gripper what lies between its fingers at the current grasp point.</Description>
+    <Observable>No</Observable>
+    <Parameter>
+      <Identifier>WidthMillimeters</Identifier>
+      <DisplayName>Width Millimeters</DisplayName>
+      <Description>Width of the object across the fingers; 0 when the grasp point is empty.</Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>0</MinimalInclusive>
+            <MaximalInclusive>140</MaximalInclusive>
+            <Unit>
+              <Label>mm</Label>
+              <Factor>0.001</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <DefinedExecutionErrors>
+      <Identifier>CommandRejected</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>GripperModel</Identifier>
+    <DisplayName>Gripper Model</DisplayName>
+    <Description>Name the gripper that commands reach in the current mode.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+  </Property>
+  <Property>
+    <Identifier>GripperState</Identifier>
+    <DisplayName>Gripper State</DisplayName>
+    <Description>Report OPEN, HOLDING, or UNAVAILABLE when no driver is configured for the current mode.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>String</Basic>
+    </DataType>
+  </Property>
+  <Property>
+    <Identifier>OpeningMillimeters</Identifier>
+    <DisplayName>Opening Millimeters</DisplayName>
+    <Description>Read the current finger opening in millimetres.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Basic>Real</Basic>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>DeviceUnavailable</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>DeviceUnavailable</Identifier>
+    <DisplayName>Device Unavailable</DisplayName>
+    <Description>If no gripper driver is configured for the current mode.</Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>CommandRejected</Identifier>
+    <DisplayName>Command Rejected</DisplayName>
+    <Description>If the connector is in real mode or a plate is held.</Description>
+  </DefinedExecutionError>
+</Feature>

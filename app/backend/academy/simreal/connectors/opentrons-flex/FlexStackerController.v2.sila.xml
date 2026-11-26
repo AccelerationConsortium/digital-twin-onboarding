@@ -1,0 +1,687 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Feature SiLA2Version="1.1" FeatureVersion="2.1" Originator="ca.accelerationconsortium" Category="modules"
+         xmlns="http://www.sila-standard.org"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.sila-standard.org https://gitlab.com/SiLA2/sila_base/raw/master/schema/FeatureDefinition.xsd">
+  <Identifier>FlexStackerController</Identifier>
+  <DisplayName>Flex Stacker Controller</DisplayName>
+  <Description>Retrieve and store labware with a Flex Stacker through SiLA 2.</Description>
+  <Command>
+    <Identifier>RetrieveLabware</Identifier>
+    <DisplayName>Retrieve Labware</DisplayName>
+    <Description>Retrieve the bottom labware item from the Stacker onto its shuttle.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>LabwareHeight</Identifier>
+      <DisplayName>Labware Height</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>4</MinimalInclusive>
+            <MaximalInclusive>102.5</MaximalInclusive>
+            <Unit>
+              <Label>mm</Label>
+              <Factor>0.001</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>EnforceHopperLabwareSensing</Identifier>
+      <DisplayName>Enforce Hopper Labware Sensing</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>EnforceShuttleLabwareSensing</Identifier>
+      <DisplayName>Enforce Shuttle Labware Sensing</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Status</Identifier>
+            <DisplayName>Status</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>idle</Value>
+                    <Value>dispensing</Value>
+                    <Value>storing</Value>
+                    <Value>error</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>LatchState</Identifier>
+            <DisplayName>Latch State</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>closed</Value>
+                    <Value>opened</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>PlatformState</Identifier>
+            <DisplayName>Platform State</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>extended</Value>
+                    <Value>retracted</Value>
+                    <Value>missing</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>HopperDoorState</Identifier>
+            <DisplayName>Hopper Door State</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>closed</Value>
+                    <Value>opened</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>InstallDetected</Identifier>
+            <DisplayName>Install Detected</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Initialized</Identifier>
+            <DisplayName>Initialized</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>RecoveryRequired</Identifier>
+            <DisplayName>Recovery Required</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>ErrorDetails</Identifier>
+            <DisplayName>Error Details</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>InvalidStackerConfigurationError</Identifier>
+      <Identifier>StackerMovementOutOfRangeError</Identifier>
+      <Identifier>StackerNotReadyError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Command>
+    <Identifier>StoreLabware</Identifier>
+    <DisplayName>Store Labware</DisplayName>
+    <Description>Store the shuttle labware at the bottom of the Stacker.</Description>
+    <Observable>Yes</Observable>
+    <Parameter>
+      <Identifier>LabwareHeight</Identifier>
+      <DisplayName>Labware Height</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Constrained>
+          <DataType>
+            <Basic>Real</Basic>
+          </DataType>
+          <Constraints>
+            <MinimalInclusive>4</MinimalInclusive>
+            <MaximalInclusive>102.5</MaximalInclusive>
+            <Unit>
+              <Label>mm</Label>
+              <Factor>0.001</Factor>
+              <Offset>0</Offset>
+              <UnitComponent>
+                <SIUnit>Meter</SIUnit>
+                <Exponent>1</Exponent>
+              </UnitComponent>
+            </Unit>
+          </Constraints>
+        </Constrained>
+      </DataType>
+    </Parameter>
+    <Parameter>
+      <Identifier>EnforceShuttleLabwareSensing</Identifier>
+      <DisplayName>Enforce Shuttle Labware Sensing</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Basic>Boolean</Basic>
+      </DataType>
+    </Parameter>
+    <Response>
+      <Identifier>Response0</Identifier>
+      <DisplayName>Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Status</Identifier>
+            <DisplayName>Status</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>idle</Value>
+                    <Value>dispensing</Value>
+                    <Value>storing</Value>
+                    <Value>error</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>LatchState</Identifier>
+            <DisplayName>Latch State</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>closed</Value>
+                    <Value>opened</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>PlatformState</Identifier>
+            <DisplayName>Platform State</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>extended</Value>
+                    <Value>retracted</Value>
+                    <Value>missing</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>HopperDoorState</Identifier>
+            <DisplayName>Hopper Door State</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>closed</Value>
+                    <Value>opened</Value>
+                    <Value>unknown</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>InstallDetected</Identifier>
+            <DisplayName>Install Detected</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Initialized</Identifier>
+            <DisplayName>Initialized</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>RecoveryRequired</Identifier>
+            <DisplayName>Recovery Required</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>Boolean</Basic>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>ErrorDetails</Identifier>
+            <DisplayName>Error Details</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </Response>
+    <IntermediateResponse>
+      <Identifier>IntermediateResponse0</Identifier>
+      <DisplayName>Intermediate Response 0</DisplayName>
+      <Description></Description>
+      <DataType>
+        <Structure>
+          <Element>
+            <Identifier>Phase</Identifier>
+            <DisplayName>Phase</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Constrained>
+                <DataType>
+                  <Basic>String</Basic>
+                </DataType>
+                <Constraints>
+                  <Set>
+                    <Value>starting</Value>
+                    <Value>running</Value>
+                    <Value>completed</Value>
+                    <Value>cancelled</Value>
+                    <Value>failed</Value>
+                  </Set>
+                </Constraints>
+              </Constrained>
+            </DataType>
+          </Element>
+          <Element>
+            <Identifier>Message</Identifier>
+            <DisplayName>Message</DisplayName>
+            <Description></Description>
+            <DataType>
+              <Basic>String</Basic>
+            </DataType>
+          </Element>
+        </Structure>
+      </DataType>
+    </IntermediateResponse>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>InvalidStackerConfigurationError</Identifier>
+      <Identifier>StackerMovementOutOfRangeError</Identifier>
+      <Identifier>StackerNotReadyError</Identifier>
+    </DefinedExecutionErrors>
+  </Command>
+  <Property>
+    <Identifier>DeviceInfo</Identifier>
+    <DisplayName>Device Info</DisplayName>
+    <Description>Return the attached Stacker serial number, model, and firmware version.</Description>
+    <Observable>No</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>SerialNumber</Identifier>
+          <DisplayName>Serial Number</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Model</Identifier>
+          <DisplayName>Model</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>FirmwareVersion</Identifier>
+          <DisplayName>Firmware Version</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <Property>
+    <Identifier>Status</Identifier>
+    <DisplayName>Status</DisplayName>
+    <Description>Subscribe to operational and recovery state changes.</Description>
+    <Observable>Yes</Observable>
+    <DataType>
+      <Structure>
+        <Element>
+          <Identifier>Status</Identifier>
+          <DisplayName>Status</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>idle</Value>
+                  <Value>dispensing</Value>
+                  <Value>storing</Value>
+                  <Value>error</Value>
+                  <Value>unknown</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>LatchState</Identifier>
+          <DisplayName>Latch State</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>closed</Value>
+                  <Value>opened</Value>
+                  <Value>unknown</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>PlatformState</Identifier>
+          <DisplayName>Platform State</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>extended</Value>
+                  <Value>retracted</Value>
+                  <Value>missing</Value>
+                  <Value>unknown</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>HopperDoorState</Identifier>
+          <DisplayName>Hopper Door State</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Constrained>
+              <DataType>
+                <Basic>String</Basic>
+              </DataType>
+              <Constraints>
+                <Set>
+                  <Value>closed</Value>
+                  <Value>opened</Value>
+                  <Value>unknown</Value>
+                </Set>
+              </Constraints>
+            </Constrained>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>InstallDetected</Identifier>
+          <DisplayName>Install Detected</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>Initialized</Identifier>
+          <DisplayName>Initialized</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>RecoveryRequired</Identifier>
+          <DisplayName>Recovery Required</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>Boolean</Basic>
+          </DataType>
+        </Element>
+        <Element>
+          <Identifier>ErrorDetails</Identifier>
+          <DisplayName>Error Details</DisplayName>
+          <Description></Description>
+          <DataType>
+            <Basic>String</Basic>
+          </DataType>
+        </Element>
+      </Structure>
+    </DataType>
+    <DefinedExecutionErrors>
+      <Identifier>ModuleNotRespondingError</Identifier>
+      <Identifier>ModuleOperationError</Identifier>
+      <Identifier>RunOwnershipError</Identifier>
+      <Identifier>HardwareBusyError</Identifier>
+      <Identifier>HardwareError</Identifier>
+      <Identifier>InvalidStackerConfigurationError</Identifier>
+      <Identifier>StackerMovementOutOfRangeError</Identifier>
+      <Identifier>StackerNotReadyError</Identifier>
+    </DefinedExecutionErrors>
+  </Property>
+  <DefinedExecutionError>
+    <Identifier>ModuleNotRespondingError</Identifier>
+    <DisplayName>Module Not Responding Error</DisplayName>
+    <Description>
+      The module did not respond — it may be disconnected or powered off.
+
+      Check that the module is connected to the Flex and powered on, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>ModuleOperationError</Identifier>
+    <DisplayName>Module Operation Error</DisplayName>
+    <Description>
+      The module reported an error while carrying out the requested operation.
+
+      The underlying driver/module message is preserved to aid recovery (e.g.
+      re-seat labware, check the module&apos;s status indicators, or power-cycle it).
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>RunOwnershipError</Identifier>
+    <DisplayName>Run Ownership Error</DisplayName>
+    <Description>
+      Protocol Engine currently owns the Flex for a prepared or active run.
+
+      Read status through the connector as usual, but do not issue an independent
+      SiLA hardware command. Stop the Protocol Engine run, or add the operation at
+      an explicit UNITELABS mutation checkpoint through the controlled run-mutation
+      HTTP endpoint, then retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareBusyError</Identifier>
+    <DisplayName>Hardware Busy Error</DisplayName>
+    <Description>
+      The shared Flex hardware stayed busy longer than the configured lock timeout.
+
+      Another SiLA client, an HTTP/Protocol Engine operation, or a long-running module
+      action currently holds the hardware. Wait for that operation to finish (watch the
+      RobotStatusProvider Status property) and retry, or raise lock_timeout_s in the
+      connector configuration.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>HardwareError</Identifier>
+    <DisplayName>Hardware Error</DisplayName>
+    <Description>
+      The Flex hardware reported an error that has no more specific defined error.
+
+      The message preserves the Opentrons error code, name, and detail so the cause
+      can be diagnosed or reported to vendor support. Inspect the robot, resolve the
+      reported condition, re-home, and retry.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>InvalidStackerConfigurationError</Identifier>
+    <DisplayName>Invalid Stacker Configuration Error</DisplayName>
+    <Description>
+      A Stacker labware or LED setting is outside the supported hardware range.
+
+      Correct the value using the range in the error message and retry. For labware,
+      use the exact assembled height including any lid or adapter.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>StackerMovementOutOfRangeError</Identifier>
+    <DisplayName>Stacker Movement Out Of Range Error</DisplayName>
+    <Description>
+      The requested maintenance move exceeds the travel of the selected Stacker axis.
+
+      Use a non-negative distance no greater than the axis-specific limit reported in
+      the error message. Prefer RetrieveLabware and StoreLabware for routine workflows.
+    </Description>
+  </DefinedExecutionError>
+  <DefinedExecutionError>
+    <Identifier>StackerNotReadyError</Identifier>
+    <DisplayName>Stacker Not Ready Error</DisplayName>
+    <Description>
+      The Flex Stacker is not installed, initialized, or safely closed for this operation.
+
+      Confirm the Stacker is mechanically installed, close its hopper door, clear any
+      obstruction, home it if necessary, and retry.
+    </Description>
+  </DefinedExecutionError>
+</Feature>
