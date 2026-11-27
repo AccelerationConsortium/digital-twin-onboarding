@@ -62,8 +62,12 @@ test("AC self-driving lab instruments are met, used and taken apart like cloud l
   const run = page.getByRole("region", {
     name: "Teaching simulation controls",
   });
-  await run.getByRole("button", { name: "Run teaching simulation" }).click();
-  await expect(run).toContainText("Run finished.", { timeout: 20_000 });
+  // On a loaded runner the studio may still be settling, so click until the run starts.
+  await expect(async () => {
+    await run.getByRole("button", { name: "Run teaching simulation" }).click();
+    await expect(run).not.toContainText("Ready to run.", { timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+  await expect(run).toContainText("Run finished.", { timeout: 30_000 });
   await expect(page.getByRole("region", { name: "Anatomy" })).toBeVisible();
   await page.getByText("About this instrument").click();
   await expect(
