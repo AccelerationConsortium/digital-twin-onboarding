@@ -74,7 +74,7 @@ test("a lab operator approves a waiting request and invites by email", async ({
 test("learners are not offered the access page", async ({ page }) => {
   await enter(page, "Ada");
   await expect(
-    page.getByRole("button", { name: "Study groups" }),
+    page.getByRole("button", { name: "Study groups", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Access requests" }),

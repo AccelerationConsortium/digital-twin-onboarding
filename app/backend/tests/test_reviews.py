@@ -116,7 +116,7 @@ def test_a_reviewer_pins_comments_and_the_learner_replies_and_resolves(app):
     assert "owner" not in str(seen) and "owner" not in str(ada.get("/api/reviews").json())
 
 
-def test_only_facilitators_of_the_group_review(app):
+def test_members_of_the_group_review_what_a_classmate_shares(app):
     ada, grace, alan, mallory = (person(app, n) for n in ("Ada", "Grace", "Alan", "Mallory"))
     group = group_of(ada, grace, alan)
     other = mallory.post("/api/groups", json={"name": "Elsewhere"}).json()
@@ -133,10 +133,20 @@ def test_only_facilitators_of_the_group_review(app):
     assert mallory.post(f"{path}/comments", json=comment).status_code == 404
     assert mallory.get(f"/api/reviews/groups/{group['id']}/members").status_code == 404
     assert mallory.get("/api/reviews").json()["to_review"] == []
-    # A member who is not a facilitator sees only their own reviews.
-    assert alan.get(path).status_code == 404
-    assert alan.get("/api/reviews").json()["to_review"] == []
+    # A classmate sees the request Grace made to the group and reviews it as a peer.
+    assert alan.get(path).json()["role"] == "reviewer"
+    assert [r["id"] for r in alan.get("/api/reviews").json()["to_review"]] == [review["id"]]
+    peer = alan.post(f"{path}/comments", json=comment).json()
+    thread = peer["comments"][0]["id"]
+    # Peers cannot remove the request, resolve someone else's thread, or browse members.
+    assert alan.post(f"{path}/remove", json={"version": peer["version"]}).status_code == 403
+    ada_thread = ada.post(f"{path}/comments", json={**comment, "version": peer["version"]}).json()
+    other = next(c["id"] for c in ada_thread["comments"] if c["id"] != thread)
+    resolve = {"version": ada_thread["version"], "resolved": True}
+    assert alan.post(f"{path}/comments/{other}/resolve", json=resolve).status_code == 403
+    assert alan.post(f"{path}/comments/{thread}/resolve", json=resolve).status_code == 200
     assert alan.get(f"/api/reviews/groups/{group['id']}/members").status_code == 403
+    comment = {**comment, "version": alan.get(path).json()["version"]}
     # Nobody submits someone else's session.
     assert (
         alan.post(
@@ -181,6 +191,10 @@ def test_a_supervised_policy_covers_members_who_joined_under_it_or_allowed_it(ap
     opened = ada.post(f"{members}/{grace_id}", json={"kind": "run", "source_id": session["id"]})
     assert opened.status_code == 201 and opened.json()["via"] == "policy"
     assert grace.get("/api/reviews").json()["mine"][0]["via"] == "policy"
+    # A session opened under the policy stays with facilitators, not classmates.
+    item = f"/api/reviews/groups/{group['id']}/items/{opened.json()['id']}"
+    assert alan.get(item).status_code == 404
+    assert alan.get("/api/reviews").json()["to_review"] == []
 
     # Withdrawing stops new supervised reviews; a stale consent is rejected.
     assert grace.post(consent, json={"expected_version": 1, "allow": False}).status_code == 409

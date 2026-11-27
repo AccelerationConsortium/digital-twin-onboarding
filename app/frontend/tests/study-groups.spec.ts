@@ -21,7 +21,7 @@ async function experiment(page: Page, title: string, volume: string) {
 }
 
 async function openGroups(page: Page) {
-  await page.getByRole("button", { name: "Study groups" }).click();
+  await page.getByRole("button", { name: "Study groups", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Study groups", level: 1 }),
   ).toBeVisible();
@@ -146,4 +146,50 @@ test("a saved bench layout is shared with the group and discussed", async ({
     .fill("Reader could sit closer");
   await card.getByRole("button", { name: "Post" }).click();
   await expect(card.getByText("Reader could sit closer")).toBeVisible();
+});
+
+test("learners rename themselves, rename and leave a group", async ({
+  browser,
+}) => {
+  const ada = await learner(browser, "Ada");
+  const grace = await learner(browser, "Grace");
+
+  await openGroups(ada);
+  await ada.getByLabel("Group name").fill("Pair");
+  await ada.getByRole("button", { name: "Create" }).click();
+  const code = (await ada
+    .locator("strong")
+    .filter({ hasText: /^[A-Z0-9]{8}$/ })
+    .textContent())!;
+  await ada.getByRole("button", { name: "Rename group" }).click();
+  await ada.getByLabel("Group name").fill("Dilution pair");
+  await ada.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(
+    ada.getByRole("heading", { name: "Dilution pair", level: 1 }),
+  ).toBeVisible();
+
+  await grace.getByRole("button", { name: "Grace, change your name" }).click();
+  await grace.getByLabel("Name shown to your study groups").fill("Grace H");
+  await grace.getByRole("button", { name: "Save name" }).click();
+  await expect(
+    grace.getByRole("button", { name: "Grace H, change your name" }),
+  ).toBeVisible();
+
+  await openGroups(grace);
+  await grace.getByLabel("Join code").fill(code);
+  await grace.getByRole("button", { name: "Join" }).click();
+  // Only the facilitator renames the group.
+  await expect(grace.getByRole("button", { name: "Rename group" })).toHaveCount(
+    0,
+  );
+  await expect(
+    grace.getByRole("list", { name: "Members" }).getByText("Grace H"),
+  ).toBeVisible();
+
+  grace.once("dialog", (dialog) => dialog.accept());
+  await grace.getByRole("button", { name: "Leave group" }).click();
+  await expect(
+    grace.getByRole("heading", { name: "Study groups", level: 1 }),
+  ).toBeVisible();
+  await expect(grace.getByText("Dilution pair")).toHaveCount(0);
 });

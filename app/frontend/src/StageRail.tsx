@@ -3,9 +3,13 @@ import { progress, useSkills, type Skills } from "./skills";
 import s from "./SkillTree.module.css";
 
 const STOPS = [
-  ["instruments", "Meet the instruments", "functions met"],
-  ["learn/intermediate", "Reproduce published workflows", "reproduced"],
-  ["sim", "Make them your own", "changes"],
+  ["instruments", "Meet the instruments", "functions run on a twin"],
+  [
+    "learn/intermediate",
+    "Reproduce published workflows",
+    "workflows reproduced",
+  ],
+  ["sim", "Make them your own", "changes made"],
 ] as const;
 
 /** The three stages of the path, how far along each is, and the way between them. */
@@ -58,7 +62,8 @@ export default function StageRail({
       </ol>
       {given === undefined && (
         <button className={s.railTree} onClick={() => onNavigate("skills")}>
-          <Waypoints size={16} /> Skill tree
+          <Waypoints size={16} />{" "}
+          {current === 1 ? "Run functions in the skill tree" : "Skill tree"}
         </button>
       )}
     </nav>

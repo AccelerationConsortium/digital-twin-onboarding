@@ -70,7 +70,7 @@ type Trace = {
   temperature_c: number;
   elapsed_s: number;
 }[];
-type Link = { d: string; stage: string; lit: boolean };
+type Link = { d: string; stage: string; lit: boolean; from: string };
 
 const paperOf = (id: string) => workflows.find((w) => w.id === id);
 const ready = (paper: SkillPaper) => paper.steps.filter((x) => x.met).length;
@@ -355,6 +355,7 @@ export default function SkillTree({
           d: `M${x1} ${y1} C${x1} ${mid} ${x2} ${mid} ${x2} ${y2}`,
           stage: step.stage,
           lit: !!skills.functions.find((f) => f.id === id)?.met,
+          from: id,
         });
       }
     });
@@ -456,14 +457,17 @@ export default function SkillTree({
       <StageRail skills={skills} onNavigate={onNavigate} />
       <div className={s.tree} ref={tree}>
         <svg className={s.links} aria-hidden="true">
-          {links.map((link, index) => (
-            <path
-              key={index}
-              d={link.d}
-              data-stage={link.stage}
-              data-lit={link.lit || undefined}
-            />
-          ))}
+          {/* With a function open, only its own branches show. */}
+          {links
+            .filter((link) => !open || link.from === open)
+            .map((link, index) => (
+              <path
+                key={index}
+                d={link.d}
+                data-stage={link.stage}
+                data-lit={link.lit || undefined}
+              />
+            ))}
         </svg>
         <section className={s.tier} aria-labelledby="tier-instruments">
           <h2 id="tier-instruments">

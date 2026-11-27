@@ -108,3 +108,39 @@ test("a facilitator pins a comment to a step and the learner replies and resolve
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("a classmate reviews what a facilitator shared, as in the first feedback", async ({
+  browser,
+}) => {
+  const sonia = await learner(browser, "Sonia");
+  const sarah = await learner(browser, "Sarah");
+  const group = await (
+    await sonia.request.post("/api/groups", { data: { name: "Mixtures co." } })
+  ).json();
+  await sarah.request.post("/api/groups/join", { data: { code: group.code } });
+  await ranWorkflow(sonia, "Sonia's transfer");
+
+  await openReviews(sonia);
+  await sonia.getByRole("button", { name: "Ask for review" }).click();
+  await expect(
+    sonia.getByRole("heading", { name: "Sonia's transfer", level: 1 }),
+  ).toBeVisible();
+
+  // Sarah is a member, not the facilitator, and still gets the request to review.
+  await openReviews(sarah);
+  const queue = sarah.getByRole("region", { name: "To review" });
+  await queue
+    .getByRole("button", { name: /Sonia's transfer.*Sonia · Workflow run/ })
+    .click();
+  await sarah
+    .getByRole("list", { name: "Steps" })
+    .getByRole("button")
+    .nth(1)
+    .click();
+  await sarah.getByLabel("Comment on step 2").fill("Same tip as mine?");
+  await sarah.getByRole("button", { name: "Comment", exact: true }).click();
+  await expect(sarah.getByText("Same tip as mine?")).toBeVisible();
+  // She resolves her own thread.
+  await sarah.getByRole("button", { name: "Resolve" }).click();
+  await expect(sarah.getByText("Resolved by Sarah")).toBeVisible();
+});

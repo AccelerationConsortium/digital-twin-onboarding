@@ -279,6 +279,8 @@ def create_app(settings: Settings | None = None, store=None):
         version = old["version"] if old else None
         profile = {**data.model_dump(), "version": (version or 0) + 1}
         app.state.store.put(owner, "profile", profile, version)
+        if old and old["name"] != profile["name"]:
+            groups.rename_member(app.state.store, owner, profile["name"])
         return profile
 
     @app.get("/api/discovery")

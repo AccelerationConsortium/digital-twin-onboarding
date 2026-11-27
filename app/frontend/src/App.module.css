@@ -532,22 +532,45 @@
 .sidebar > .brand {
   margin: 0 7px 46px;
 }
+.navSection + .navSection {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: var(--hairline) solid var(--line);
+}
 .sidebarLabel {
-  font-size: 9px;
-  letter-spacing: 1.7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
   color: var(--muted);
-  padding: 0 10px;
-  margin-bottom: 13px;
+  padding: 4px 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.sidebarLabel:hover {
+  color: var(--ink);
+}
+.sidebarLabel svg {
+  transition: transform var(--dur-2) var(--ease-out);
+}
+.navSection[data-collapsed] .sidebarLabel svg {
+  transform: rotate(-90deg);
+}
+/* A folded group keeps only the page you are on. */
+.navSection[data-collapsed] > nav > button:not(.activeNav) {
+  display: none;
 }
 .sidebar nav {
   display: grid;
-  gap: 5px;
-}
-.sidebar nav + .sidebarLabel {
-  margin-top: 28px;
-}
-.sidebar nav + .sidebarLabel + nav {
-  margin-top: 8px;
+  gap: 3px;
 }
 .sidebar nav button {
   display: flex;
@@ -558,7 +581,7 @@
   text-align: left;
   border-radius: 6px;
   font-size: 12px;
-  padding: 12px 10px;
+  padding: 9px 10px;
   font-weight: 500;
   color: var(--muted);
 }
@@ -566,12 +589,18 @@
   background: var(--brand-soft);
   color: var(--brand-text);
 }
-.sidebar nav button > span {
-  font-size: 10px;
+/* A count, drawn as a filled pill so it never reads as a route step number. */
+.sidebar nav .navCount {
   margin-left: auto;
-  background: var(--surface-2);
-  padding: 1px 5px;
-  border-radius: 4px;
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .sidebarBottom {
   margin-top: auto;
@@ -592,7 +621,24 @@
   border-top: var(--hairline) solid var(--line);
   padding-top: 19px;
 }
-.user > span {
+.user .userName {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.user .userName:hover strong {
+  text-decoration: underline;
+}
+.userName > span {
+  flex: none;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -601,10 +647,6 @@
   place-items: center;
   font-size: 12px;
   font-weight: 600;
-}
-.user div {
-  min-width: 0;
-  flex: 1;
 }
 .user strong {
   display: block;
@@ -1662,7 +1704,7 @@
   }
   .sidebarLabel,
   .helpButton,
-  .user div {
+  .userName strong {
     display: none;
   }
   .sidebar nav {
@@ -1810,7 +1852,7 @@
     width: 8px;
     height: 8px;
   }
-  .user > span {
+  .userName > span {
     width: 28px;
     height: 28px;
     font-size: 10px;
@@ -2136,8 +2178,45 @@
   .sidebar nav .navStep {
     display: none;
   }
-  .sidebar nav + .sidebarLabel + nav {
-    border-top: var(--hairline) solid var(--line);
+  .navSection + .navSection {
+    margin-top: 8px;
     padding-top: 8px;
   }
+  /* Icons only: every group stays unfolded, since its heading is hidden. */
+  .navSection[data-collapsed] > nav > button:not(.activeNav) {
+    display: flex;
+  }
+  .sidebar nav .navCount {
+    display: none;
+  }
+}
+
+.nameDialog {
+  width: min(420px, 100%);
+}
+.nameDialog form {
+  display: grid;
+  gap: 12px;
+}
+.nameDialog label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.nameDialog input {
+  font: inherit;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface-1);
+  color: var(--ink);
+}
+.nameDialog [role="alert"] {
+  margin: 0;
+  color: var(--danger, #a3342b);
+}
+.nameDialog .primary {
+  justify-self: start;
 }

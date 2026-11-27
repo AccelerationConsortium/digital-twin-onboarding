@@ -1,6 +1,10 @@
-import type { CSSProperties } from "react";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { ArrowRight, Check } from "lucide-react";
 import Pictogram from "./Pictogram";
+import { api } from "./api";
+import { latestCourseSession } from "./learningLevels";
+import { progress, useSkills } from "./skills";
+import type { Session } from "./types";
 import w from "./Workcell.module.css";
 import s from "./StartMap.module.css";
 
@@ -13,27 +17,27 @@ const routes: { id: string; title: string; who: string; stops: Stop[] }[] = [
     stops: [
       {
         target: "instruments",
-        title: "Meet the robot",
+        title: "Meet the instruments",
         detail: "Parts, modules and what each one does",
       },
       {
         target: "learn",
-        title: "Learn by level",
+        title: "Learning lab",
         detail: "From a first transfer to full workflows",
       },
       {
         target: "sim",
-        title: "Simulate",
+        title: "Simulation lab",
         detail: "Run a whole experiment before the real robot",
       },
       {
         target: "marketplace",
-        title: "Adapt a workflow",
+        title: "Workflow marketplace",
         detail: "Borrow a published method",
       },
       {
         target: "groups",
-        title: "Compare with classmates",
+        title: "Study groups",
         detail: "Share and agree on one workflow",
       },
     ],
@@ -41,7 +45,7 @@ const routes: { id: string; title: string; who: string; stops: Stop[] }[] = [
   {
     id: "use",
     title: "Using route",
-    who: "Own instrument",
+    who: "Your workcell",
     stops: [
       {
         target: "onboard",
@@ -50,22 +54,22 @@ const routes: { id: string; title: string; who: string; stops: Stop[] }[] = [
       },
       {
         target: "twin",
-        title: "Practise on its twin",
+        title: "Teaching twin",
         detail: "A software copy that behaves like it",
       },
       {
         target: "plan",
-        title: "Plan the bench",
+        title: "Plan a workcell",
         detail: "Find a layout that runs the workflow",
       },
       {
         target: "readiness",
-        title: "Check readiness",
+        title: "Real-device readiness",
         detail: "What stands before a real run",
       },
       {
         target: "runs",
-        title: "Review runs",
+        title: "Teaching runs",
         detail: "Replay what happened, step by step",
       },
     ],
@@ -98,15 +102,40 @@ const road = (count: number, upright: boolean) => {
   };
 };
 
+/** Which learning-route stops the learner has finished, read from their own records. */
+function useFinished(sessions: Session[]) {
+  const [skills] = useSkills();
+  const [grouped, setGrouped] = useState(false);
+  useEffect(() => {
+    api<{ groups: unknown[] }>("/groups")
+      .then((found) => setGrouped(found.groups.length > 0))
+      .catch(() => setGrouped(false));
+  }, []);
+  const counts = skills ? progress(skills) : null;
+  const lesson = latestCourseSession(sessions, "flex-first-transfer");
+  return {
+    instruments:
+      !!counts && counts[0].of > 0 && counts[0].done === counts[0].of,
+    learn:
+      !!lesson?.lesson_outcome?.practice_completed &&
+      !!lesson.lesson_outcome.understanding_demonstrated,
+    sim: !!counts && counts[2].done > 0,
+    marketplace: !!counts && counts[1].done > 0,
+    groups: grouped,
+  } as Record<string, boolean>;
+}
+
 export default function StartMap({
   canPlan,
+  sessions,
   onNavigate,
-  onFirstLesson,
 }: {
   canPlan: boolean;
+  sessions: Session[];
   onNavigate: (target: string) => void;
-  onFirstLesson: () => void;
 }) {
+  const finished = useFinished(sessions);
+  const next = routes[0].stops.find((stop) => !finished[stop.target])?.target;
   return (
     <section className={s.roadmap} aria-labelledby="roadmap-title">
       <h2 id="roadmap-title">Where to start</h2>
@@ -127,8 +156,11 @@ export default function StartMap({
               <h3 id={`route-${route.id}`}>{route.title}</h3>
               <span className={s.who}>{route.who}</span>
               {route.id === "learn" && (
-                <button className={w.primary} onClick={onFirstLesson}>
-                  Start learning Flex <ArrowRight size={16} />
+                <button
+                  className={w.primary}
+                  onClick={() => onNavigate(stops[0].target)}
+                >
+                  Start the route <ArrowRight size={16} />
                 </button>
               )}
             </header>
@@ -181,13 +213,39 @@ export default function StartMap({
                   >
                     <button
                       title={stop.detail}
+                      aria-label={`${index + 1}. ${stop.title}${
+                        route.id === "learn" && finished[stop.target]
+                          ? ", done"
+                          : route.id === "learn" && next === stop.target
+                            ? ", next"
+                            : ""
+                      }`}
+                      data-done={
+                        (route.id === "learn" && finished[stop.target]) ||
+                        undefined
+                      }
+                      data-next={
+                        (route.id === "learn" && next === stop.target) ||
+                        undefined
+                      }
                       onClick={() => onNavigate(stop.target)}
                     >
                       <span className={s.badge} aria-hidden="true">
                         <Pictogram name={stop.target} />
-                        <span className={s.number}>{index + 1}</span>
+                        <span className={s.number}>
+                          {route.id === "learn" && finished[stop.target] ? (
+                            <Check size={12} strokeWidth={3} />
+                          ) : (
+                            index + 1
+                          )}
+                        </span>
                       </span>
-                      <strong>{stop.title}</strong>
+                      <strong>
+                        {stop.title}
+                        {route.id === "learn" && next === stop.target && (
+                          <small className={s.nextTag}>Next</small>
+                        )}
+                      </strong>
                     </button>
                   </li>
                 ))}

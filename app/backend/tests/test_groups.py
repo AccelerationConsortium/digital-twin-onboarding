@@ -144,3 +144,43 @@ def test_researcher_group_limits_layout_planning(app):
     assert search.status_code == 403
     saved = ada.put("/api/twins/layout/constraints", json={"expected_version": 0})
     assert saved.status_code == 403
+
+
+def test_rename_and_leave_a_group(app):
+    ada, grace, lin = learner(app, "Ada"), learner(app, "Grace"), learner(app, "Lin")
+    group = ada.post("/api/groups", json={"name": "Pair"}).json()
+    grace.post("/api/groups/join", json={"code": group["code"]})
+    joined = lin.post("/api/groups/join", json={"code": group["code"]}).json()
+    base = f"/api/groups/{group['id']}"
+
+    # Only the facilitator renames, and only from the current version.
+    denied = grace.post(f"{base}/rename", json={"version": joined["version"], "name": "X"})
+    assert denied.status_code == 403
+    stale = ada.post(f"{base}/rename", json={"version": 1, "name": "X"})
+    assert stale.status_code == 409
+    renamed = ada.post(f"{base}/rename", json={"version": joined["version"], "name": " Trio "})
+    assert renamed.json()["name"] == "Trio"
+
+    # A renamed learner appears under the new name in the group.
+    grace.put("/api/me", json={"name": "Grace H", "experience": "new", "onboarded": True})
+    seen = ada.get(base).json()
+    assert [m["name"] for m in seen["members"]] == ["Ada", "Grace H", "Lin"]
+
+    # A member leaves: the group no longer lists them and they lose access.
+    left = lin.post(f"{base}/leave", json={"version": seen["version"]})
+    assert left.status_code == 200
+    assert lin.get(base).status_code == 404
+    assert all(g["id"] != group["id"] for g in lin.get("/api/groups").json()["groups"])
+    seen = ada.get(base).json()
+    assert [m["name"] for m in seen["members"]] == ["Ada", "Grace H"]
+
+    # The facilitator leaves: the longest-standing member takes over.
+    assert ada.post(f"{base}/leave", json={"version": 1}).status_code == 409
+    ada.post(f"{base}/leave", json={"version": seen["version"]})
+    now = grace.get(base).json()
+    assert now["you"]["role"] == "facilitator" and now["code"] == group["code"]
+
+    # The last member closes the group; its code no longer joins anything.
+    grace.post(f"{base}/leave", json={"version": now["version"]})
+    assert grace.get(base).status_code == 404
+    assert lin.post("/api/groups/join", json={"code": group["code"]}).status_code == 404

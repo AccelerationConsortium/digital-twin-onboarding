@@ -480,15 +480,38 @@ export default function LearningLab({
               </div>
             </>
           )}
-          <div className={s.selection}>
-            <span>Selected object</span>
-            <strong>{evidence.name}</strong>
-            <span>
-              {selected === "pipette"
-                ? "Robot-mounted pipette"
-                : `Slot ${session.experiment.layout[selected]}${selected === "plate" ? " → Target plate → Well A1" : ""}`}
-            </span>
-          </div>
+          {phase === "orient" && view === "diagram" ? (
+            <div className={s.equipmentCard} aria-live="polite">
+              <div className={s.equipmentHead}>
+                <h3>{evidence.name}</h3>
+                <span>
+                  {selected === "pipette"
+                    ? "Robot-mounted pipette"
+                    : `Slot ${session.experiment.layout[selected]}${selected === "plate" ? " → Well A1" : ""}`}
+                </span>
+              </div>
+              <p>{evidence.purpose}</p>
+              <div className={s.comparison}>
+                <span>{evidence.manual}</span>
+                <ArrowRight size={15} />
+                <strong>{evidence.robot}</strong>
+              </div>
+              <div className={s.note}>
+                <CircleHelp size={16} />
+                <p>{evidence.notice}</p>
+              </div>
+            </div>
+          ) : (
+            <div className={s.selection}>
+              <span>Selected object</span>
+              <strong>{evidence.name}</strong>
+              <span>
+                {selected === "pipette"
+                  ? "Robot-mounted pipette"
+                  : `Slot ${session.experiment.layout[selected]}${selected === "plate" ? " → Target plate → Well A1" : ""}`}
+              </span>
+            </div>
+          )}
           {phase === "prepare" && (
             <div className={s.deckEditor}>
               <h3>Place your labware</h3>
@@ -541,73 +564,79 @@ export default function LearningLab({
               </div>
             </div>
           )}
-          <div className={s.stateHeading}>
-            <strong>Liquid volumes</strong>
-            <span>Source: teaching model calculations</span>
-          </div>
-          <div className={s.liquidStates}>
-            {[
-              {
-                name: "Source container",
-                value: session.state.wells.stock.volume,
-                detail: `Slot ${session.experiment.layout.stock}`,
-              },
-              {
-                name: "Inside the tip",
-                value: session.state.pipette.volume,
-                detail: session.state.pipette.tip
-                  ? "Tip attached"
-                  : "No tip attached",
-              },
-              {
-                name: "Target well A1",
-                value: session.state.wells.A1.volume,
-                detail: `Slot ${session.experiment.layout.plate} → Plate`,
-              },
-            ].map((item) => (
-              <div key={item.name}>
-                <span>{item.name}</span>
-                <strong>
-                  {number(item.value)}
-                  <small> µL</small>
-                </strong>
-                <small>{item.detail}</small>
+          {phase !== "orient" && phase !== "prepare" && (
+            <div className={s.runPanel}>
+              <div className={s.stateHeading}>
+                <strong>Liquid volumes</strong>
+                <span>Source: teaching model calculations</span>
               </div>
-            ))}
-          </div>
-          <div className={s.timeline}>
-            {session.experiment.actions.map((action, i) => (
-              <div
-                key={i}
-                className={
-                  i < session.cursor
-                    ? s.executed
-                    : i === session.cursor
-                      ? s.nextAction
-                      : ""
-                }
-              >
-                <span>{i < session.cursor ? <Check size={12} /> : i + 1}</span>
-                {
-                  (
+              <div className={s.liquidStates}>
+                {[
+                  {
+                    name: "Source container",
+                    value: session.state.wells.stock.volume,
+                    detail: `Slot ${session.experiment.layout.stock}`,
+                  },
+                  {
+                    name: "Inside the tip",
+                    value: session.state.pipette.volume,
+                    detail: session.state.pipette.tip
+                      ? "Tip attached"
+                      : "No tip attached",
+                  },
+                  {
+                    name: "Target well A1",
+                    value: session.state.wells.A1.volume,
+                    detail: `Slot ${session.experiment.layout.plate} → Plate`,
+                  },
+                ].map((item) => (
+                  <div key={item.name}>
+                    <span>{item.name}</span>
+                    <strong>
+                      {number(item.value)}
+                      <small> µL</small>
+                    </strong>
+                    <small>{item.detail}</small>
+                  </div>
+                ))}
+              </div>
+              <div className={s.timeline}>
+                {session.experiment.actions.map((action, i) => (
+                  <div
+                    key={i}
+                    className={
+                      i < session.cursor
+                        ? s.executed
+                        : i === session.cursor
+                          ? s.nextAction
+                          : ""
+                    }
+                  >
+                    <span>
+                      {i < session.cursor ? <Check size={12} /> : i + 1}
+                    </span>
                     {
-                      pickup: "Pick up tip",
-                      aspirate: "Aspirate",
-                      dispense: "Dispense",
-                      drop: "Discard tip",
-                    } as Record<string, string>
-                  )[action.kind]
-                }
-                <small>
-                  {i < session.cursor
-                    ? "Complete"
-                    : i === session.cursor
-                      ? "Next action"
-                      : "Pending"}
-                </small>
+                      (
+                        {
+                          pickup: "Pick up tip",
+                          aspirate: "Aspirate",
+                          dispense: "Dispense",
+                          drop: "Discard tip",
+                        } as Record<string, string>
+                      )[action.kind]
+                    }
+                    <small>
+                      {i < session.cursor
+                        ? "Complete"
+                        : i === session.cursor
+                          ? "Next action"
+                          : "Pending"}
+                    </small>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </section>
         <aside className={s.companion}>
           <span className={s.eyebrow}>
@@ -615,20 +644,13 @@ export default function LearningLab({
           </span>
           {phase === "orient" && (
             <>
-              <h2>{evidence.name}</h2>
-              <p>{evidence.purpose}</p>
-              <div className={s.comparison}>
-                <span>{evidence.manual}</span>
-                <ArrowRight size={15} />
-                <strong>{evidence.robot}</strong>
-              </div>
-              <div className={s.note}>
-                <CircleHelp size={16} />
-                <p>{evidence.notice}</p>
-              </div>
+              <h2>Explore the equipment</h2>
+              <p className={s.instruction}>
+                Click each part on the diagram, or the buttons below it, to
+                learn what it does.
+              </p>
               <small>
-                Explored {new Set(learning.visited).size} / 5 objects. Select an
-                object to learn more.
+                Explored {new Set(learning.visited).size} / 5 objects.
               </small>
               <fieldset>
                 <legend>
@@ -857,7 +879,7 @@ export default function LearningLab({
                   disabled={mutationLocked}
                   onClick={() => changePhase("reflect")}
                 >
-                  Explain the result and try again <ArrowRight size={16} />
+                  Explain the result <ArrowRight size={16} />
                 </button>
               ) : session.status === "faulted" ? (
                 <button

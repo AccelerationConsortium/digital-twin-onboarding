@@ -7,6 +7,7 @@ async function lesson(page: Page) {
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.getByRole("button", { name: "Learning lab", exact: true }).click();
   await page
     .getByRole("button", { name: "Start learning Flex", exact: true })
     .click();

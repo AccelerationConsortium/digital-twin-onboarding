@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Copy, LogOut, Pencil, Trash2, Users } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api, json } from "./api";
 import PageStory from "./PageStory";
@@ -119,6 +119,11 @@ export default function StudyGroups({
           setRoute(null);
           void run(async () => setListing(await api<Listing>("/groups")));
         }}
+        onLeft={() => {
+          setGroup(null);
+          setRoute(null);
+          void run(async () => setListing(await api<Listing>("/groups")));
+        }}
       />
     );
 
@@ -214,6 +219,7 @@ function GroupPage({
   onChange,
   onCopied,
   onBack,
+  onLeft,
 }: {
   group: Group;
   sessions: Session[];
@@ -222,8 +228,39 @@ function GroupPage({
   onChange: (group: Group) => void;
   onCopied: (session: Session) => void;
   onBack: () => void;
+  onLeft: () => void;
 }) {
   const [compare, setCompare] = useState<string[]>([]);
+  const [renaming, setRenaming] = useState(false);
+  const facilitator = group.you.role === "facilitator";
+  const rename = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const name = String(new FormData(event.currentTarget).get("name")).trim();
+    if (!name || name === group.name) return setRenaming(false);
+    void run(async () => {
+      onChange(
+        await api<Group>(
+          `/groups/${group.id}/rename`,
+          json({ version: group.version, name }),
+        ),
+      );
+      setRenaming(false);
+    });
+  };
+  const leave = () => {
+    const others = group.members.filter((m) => m.id !== group.you.id);
+    const consequence =
+      group.members.length === 1
+        ? "You are its last member, so the group and everything shared in it will close."
+        : facilitator
+          ? `${others[0]?.name ?? "The next member"} becomes the facilitator. Your review requests here are removed; experiments you shared stay unless you remove them first.`
+          : "Your review requests here are removed; experiments you shared stay unless you remove them first.";
+    if (!window.confirm(`Leave ${group.name}? ${consequence}`)) return;
+    void run(async () => {
+      await api(`/groups/${group.id}/leave`, json({ version: group.version }));
+      onLeft();
+    });
+  };
   const reload = async () => onChange(await api<Group>(`/groups/${group.id}`));
   const base = `/groups/${group.id}/shares`;
   const experiments = group.shares.filter(
@@ -259,7 +296,47 @@ function GroupPage({
         <ArrowLeft size={16} /> Study groups
       </button>
       <div className={s.heading}>
-        <h1>{group.name}</h1>
+        {renaming ? (
+          <form className={s.rename} onSubmit={rename}>
+            <label htmlFor="rename-group" className={s.visuallyHidden}>
+              Group name
+            </label>
+            <input
+              id="rename-group"
+              name="name"
+              defaultValue={group.name}
+              required
+              maxLength={60}
+              autoFocus
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setRenaming(false);
+              }}
+            />
+            <button className={s.primary} disabled={busy}>
+              Save
+            </button>
+            <button
+              type="button"
+              className={s.secondary}
+              onClick={() => setRenaming(false)}
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <div className={s.title}>
+            <h1>{group.name}</h1>
+            {facilitator && (
+              <button
+                className={s.icon}
+                aria-label="Rename group"
+                onClick={() => setRenaming(true)}
+              >
+                <Pencil size={15} />
+              </button>
+            )}
+          </div>
+        )}
         {group.code && (
           <div className={s.code}>
             <span>Join code</span>
@@ -391,6 +468,12 @@ function GroupPage({
           </ul>
         )}
       </section>
+
+      <footer className={s.leave}>
+        <button className={s.secondary} disabled={busy} onClick={leave}>
+          <LogOut size={15} /> Leave group
+        </button>
+      </footer>
     </div>
   );
 }
