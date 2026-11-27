@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import {
   ArrowRight,
@@ -12,6 +13,7 @@ import {
   Beaker,
   BookOpen,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleHelp,
   Clock3,
@@ -47,6 +49,7 @@ import type { Config, Course, Experiment, Profile, Session } from "./types";
 import type { WorkflowTemplate } from "./CloudLabWorkflow";
 import s from "./App.module.css";
 import { useDialog } from "./useDialog";
+import ProfileName from "./ProfileName";
 import { firstTransfer } from "./learningContent";
 import { workflows, type Workflow } from "./discoveryContent";
 import {
@@ -122,8 +125,72 @@ const learnLabels = {
   learn: "Learning lab",
   sim: "Simulation lab",
   marketplace: "Workflow marketplace",
+  groups: "Study groups",
   skills: "Skill tree",
+  reviews: "Reviews",
 };
+/** The numbered stops of the learning route, in the order the start page draws them. */
+const ROUTE_STEPS: string[] = [
+  "instruments",
+  "learn",
+  "sim",
+  "marketplace",
+  "groups",
+];
+const COLLAPSED_KEY = "academy.sidebar.collapsed";
+
+/** A sidebar group whose heading folds it away; the choice is remembered per browser. */
+function NavSection({
+  id,
+  title,
+  label,
+  children,
+}: {
+  id: string;
+  title: string;
+  label: string;
+  children: ReactNode;
+}) {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return (localStorage.getItem(COLLAPSED_KEY) ?? "")
+        .split(",")
+        .includes(id);
+    } catch {
+      return false;
+    }
+  });
+  const toggle = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try {
+      const saved = new Set(
+        (localStorage.getItem(COLLAPSED_KEY) ?? "").split(",").filter(Boolean),
+      );
+      if (next) saved.add(id);
+      else saved.delete(id);
+      localStorage.setItem(COLLAPSED_KEY, [...saved].join(","));
+    } catch {
+      /* the group still folds for this visit */
+    }
+  };
+  return (
+    <section className={s.navSection} data-collapsed={collapsed || undefined}>
+      <button
+        className={s.sidebarLabel}
+        aria-expanded={!collapsed}
+        aria-controls={`nav-${id}`}
+        onClick={toggle}
+      >
+        {title}
+        <ChevronDown size={13} aria-hidden="true" />
+      </button>
+      <nav id={`nav-${id}`} aria-label={label}>
+        {children}
+      </nav>
+    </section>
+  );
+}
 function Onboarding({
   profile,
   onSave,
@@ -747,11 +814,15 @@ export default function App() {
         <div className={s.shell}>
           <aside className={s.sidebar}>
             <Brand small />
-            <div className={s.sidebarLabel}>LEARN</div>
-            <nav aria-label="Learning navigation">
+            <NavSection
+              id="route"
+              title="Learning route"
+              label="Learning navigation"
+            >
               {(
                 [
                   ["overview", House, view === "overview"],
+                  ["skills", Waypoints, view === "skills"],
                   [
                     "instruments",
                     Pipette,
@@ -768,44 +839,41 @@ export default function App() {
                   ],
                   ["sim", FlaskConical, view === "sim"],
                   ["marketplace", Store, view === "marketplace"],
-                  ["skills", Waypoints, view === "skills"],
+                  ["groups", Users, view === "groups"],
+                  ["reviews", MessagesSquare, view === "reviews"],
                 ] as const
-              ).map(([target, Icon, active], index) => (
-                <button
-                  key={target}
-                  className={active ? s.activeNav : ""}
-                  aria-current={view === target ? "page" : undefined}
-                  onClick={() => nav(target)}
-                >
-                  <Icon size={18} /> {learnLabels[target]}
-                  {index > 0 && target !== "skills" && (
-                    <small className={s.navStep} aria-hidden="true">
-                      {index}
-                    </small>
-                  )}
+              ).map(([target, Icon, active]) => {
+                const step = ROUTE_STEPS.indexOf(target) + 1;
+                return (
+                  <button
+                    key={target}
+                    className={active ? s.activeNav : ""}
+                    aria-current={view === target ? "page" : undefined}
+                    onClick={() => nav(target)}
+                  >
+                    <Icon size={18} /> {learnLabels[target]}
+                    {step > 0 && (
+                      <small className={s.navStep} aria-hidden="true">
+                        {step}
+                      </small>
+                    )}
+                  </button>
+                );
+              })}
+            </NavSection>
+            <NavSection id="work" title="My work" label="My work navigation">
+              {view === "lab" && (
+                <button className={s.activeNav} aria-current="page">
+                  <FlaskConical size={18} /> Current experiment
                 </button>
-              ))}
+              )}
               <button
                 className={view === "history" ? s.activeNav : ""}
                 aria-current={view === "history" ? "page" : undefined}
                 onClick={() => nav("history")}
               >
-                <History size={18} /> My experiments{" "}
-                <span>{sessions.length}</span>
-              </button>
-              <button
-                className={view === "groups" ? s.activeNav : ""}
-                aria-current={view === "groups" ? "page" : undefined}
-                onClick={() => nav("groups")}
-              >
-                <Users size={18} /> Study groups
-              </button>
-              <button
-                className={view === "reviews" ? s.activeNav : ""}
-                aria-current={view === "reviews" ? "page" : undefined}
-                onClick={() => nav("reviews")}
-              >
-                <MessagesSquare size={18} /> Reviews
+                <History size={18} /> My experiments
+                <span className={s.navCount}>{sessions.length}</span>
               </button>
               {canAdmit && (
                 <button
@@ -816,6 +884,44 @@ export default function App() {
                   <UserPlus size={18} /> Access requests
                 </button>
               )}
+            </NavSection>
+            <NavSection
+              id="using"
+              title="Using route"
+              label="Workcell navigation"
+            >
+              {(["onboard", "twin", "plan", "readiness", "runs"] as const)
+                .filter((target) => target !== "plan" || canPlan)
+                .map((target) => {
+                  const Icon = {
+                    onboard: Plus,
+                    twin: Layers3,
+                    plan: LayoutDashboard,
+                    readiness: ShieldCheck,
+                    runs: ListChecks,
+                  }[target];
+                  const active =
+                    view === target || (target === "plan" && view === "models");
+                  return (
+                    <button
+                      key={target}
+                      className={active ? s.activeNav : ""}
+                      aria-current={view === target ? "page" : undefined}
+                      onClick={() => nav(target)}
+                    >
+                      <Icon size={18} />
+                      {target === "plan"
+                        ? "Plan a workcell"
+                        : workspaceLabels[target]}
+                    </button>
+                  );
+                })}
+            </NavSection>
+            <NavSection
+              id="cloud"
+              title="Cloud lab"
+              label="Cloud lab navigation"
+            >
               <button
                 className={
                   view === "cloudlab" || view === "portal" ? s.activeNav : ""
@@ -826,57 +932,25 @@ export default function App() {
                 <Cloud size={18} /> Cloud lab onboarding
               </button>
               <button
-                className={view === "qualifications" ? s.activeNav : ""}
-                aria-current={view === "qualifications" ? "page" : undefined}
-                onClick={() => nav("qualifications")}
-              >
-                <Award size={18} /> Qualifications
-              </button>
-              <button
                 className={view === "cloudlab-workflow" ? s.activeNav : ""}
                 aria-current={view === "cloudlab-workflow" ? "page" : undefined}
                 onClick={() => nav("cloudlab-workflow")}
               >
                 <WorkflowIcon size={18} /> Cloud lab workflow
               </button>
-              {view === "lab" && (
-                <button className={s.activeNav}>
-                  <FlaskConical size={18} /> Current experiment
-                </button>
-              )}
-            </nav>
-            <div className={s.sidebarLabel}>YOUR WORKCELL</div>
-            <nav aria-label="Workcell navigation">
-              {canPlan && (
-                <button
-                  className={
-                    view === "plan" || view === "models" ? s.activeNav : ""
-                  }
-                  aria-current={view === "plan" ? "page" : undefined}
-                  onClick={() => nav("plan")}
-                >
-                  <LayoutDashboard size={18} /> Plan a workcell
-                </button>
-              )}
-              {workspaceViews
-                .filter((target) => target !== "overview")
-                .map((target, index) => {
-                  const Icon = [Plus, Layers3, ShieldCheck, ListChecks][index];
-                  return (
-                    <button
-                      key={target}
-                      className={view === target ? s.activeNav : ""}
-                      aria-current={view === target ? "page" : undefined}
-                      onClick={() => nav(target)}
-                    >
-                      <Icon size={18} />
-                      {workspaceLabels[target]}
-                    </button>
-                  );
-                })}
-            </nav>
-            <div className={s.sidebarLabel}>SIM–REAL</div>
-            <nav aria-label="Sim–Real navigation">
+              <button
+                className={view === "qualifications" ? s.activeNav : ""}
+                aria-current={view === "qualifications" ? "page" : undefined}
+                onClick={() => nav("qualifications")}
+              >
+                <Award size={18} /> Qualifications
+              </button>
+            </NavSection>
+            <NavSection
+              id="simreal"
+              title="Sim–Real"
+              label="Sim–Real navigation"
+            >
               <button
                 className={view === "sim-real" ? s.activeNav : ""}
                 aria-current={view === "sim-real" ? "page" : undefined}
@@ -884,9 +958,12 @@ export default function App() {
               >
                 <Cable size={18} /> Connector simulation
               </button>
-            </nav>
-            <div className={s.sidebarLabel}>ADVANCED</div>
-            <nav aria-label="Advanced navigation">
+            </NavSection>
+            <NavSection
+              id="advanced"
+              title="Advanced"
+              label="Advanced navigation"
+            >
               <button
                 className={view === "discovery" ? s.activeNav : ""}
                 aria-current={view === "discovery" ? "page" : undefined}
@@ -901,17 +978,31 @@ export default function App() {
               >
                 <GitBranch size={18} /> Connector explorer
               </button>
-            </nav>
+            </NavSection>
             <div className={s.sidebarBottom}>
               <button className={s.helpButton} onClick={() => setHelp(true)}>
                 <CircleHelp size={17} /> About this learning lab
               </button>
               <ThemeToggle />
               <div className={s.user}>
-                <span>{profile.name.slice(0, 1).toUpperCase()}</span>
-                <div>
-                  <strong>{profile.name}</strong>
-                </div>
+                <ProfileName
+                  profile={profile}
+                  onSave={async (name) => {
+                    setProfile(
+                      await api<Profile>(
+                        "/me",
+                        json(
+                          {
+                            name,
+                            experience: profile.experience,
+                            onboarded: profile.onboarded,
+                          },
+                          "PUT",
+                        ),
+                      ),
+                    );
+                  }}
+                />
                 <button
                   aria-label="Sign out"
                   onClick={async () => {
@@ -1073,15 +1164,6 @@ export default function App() {
                   onOpen={open}
                   onSessionsLoaded={setSessions}
                   onSessionSaved={updateSession}
-                  onFirstLesson={() => {
-                    if (busy) return;
-                    const existing = sessions.find(
-                      (run) =>
-                        run.experiment.course_id === "flex-first-transfer",
-                    );
-                    if (existing) open(existing);
-                    else create(true);
-                  }}
                   onCreate={() => {
                     if (!busy) create();
                   }}

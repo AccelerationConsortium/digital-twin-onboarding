@@ -403,11 +403,16 @@ def install(app, *, store):
         """The caller's role on a review; anyone else learns nothing about it."""
         group, member = membership(owner, group_id)
         review = get_review(group_id, review_id)
-        if member["role"] == "facilitator":
-            return group, member, review, "reviewer"
         if review["member_id"] == member["id"]:
             return group, member, review, "learner"
+        if member["role"] == "facilitator" or peer_visible(review):
+            return group, member, review, "reviewer"
         raise HTTPException(404, "Review not found")
+
+    def peer_visible(review):
+        """A learner who asked the group for a review opened it to every member;
+        sessions a facilitator opened under the group policy stay with facilitators."""
+        return review["via"] == "shared"
 
     def summary(group, review):
         threads = [c for c in review["comments"] if c["parent"] is None]
@@ -432,8 +437,15 @@ def install(app, *, store):
             "open_threads": sum(c["resolved_at"] is None for c in threads),
         }
 
-    def view(group, review, role):
-        return {**review, "group_id": group["id"], "group": group["name"], "role": role}
+    def view(group, review, role, member):
+        return {
+            **review,
+            "group_id": group["id"],
+            "group": group["name"],
+            "role": role,
+            # Who is looking, so the page offers only what this member may do.
+            "you": {"id": member["id"], "facilitator": member["role"] == "facilitator"},
+        }
 
     def create(group, member, owner, data: Submit, via):
         key = f"{PREFIX}{member['id']}_{data.kind}_{data.source_id}"
@@ -498,7 +510,7 @@ def install(app, *, store):
             for review in reviews(group["id"]):
                 if review["member_id"] == member["id"]:
                     mine.append(summary(group, review))
-                elif member["role"] == "facilitator":
+                elif member["role"] == "facilitator" or peer_visible(review):
                     queue.append(summary(group, review))
         newest = sorted(mine, key=lambda r: r["submitted_at"], reverse=True)
         return {
@@ -516,7 +528,7 @@ def install(app, *, store):
     def submit(group_id: UUID, data: Submit, owner: str = Depends(identify)):
         group, member = membership(owner, group_id)
         review = create(group, member, owner, data, "shared")
-        return view(group, review, "learner")
+        return view(group, review, "learner", member)
 
     @app.post("/api/reviews/groups/{group_id}/policy")
     def set_policy(group_id: UUID, data: SetPolicy, owner: str = Depends(identify)):
@@ -591,13 +603,14 @@ def install(app, *, store):
         group_id: UUID, member_id: UUID, data: Submit, owner: str = Depends(identify)
     ):
         group, learner, subject = supervised_owner(owner, group_id, member_id)
+        _, member = facilitator(owner, group_id)
         review = create(group, learner, subject, data, "policy")
-        return view(group, review, "reviewer")
+        return view(group, review, "reviewer", member)
 
     @app.get("/api/reviews/groups/{group_id}/items/{review_id}")
     def review_detail(group_id: UUID, review_id: str, owner: str = Depends(identify)):
-        group, _, review, role = access(owner, group_id, review_id)
-        return view(group, review, role)
+        group, member, review, role = access(owner, group_id, review_id)
+        return view(group, review, role, member)
 
     @app.post("/api/reviews/groups/{group_id}/items/{review_id}/comments")
     def post(group_id: UUID, review_id: str, data: Post, owner: str = Depends(identify)):
@@ -637,7 +650,7 @@ def install(app, *, store):
                 "resolved_by": None,
             }
         )
-        return view(group, save(group_id, review, data.version), role)
+        return view(group, save(group_id, review, data.version), role, member)
 
     @app.post("/api/reviews/groups/{group_id}/items/{review_id}/comments/{comment_id}/resolve")
     def resolve(
@@ -653,14 +666,22 @@ def install(app, *, store):
         thread = next((c for c in review["comments"] if c["id"] == str(comment_id)), None)
         if thread is None or thread["parent"] is not None:
             raise HTTPException(404, "Comment not found")
+        if (
+            role == "reviewer"
+            and member["role"] != "facilitator"
+            and thread["member_id"] != member["id"]
+        ):
+            raise HTTPException(403, "Only the thread's author or the learner can resolve it")
         thread.update(
             resolved_at=now() if data.resolved else None,
             resolved_by=member["name"] if data.resolved else None,
         )
-        return view(group, save(group_id, review, data.version), role)
+        return view(group, save(group_id, review, data.version), role, member)
 
     @app.post("/api/reviews/groups/{group_id}/items/{review_id}/remove")
     def remove(group_id: UUID, review_id: str, data: Removal, owner: str = Depends(identify)):
-        _, _, review, _ = access(owner, group_id, review_id)
+        _, member, review, role = access(owner, group_id, review_id)
+        if role == "reviewer" and member["role"] != "facilitator":
+            raise HTTPException(403, "Only the learner or a facilitator can remove this review")
         store.transact([Write(f"group#{group_id}", f"{PREFIX}{review['id']}", None, data.version)])
         return {"removed": review["id"]}

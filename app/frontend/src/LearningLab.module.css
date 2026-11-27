@@ -292,8 +292,8 @@
   background: transparent;
   border: var(--hairline) solid var(--line-strong);
   border-radius: 4px;
-  padding: 7px 8px;
-  font-size: 10px;
+  padding: 8px 11px;
+  font-size: 12px;
 }
 .objectButtons button[aria-pressed="true"] {
   background: var(--warn-soft);
@@ -840,4 +840,60 @@
     filter: brightness(0.86) saturate(0.9);
     border-radius: var(--radius);
   }
+}
+
+/* Orientation: what the selected part does sits directly under the diagram. */
+.equipmentCard {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px 20px;
+  border-top: 1px solid var(--lesson-line);
+  background: var(--surface-1);
+}
+.equipmentHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+.equipmentHead h3 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+}
+.equipmentHead span {
+  font-size: 12px;
+  color: var(--lesson-muted);
+}
+.equipmentCard > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.equipmentCard .comparison {
+  font-size: 13px;
+}
+.equipmentCard .note p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.companion .instruction {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+}
+/* The run's numbers stand apart from the equipment above them. */
+.runPanel {
+  margin: 16px;
+  border: 1px solid var(--lesson-line);
+  border-radius: var(--lesson-radius);
+  overflow: hidden;
+  background: var(--surface-1);
+}
+.runPanel .stateHeading {
+  padding-top: 14px;
 }

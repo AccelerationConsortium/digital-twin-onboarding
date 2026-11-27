@@ -36,7 +36,6 @@ type Props = {
   name: string;
   onNavigate: (target: string) => void;
   onOpen: (session: Session) => void;
-  onFirstLesson: () => void;
   onCreate: () => void;
   onDesign: (instrument: Instrument, starter: Starter) => void;
   creationBusy: boolean;
@@ -187,7 +186,6 @@ export default function Workcell({
   name,
   onNavigate,
   onOpen,
-  onFirstLesson,
   onCreate,
   onDesign,
   creationBusy,
@@ -503,8 +501,8 @@ export default function Workcell({
             <>
               <StartMap
                 canPlan={canPlan}
+                sessions={sessions}
                 onNavigate={onNavigate}
-                onFirstLesson={onFirstLesson}
               />
               <InstrumentStories
                 onDesign={onDesign}

@@ -68,9 +68,11 @@
   color: var(--on-brand);
 }
 .lessonsTitle {
-  margin-top: 36px;
-  font-size: 15px;
-  color: var(--muted);
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+  font-size: 20px;
+  color: var(--ink);
   font-weight: 600;
 }
 .levels a:focus-visible {
@@ -305,4 +307,25 @@
 
 .lines > div + div {
   margin-top: 18px;
+}
+
+.outcome {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px 24px;
+  margin: 18px 0 4px;
+}
+.outcome div:nth-child(3) {
+  grid-column: 1 / -1;
+}
+.outcome dt {
+  font-size: 12px;
+  color: var(--muted);
+}
+.outcome dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }

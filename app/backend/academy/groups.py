@@ -15,7 +15,8 @@ from .auth import identify, in_cognito_group
 from .learning import present
 from .models import Experiment, StrictModel
 from .recipes import MIXING
-from .reviews import POINTER, pointer_record
+from .reviews import POINTER, POLICY, pointer_record
+from .reviews import PREFIX as REVIEW
 from .store import Conflict, Write
 from .teaching import new_session
 from .workcell_layout import corners
@@ -48,8 +49,45 @@ class Removal(StrictModel):
     version: int = Field(ge=1)
 
 
+class RenameGroup(StrictModel):
+    version: int = Field(ge=1)
+    name: str = Field(min_length=1, max_length=60)
+
+
+class LeaveGroup(StrictModel):
+    version: int = Field(ge=1)
+
+
 def now():
     return datetime.now(UTC).isoformat()
+
+
+def rename_member(store, owner, name):
+    """Show a learner's new profile name in every group they belong to.
+
+    Shares, comments and reviews keep the name they were written under.
+    """
+    for found in store.partition(owner, "membership#", MAX_GROUPS):
+        for _ in range(3):
+            group = store.get(f"group#{found['group_id']}", "group")
+            if group is None:
+                break
+            members = [
+                {**m, "name": name} if m["id"] == found["member_id"] else m
+                for m in group["members"]
+            ]
+            if members == group["members"]:
+                break
+            try:
+                store.put(
+                    f"group#{group['id']}",
+                    "group",
+                    {**group, "version": group["version"] + 1, "members": members},
+                    group["version"],
+                )
+                break
+            except Conflict:
+                continue  # someone joined or left meanwhile; apply to the newer group
 
 
 def install(app, *, store):
@@ -193,6 +231,77 @@ def install(app, *, store):
     @app.get("/api/groups/{group_id}")
     def group_detail(group_id: UUID, owner: str = Depends(identify)):
         return view(*membership(owner, group_id))
+
+    @app.post("/api/groups/{group_id}/rename")
+    def rename_group(group_id: UUID, data: RenameGroup, owner: str = Depends(identify)):
+        group, member = membership(owner, group_id)
+        if member["role"] != "facilitator":
+            raise HTTPException(403, "Only the facilitator can rename this group")
+        if group["version"] != data.version:
+            raise Conflict
+        updated = {**group, "version": group["version"] + 1, "name": data.name.strip()}
+        store.put(f"group#{group_id}", "group", updated, data.version)
+        return view(updated, member)
+
+    @app.post("/api/groups/{group_id}/leave")
+    def leave_group(group_id: UUID, data: LeaveGroup, owner: str = Depends(identify)):
+        """Leave a group. A facilitator hands the role to the longest-standing member;
+        the last member to leave closes the group."""
+        group, member = membership(owner, group_id)
+        if group["version"] != data.version:
+            raise Conflict
+        partition = f"group#{group_id}"
+        mine = store.get(owner, f"membership#{group_id}")
+        pointer = store.get(partition, f"{POINTER}{member['id']}")
+        writes = [Write(owner, f"membership#{group_id}", None, mine["version"])]
+        if pointer:
+            writes.append(Write(partition, f"{POINTER}{member['id']}", None, pointer["version"]))
+        remaining = [m for m in group["members"] if m["id"] != member["id"]]
+        if remaining and not any(m["role"] == "facilitator" for m in remaining):
+            remaining = [{**remaining[0], "role": "facilitator"}, *remaining[1:]]
+        if remaining:
+            writes.append(
+                Write(
+                    partition,
+                    "group",
+                    {**group, "version": group["version"] + 1, "members": remaining},
+                    group["version"],
+                )
+            )
+        else:
+            code = store.get(f"groupcode#{group['code']}", "group")
+            writes.append(Write(partition, "group", None, group["version"]))
+            if code:
+                writes.append(Write(f"groupcode#{group['code']}", "group", None, code["version"]))
+        store.transact(writes)
+        # Afterwards, one record at a time: the leaver's review requests go with them,
+        # and a closed group keeps nothing behind.
+        leftovers = (
+            [
+                *shares(group_id),
+                *store.partition(partition, REVIEW, 1000),
+                *store.partition(partition, POINTER, 1000),
+            ]
+            if not remaining
+            else store.partition(partition, f"{REVIEW}{member['id']}_", 1000)
+        )
+        for record in leftovers:
+            prefix = (
+                "share#" if "shared_at" in record else POINTER if "joined_at" in record else REVIEW
+            )
+            key = f"{prefix}{record['member_id'] if prefix == POINTER else record['id']}"
+            try:
+                store.transact([Write(partition, key, None, record["version"])])
+            except Conflict:
+                pass
+        if not remaining:
+            policy = store.get(partition, POLICY)
+            if policy:
+                try:
+                    store.transact([Write(partition, POLICY, None, policy["version"])])
+                except Conflict:
+                    pass
+        return {"left": str(group_id)}
 
     @app.post("/api/groups/{group_id}/shares", status_code=201)
     def share_experiment(group_id: UUID, data: ShareExperiment, owner: str = Depends(identify)):

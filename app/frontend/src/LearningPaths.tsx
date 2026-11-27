@@ -243,14 +243,37 @@ export default function LearningPaths({
                   ? "Your first transfer is understood."
                   : "Finish by explaining the result."}
               </h3>
+              {complete && first ? (
+                <dl className={s.outcome} aria-label="Lesson outcome">
+                  <div>
+                    <dt>Moved</dt>
+                    <dd>{first.state.wells.A1?.volume ?? 0} µL into well A1</dd>
+                  </div>
+                  <div>
+                    <dt>Source left</dt>
+                    <dd>{first.state.wells.stock?.volume ?? 0} µL</dd>
+                  </div>
+                  <div>
+                    <dt>Your explanation</dt>
+                    <dd>
+                      Aspirating moves liquid from the source into the tip;
+                      dispensing moves it from the tip into the target.
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Attempts</dt>
+                    <dd>{Math.max(first.attempts.length, 1)}</dd>
+                  </div>
+                </dl>
+              ) : null}
               <p>
-                Use the lesson’s observations and reflection to explain where
-                the liquid went. A saved teaching result records practice; it
-                does not qualify you to operate a physical instrument.
+                {complete
+                  ? "A saved teaching result records practice; it does not qualify you to operate a physical instrument."
+                  : "Use the lesson’s observations and reflection to explain where the liquid went. A saved teaching result records practice; it does not qualify you to operate a physical instrument."}
               </p>
               <button onClick={onFirstLesson} disabled={busy}>
                 {complete
-                  ? "Review lesson outcome"
+                  ? "Open the lesson again"
                   : first
                     ? "Return to my lesson"
                     : "Open the first lesson"}

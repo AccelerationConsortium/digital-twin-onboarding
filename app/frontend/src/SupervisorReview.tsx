@@ -58,6 +58,7 @@ type Summary = {
 };
 type Review = Omit<Summary, "comments" | "open_threads"> & {
   role: "reviewer" | "learner";
+  you: { id: string; facilitator: boolean };
   evidence: "synthetic";
   agent?: string | null;
   timeline: Entry[];
@@ -204,7 +205,7 @@ export default function SupervisorReview({
             run={run}
             onDone={reload}
           />
-          {facilitated.length > 0 && (
+          {(facilitated.length > 0 || overview.to_review.length > 0) && (
             <section aria-labelledby="queue-title">
               <h2 id="queue-title">To review</h2>
               <ReviewList
@@ -711,7 +712,13 @@ function ReviewPage({
                 replies={replies(thread.id)}
                 busy={busy}
                 onReply={(text) => post({ text, parent: thread.id })}
-                onResolve={(resolved) => resolve(thread, resolved)}
+                onResolve={
+                  review.role === "learner" ||
+                  review.you.facilitator ||
+                  thread.member_id === review.you.id
+                    ? (resolved) => resolve(thread, resolved)
+                    : undefined
+                }
               />
             ))}
           </ul>
@@ -775,7 +782,7 @@ function Thread({
   replies: Comment[];
   busy: boolean;
   onReply: (text: string) => Promise<boolean | undefined>;
-  onResolve: (resolved: boolean) => void;
+  onResolve?: (resolved: boolean) => void;
 }) {
   const [draft, setDraft] = useState("");
   const resolved = thread.resolved_at !== null;
@@ -794,13 +801,15 @@ function Thread({
       {resolved ? (
         <div className={s.threadRow}>
           <small>Resolved by {thread.resolved_by}</small>
-          <button
-            className={s.link}
-            disabled={busy}
-            onClick={() => onResolve(false)}
-          >
-            <RotateCcw size={13} /> Reopen
-          </button>
+          {onResolve && (
+            <button
+              className={s.link}
+              disabled={busy}
+              onClick={() => onResolve(false)}
+            >
+              <RotateCcw size={13} /> Reopen
+            </button>
+          )}
         </div>
       ) : (
         <form
@@ -820,14 +829,16 @@ function Thread({
           <button className={s.secondary} disabled={busy}>
             Reply
           </button>
-          <button
-            type="button"
-            className={s.secondary}
-            disabled={busy}
-            onClick={() => onResolve(true)}
-          >
-            Resolve
-          </button>
+          {onResolve && (
+            <button
+              type="button"
+              className={s.secondary}
+              disabled={busy}
+              onClick={() => onResolve(true)}
+            >
+              Resolve
+            </button>
+          )}
         </form>
       )}
     </li>

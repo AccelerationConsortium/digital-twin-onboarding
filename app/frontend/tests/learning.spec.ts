@@ -7,6 +7,7 @@ async function startLesson(page: Page) {
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Open my workspace" }).click();
+  await page.getByRole("button", { name: "Learning lab", exact: true }).click();
   await page
     .getByRole("button", { name: "Start learning Flex", exact: true })
     .click();
@@ -114,7 +115,7 @@ test("novice learns equipment, predicts, executes each step, reflects and retrie
   }
   await page
     .getByRole("button", {
-      name: "Explain the result and try again",
+      name: "Explain the result",
       exact: true,
     })
     .click();
@@ -133,6 +134,18 @@ test("novice learns equipment, predicts, executes each step, reflects and retrie
     .click();
   await expect(
     page.getByText("Practice and understanding complete", { exact: true }),
+  ).toBeVisible();
+  // The Learning lab card shows what the lesson achieved, then reopens it.
+  await page.getByRole("button", { name: "Learning lab", exact: true }).click();
+  const outcome = page
+    .getByRole("definition")
+    .filter({ hasText: "into well A1" });
+  await expect(outcome).toHaveText("100 µL into well A1");
+  await page
+    .getByRole("button", { name: "Open the lesson again", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: /Move 100 µL/ }),
   ).toBeVisible();
   page.once("dialog", (dialog) => dialog.accept());
   await page

@@ -1,3 +1,8 @@
+/* On the start page the stories are their own section, ruled off from the routes. */
+.compact {
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
 .stories {
   --story-accent: #b65c3a;
   --story-accent-soft: #f2e5d4;

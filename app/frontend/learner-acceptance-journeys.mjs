@@ -190,7 +190,7 @@ export async function firstTransferJourney(actor, { read, report }) {
   }
   await page
     .getByRole("button", {
-      name: "Explain the result and try again",
+      name: "Explain the result",
       exact: true,
     })
     .click();

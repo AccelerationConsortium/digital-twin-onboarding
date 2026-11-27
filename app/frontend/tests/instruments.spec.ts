@@ -845,7 +845,11 @@ test("planning a workcell has one entry and one next step per tab", async ({
   const workcell = page.getByRole("navigation", {
     name: "Workcell navigation",
   });
-  await expect(workcell.getByRole("button").first()).toHaveText(
+  // One entry, in the using route's order: device, twin, then the plan.
+  await expect(
+    workcell.getByRole("button", { name: "Plan a workcell", exact: true }),
+  ).toHaveCount(1);
+  await expect(workcell.getByRole("button").nth(2)).toHaveText(
     "Plan a workcell",
   );
   // The model library opens from the instruments step, not from the sidebar.

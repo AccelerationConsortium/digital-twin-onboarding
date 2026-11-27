@@ -15,7 +15,7 @@ test("a learner lights the skill tree from an instrument to a recombined workflo
 
   // Stage one: a function is met by having a twin do it.
   const stages = page.getByRole("navigation", { name: "Learning stages" });
-  await expect(stages).toContainText("0 / 16 functions met");
+  await expect(stages).toContainText("0 / 16 functions run on a twin");
   await page.getByRole("button", { name: "Conductivity", exact: true }).click();
   const panel = page.getByRole("region", { name: "Conductivity" });
   await panel.getByRole("button", { name: "Run it on the twin" }).click();
@@ -25,7 +25,7 @@ test("a learner lights the skill tree from an instrument to a recombined workflo
   await expect(
     page.getByRole("button", { name: "Conductivity, met" }),
   ).toBeVisible();
-  await expect(stages).toContainText("1 / 16 functions met");
+  await expect(stages).toContainText("1 / 16 functions run on a twin");
 
   // Stage two: a published workflow is a line through prepare, characterize and test.
   const published = page.getByRole("region", { name: "Published workflows" });
@@ -50,7 +50,7 @@ test("a learner lights the skill tree from an instrument to a recombined workflo
   await earned.getByRole("button", { name: "See the tree" }).click();
   await expect(
     page.getByRole("navigation", { name: "Learning stages" }),
-  ).toContainText("1 / 6 reproduced");
+  ).toContainText("1 / 6 workflows reproduced");
 
   // Stage three: one paper's preparation, measured the way another paper measures.
   await page
